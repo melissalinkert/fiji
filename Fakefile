@@ -199,6 +199,7 @@ PLUGIN_TARGETS=plugins/Jython_Interpreter.jar \
 	plugins/RandomJ_.jar \
 	plugins/Linear_Kuwahara.jar \
 	plugins/MSER_.jar \
+	plugins/Sipnet_.jar \
 	plugins/Jython_Scripts.jar
 
 all <- fiji $SUBMODULE_TARGETS $PLUGIN_TARGETS
