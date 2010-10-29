@@ -1,5 +1,6 @@
-import java.util.HashMap;
+
+import java.util.LinkedList;
 
 @SuppressWarnings("serial")
-public class Assignment extends HashMap<Region, Region> {
+public class Assignment extends LinkedList<SingleAssignment> {
 }

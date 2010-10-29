@@ -1,86 +1,34 @@
 
-import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
 
 public class Sipnet {
 
-	double distanceWeight;
-	double volumeWeight;
+	private AssignmentSearch assignmentSearch;
 
-	public Sipnet(double distanceWeight, double volumeWeight) {
+	public Sipnet(double distanceWeight) {
 
-		this.distanceWeight = distanceWeight;
-		this.volumeWeight   = volumeWeight;
+		AssignmentModel.setDistanceWeight(distanceWeight);
 	}
 
-	public Sequence greedySearch(Vector<Region> startCandidates, Vector<HashSet<Region>> sliceCandidates) {
+	public Sequence greedySearch(Set<Region> startCandidates, Vector<Set<Region>> sliceCandidates) {
 
-		Sequence       greedySeequence  = new Sequence();
-		Vector<Region> activeCandidates = startCandidates;
+		Sequence    greedySeequence = new Sequence();
+		Set<Region> sourceRegions   = startCandidates;
 
-		for (HashSet<Region> candidates : sliceCandidates) {
+		for (Set<Region> targetRegions : sliceCandidates) {
 
-			Assignment bestAssignment = getBestAssignment(activeCandidates, candidates);
-			greedySeequence.add(bestAssignment);
+			assignmentSearch = new AssignmentSearch(sourceRegions, targetRegions);
 
-			activeCandidates.clear();
-			activeCandidates.addAll(bestAssignment.values());
+			Assignment assignment = (Assignment)assignmentSearch.findBestPath();
+
+			greedySeequence.push(assignment);
+
+			sourceRegions.clear();
+			for (SingleAssignment singleAssignment : assignment)
+				sourceRegions.add(singleAssignment.getTarget());
 		}
+
 		return greedySeequence;
-	}
-
-	private final Assignment getBestAssignment(Vector<Region> activeCandidates, HashSet<Region> candidates) {
-
-		Assignment bestAssignment = new Assignment();
-
-		// first, assign each candidate to its best partner
-		for (Region activeCandidate : activeCandidates) {
-
-			Region bestPartner = getBestPartner(activeCandidate, candidates);
-			bestAssignment.put(activeCandidate, bestPartner);
-		}
-
-		return bestAssignment;
-	}
-
-	private final Region getBestPartner(Region activeCandidate, HashSet<Region> candidates) {
-
-		Region bestPartner = null;
-		double bestValue   = 0;
-
-		for (Region assignmentCandidate : candidates) {
-
-			double value = getCandidateAssignmentValue(activeCandidate, assignmentCandidate);
-
-			if (value < bestValue || bestPartner == null) {
-
-				bestValue   = value;
-				bestPartner = assignmentCandidate;
-			}
-		}
-
-		return bestPartner;
-	}
-
-	private final double getCandidateAssignmentValue(Region candidate1, Region candidate2) {
-
-		double distanceValue = getCandidateDistanceValue(candidate1, candidate2);
-		double volumeValue   = getCandidateVolumeValue(candidate1, candidate2);
-
-		return distanceWeight*distanceValue + volumeWeight*volumeValue;
-	}
-
-	private final double getCandidateDistanceValue(Region candidate1, Region candidate2) {
-
-		double distance2 = (candidate1.center[0] - candidate2.center[0])*(candidate1.center[0] - candidate2.center[0]) +
-						   (candidate1.center[1] - candidate2.center[1])*(candidate1.center[1] - candidate2.center[1]);
-
-		return distance2;
-	}
-
-	private final double getCandidateVolumeValue(Region candidate1, Region candidate2) {
-
-		// TODO: consider volume of candidates
-		return (candidate1.size - candidate2.size)*(candidate1.size - candidate2.size);
 	}
 }

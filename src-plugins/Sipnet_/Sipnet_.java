@@ -128,5 +128,4 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		imp.updateAndDraw();
 	}
-
 }

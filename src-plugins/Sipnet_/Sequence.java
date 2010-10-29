@@ -1,7 +1,6 @@
-import java.util.Vector;
+
+import java.util.LinkedList;
 
 @SuppressWarnings("serial")
-public class Sequence extends Vector<Assignment> {
-
-	private double probability;
+public class Sequence extends LinkedList<Assignment> {
 }
