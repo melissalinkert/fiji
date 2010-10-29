@@ -295,7 +295,7 @@ public class MSER<T extends RealType<T>> {
 	}
 
 	/**
-	 * @param image The image to process.
+	 * @param dimensions The dimensions of the image(s) to process.
 	 * @param delta Number of gray levels to consider for variation calculation
 	 * @param minArea Minimum size of a connected component
 	 * @param maxArea Maximum size of a connected component
@@ -304,14 +304,15 @@ public class MSER<T extends RealType<T>> {
 	 * @param minDiversity Minimum diversity for a component to be considered
 	 *                     stable
 	 */
-	public MSER(Image<T> img, int delta, int minArea, int maxArea, double maxVariation, double minDiversity) {
+	public MSER(int[] dimensions, int delta, int minArea, int maxArea, double maxVariation, double minDiversity) {
 
-		image         = img;
-		size          = image.size();
-		dimensions    = image.getDimensions();
+		this.dimensions = dimensions;
 		numDimensions = dimensions.length;
+		size          = 1;
+		for (int d : dimensions)
+			size *= d;
 
-		OffsetsPostions op   = createIndexOffsets(image.getDimensions());
+		OffsetsPostions op   = createIndexOffsets(dimensions);
 		neighborOffsets      = op.offsets;
 		neighborRelPositions = op.positions;
 		neighbors            = op.offsets.length;
@@ -355,9 +356,16 @@ public class MSER<T extends RealType<T>> {
 		this.minDiversity = minDiversity;
 	}
 
-	public void process(Image<T> regions, boolean darkToBright, boolean brightToDark) {
+	public void process(Image<T> image, boolean darkToBright, boolean brightToDark) {
+
+		process(image, darkToBright, brightToDark, null);
+	}
+
+	public void process(Image<T> image, boolean darkToBright, boolean brightToDark, Image<T> regions) {
 
 		this.regions = regions;
+
+		topMsers.clear();
 
 		// copy image data
 		LocalizableByDimCursor<T> cursor = image.createLocalizableByDimCursor();
@@ -595,12 +603,15 @@ public class MSER<T extends RealType<T>> {
 		}
 		topMsers.add(newRegion);
 
-		newRegion.setChildren(component.getChildRegions());
+		newRegion.addChildren(component.getChildRegions());
 
 		component.setChildRegion(newRegion);
 	}
 
 	private void visualizeMser(ConnectedComponent component) {
+
+		if (regions == null)
+			return;
 
 		int   index    = component.head;
 		int[] position = new int[numDimensions];

@@ -3,11 +3,11 @@ import java.util.Vector;
 
 public class Region {
 
-	public Region         parent;
-	public Vector<Region> children;
+	private Region         parent;
+	private Vector<Region> children;
 
-	public int      size;
-	public double[] center;
+	private int      size;
+	private double[] center;
 
 	public Region(int size, double[] center) {
 
@@ -23,7 +23,32 @@ public class Region {
 		this.parent = parent;
 	}
 
-	public void setChildren(Vector<Region> children) {
+	public Vector<Region> getChildren()
+	{
+		return this.children;
+	}
+
+	public int getSize()
+	{
+		return this.size;
+	}
+
+	public double[] getCenter()
+	{
+		return this.center;
+	}
+
+	public double getCenter(int index)
+	{
+		return this.center[index];
+	}
+
+	public Region getParent()
+	{
+		return this.parent;
+	}
+
+	public void addChildren(Vector<Region> children) {
 
 		this.children.addAll(children);
 	}
