@@ -1,8 +1,8 @@
 
 public class AssignmentModel {
 
-	static final double MinPAssignment       = 0.01;
-	static final double MaxNegLogPAssignment = -Math.log(MinPAssignment);
+	static final double MinPAssignment       = 1e-10;
+	static final double MaxNegLogPAssignment = 100*100; //-Math.log(MinPAssignment);
 
 	static double distanceWeight = 1.0;
 

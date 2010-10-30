@@ -3,29 +3,37 @@ import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-public abstract class AStarSearch<T extends SearchNode<T>> {
+import ij.IJ;
 
-	private PriorityQueue<T> openSet;
-	private LinkedList<T>    currentPath;
+public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<P, N>> {
 
-	public LinkedList<T> findBestPath() {
+	private PriorityQueue<N> openSet;
+	private P currentPath;
+
+	public P findBestPath(P startPath) {
 	
-		openSet           = new PriorityQueue<T>();
-		currentPath       = new LinkedList<T>();
+		openSet     = new PriorityQueue<N>();
+		currentPath = startPath;
 
 		while (true) {
 
-			Set<T> nextNodes = expand(currentPath);
+			IJ.log("processing node " + currentPath.peek());
+
+			Set<N> nextNodes = expand(currentPath);
+
+			IJ.log("" + nextNodes.size() + " next possible");
 	
-			for (T node : nextNodes) {
+			for (N node : nextNodes) {
 				double g = g(currentPath, node);
 				node.setDistanceFromStart(g);
 				node.setEstimatedDistance(g + h(node));
 			}
 	
 			openSet.addAll(nextNodes);
+
+			IJ.log("in total, " + openSet.size() + " open nodes");
 	
-			T bestNode = openSet.poll();
+			N bestNode = openSet.poll();
 
 			// this can only happen if the target nodes are not reachable from
 			// the start node
@@ -33,16 +41,18 @@ public abstract class AStarSearch<T extends SearchNode<T>> {
 				return null;
 	
 			currentPath = bestNode.getBestPath();
-	
-			if (reachedTarget(currentPath))
+
+			if (reachedTarget(currentPath)) {
+				IJ.log("Found best path.");
 				return currentPath;
+			}
 		}
 	}
 
-	protected abstract double g(LinkedList<T> path, T node);
-	protected abstract double h(T node);
+	protected abstract double g(P path, N node);
+	protected abstract double h(N node);
 
-	protected abstract Set<T> expand(LinkedList<T> node);
+	protected abstract Set<N> expand(P path);
 
-	protected abstract boolean reachedTarget(LinkedList<T> path);
+	protected abstract boolean reachedTarget(P path);
 }

@@ -9,6 +9,9 @@ public class Region {
 	private int      size;
 	private double[] center;
 
+	private Region closestRegion;
+	private double minNegLogPAssignment;
+
 	public Region(int size, double[] center) {
 
 		this.size     = size;
@@ -16,6 +19,9 @@ public class Region {
 		System.arraycopy(center, 0, this.center, 0, center.length);
 		this.parent   = null;
 		this.children = new Vector<Region>();
+
+		this.closestRegion        = null;
+		this.minNegLogPAssignment = -1;
 	}
 
 	public void setParent(Region parent) {
@@ -41,6 +47,26 @@ public class Region {
 	public double getCenter(int index)
 	{
 		return this.center[index];
+	}
+
+	public void setClosestRegion(Region closestRegion)
+	{
+		this.closestRegion = closestRegion;
+	}
+
+	public void setMinNegLogPAssignment(double minNegLogPAssignment)
+	{
+		this.minNegLogPAssignment = minNegLogPAssignment;
+	}
+
+	public double getMinNegLogPAssignment()
+	{
+		return this.minNegLogPAssignment;
+	}
+
+	public Region getClosestRegion()
+	{
+		return this.closestRegion;
 	}
 
 	public Region getParent()

@@ -1,5 +1,6 @@
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
 
 import ij.IJ;
@@ -27,7 +28,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private MSER<T>  mser;
 	private Sipnet   sipnet;
 
-	private Vector<HashSet<Region>> sliceCandidates;
+	private Vector<Set<Region>> sliceCandidates;
 
 	public void run(String args) {
 
@@ -64,12 +65,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		}
 
 		// start points
-		Vector<Region> startCandidates = new Vector<Region>();
+		Set<Region> startCandidates = new HashSet<Region>();
 
 		// extract neuron center candidates
 		ImageStack stack = imp.getStack();
 		numSlices = stack.getSize();
-		sliceCandidates = new Vector<HashSet<Region>>(numSlices);
+		sliceCandidates = new Vector<Set<Region>>(numSlices);
 		sliceCandidates.setSize(numSlices - 1);
 
 		for (int s = 0; s < numSlices; s++) {
@@ -97,29 +98,31 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		// perform greedy search
 		IJ.log("Searching for the best path greedily");
-		sipnet = new Sipnet(1.0, 1.0);
+		sipnet = new Sipnet(1.0);
 		Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
+
+		if (greedySeequence == null)
+			return;
 
 		// visualize result
 		IJ.setForegroundColor(255, 255, 255);
 		int slice = 1;
 		for (Assignment assignment : greedySeequence) {
 			int id = 0;
-			for (Region source : assignment.keySet()) {
+			for (SingleAssignment singleAssignment : assignment) {
 
-				Region target = assignment.get(source);
+				Region source = singleAssignment.getSource();
+				Region target = singleAssignment.getTarget();
 
-				int x = (int)source.center[0];
-				int y = (int)source.center[1];
-				System.out.println("drawString(\"" + id + "\", " + x + ", " + y + ")");
+				int x = (int)source.getCenter()[0];
+				int y = (int)source.getCenter()[1];
 				IJ.setSlice(slice);
 				IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
 
-				x = (int)target.center[0];
-				y = (int)target.center[1];
+				x = (int)target.getCenter()[0];
+				y = (int)target.getCenter()[1];
 				IJ.setSlice(slice+1);
 				IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
-				System.out.println("drawString(\"" + id + "\", " + x + ", " + y + ")");
 
 				id++;
 			}

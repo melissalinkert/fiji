@@ -2,6 +2,8 @@
 import java.util.Set;
 import java.util.Vector;
 
+import ij.IJ;
+
 public class Sipnet {
 
 	private AssignmentSearch assignmentSearch;
@@ -20,7 +22,20 @@ public class Sipnet {
 
 			assignmentSearch = new AssignmentSearch(sourceRegions, targetRegions);
 
-			Assignment assignment = (Assignment)assignmentSearch.findBestPath();
+			Assignment assignment = assignmentSearch.findBestPath(new Assignment());
+
+			if (assignment == null) {
+
+				IJ.log("No assignments could be found that have the minimum probability.");
+				return null;
+			} else {
+
+				for (SingleAssignment singleAssignment : assignment) {
+
+					IJ.log(singleAssignment.getSource().toString());
+					IJ.log(" -> " + singleAssignment.getTarget());
+				}
+			}
 
 			greedySeequence.push(assignment);
 

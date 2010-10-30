@@ -1,21 +1,19 @@
 
-import java.util.LinkedList;
-
-public abstract class SearchNode<T> implements Comparable<SearchNode<T>> {
+public abstract class SearchNode<P, N> implements Comparable<SearchNode<P, N>> {
 
 	// the best path to this node
-	private LinkedList<T> bestPath;
+	private P bestPath;
 	// the length of the best path
 	private double distanceFromStart;
 	// the estimated remaining distance
 	private double estimatedDistance;
 
-	public LinkedList<T> getBestPath()
+	public P getBestPath()
 	{
 		return this.bestPath;
 	}
 
-	public void setBestPath(LinkedList<T> bestPath)
+	public void setBestPath(P bestPath)
 	{
 		this.bestPath = bestPath;
 	}
@@ -38,7 +36,7 @@ public abstract class SearchNode<T> implements Comparable<SearchNode<T>> {
 		this.estimatedDistance = estimatedDistance;
 	}
 
-	public final int compareTo(SearchNode<T> other) {
+	public final int compareTo(SearchNode<P, N> other) {
 
 		if (this.getEstimatedDistance() < other.getEstimatedDistance())
 			return -1;
