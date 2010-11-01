@@ -90,15 +90,21 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			IJ.log("Found " + mser.getTopMsers().size() + " parent candidates in slice " + s);
 
 			// TODO; pick startCandidates via GUI
-			if (s == 0)
-				startCandidates.addAll(mser.getMsers());
-			else
+			if (s == 0) {
+				Vector<Region> msers = new Vector<Region>();
+				msers.addAll(mser.getMsers());
+				// randomly select some start candidates
+				for (int i = 0; i < 50; i++) {
+					int rand = (int)(Math.random()*msers.size());
+					startCandidates.add(msers.get(rand));
+				}
+			} else
 				sliceCandidates.set(s - 1, mser.getMsers());
 		}
 
 		// perform greedy search
 		IJ.log("Searching for the best path greedily");
-		sipnet = new Sipnet(1.0);
+		sipnet = new Sipnet(1.0, 0.5);
 		Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
 
 		if (greedySeequence == null)

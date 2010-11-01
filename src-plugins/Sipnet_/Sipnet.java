@@ -8,9 +8,10 @@ public class Sipnet {
 
 	private AssignmentSearch assignmentSearch;
 
-	public Sipnet(double distanceWeight) {
+	public Sipnet(double distanceWeight, double areaWeight) {
 
 		AssignmentModel.setDistanceWeight(distanceWeight);
+		AssignmentModel.setAreaWeight(areaWeight);
 	}
 
 	public Sequence greedySearch(Set<Region> startCandidates, Vector<Set<Region>> sliceCandidates) {

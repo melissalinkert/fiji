@@ -27,12 +27,22 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 		Region sourceRegion = sourceRegions.get(path.size());
 
 		// get all possible targets
-		// TODO: don't consider occupied targets!
-		// TODO: don't consider forbidden assignments!
-		for (Region targetRegion : targetRegions) {
+A:		for (Region targetRegion : targetRegions) {
 
 			double negLogPAssignement = AssignmentModel.negLogP(sourceRegion, targetRegion);
 			if (negLogPAssignement <= AssignmentModel.MaxNegLogPAssignment) {
+
+				// check if target region was already assigned
+				// TODO: optimize
+				for (SingleAssignment singleAssignment : path)
+					if (targetRegion == singleAssignment.getTarget())
+						continue A;
+
+				// check for concurrent hypothesis consistency
+				// TODO: optimize
+				for (SingleAssignment singleAssignment : path)
+					if (conflicts(targetRegion, singleAssignment.getTarget()))
+						continue A;
 
 				SingleAssignment assignment = new SingleAssignment(sourceRegion, targetRegion, negLogPAssignement);
 
@@ -91,5 +101,11 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 		IJ.showProgress(assignment.size(), sourceRegions.size());
 
 		return assignment.size() == sourceRegions.size();
+	}
+
+	private boolean conflicts(Region region1, Region region2) {
+
+		// two regions are in conflict, if one is the ancestor of the other
+		return (region1.isAncestorOf(region2) || region2.isAncestorOf(region1));
 	}
 }
