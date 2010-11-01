@@ -31,6 +31,7 @@ public class MSER<T extends RealType<T>> {
 	 * Region tree representation
 	 */
 	private HashSet<Region> topMsers;
+	private HashSet<Region> msers;
 
 	/*
 	 * Internal Data
@@ -334,6 +335,7 @@ public class MSER<T extends RealType<T>> {
 		components.setSize(257);
 
 		topMsers = new HashSet<Region>();
+		msers    = new HashSet<Region>();
 
 		setParameters(delta, minArea, maxArea, maxVariation, minDiversity);
 	}
@@ -366,6 +368,7 @@ public class MSER<T extends RealType<T>> {
 		this.regions = regions;
 
 		topMsers.clear();
+		msers.clear();
 
 		// copy image data
 		LocalizableByDimCursor<T> cursor = image.createLocalizableByDimCursor();
@@ -393,6 +396,16 @@ public class MSER<T extends RealType<T>> {
 	public HashSet<Region> getTopMsers() {
 
 		return topMsers;
+	}
+
+	/**
+	 * Returns all elements of the region tree.
+	 *
+	 * @return The root element of the region tree
+	 */
+	public HashSet<Region> getMsers() {
+
+		return msers;
 	}
 
 	private void setupBuffers() {
@@ -596,6 +609,8 @@ public class MSER<T extends RealType<T>> {
 		visualizeMser(component);
 
 		Region newRegion = new Region(component.size, component.center);
+
+		msers.add(newRegion);
 
 		for (Region child : component.getChildRegions()) {
 			topMsers.remove(child);
