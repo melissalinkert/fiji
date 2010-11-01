@@ -12,6 +12,10 @@ import ij.gui.GenericDialog;
 
 import ij.plugin.PlugIn;
 
+import ij.process.ImageProcessor;
+
+import mpicbg.imglib.cursor.LocalizableByDimCursor;
+
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.image.ImagePlusAdapter;
 
@@ -21,9 +25,13 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	// the stack to process
 	private ImagePlus imp;
+	private ImagePlus reg;
 	private int numSlices;
 
 	private Image<T> sliceImage;
+	private Image<T> sliceRegion;
+
+	private Visualisation visualiser;
 
 	private MSER<T>  mser;
 	private Sipnet   sipnet;
@@ -64,14 +72,32 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			return;
 		}
 
+		// setup visualisation
+		visualiser = new Visualisation();
+
 		// start points
 		Set<Region> startCandidates = new HashSet<Region>();
 
-		// extract neuron center candidates
+		// setup image stack
 		ImageStack stack = imp.getStack();
 		numSlices = stack.getSize();
 		sliceCandidates = new Vector<Set<Region>>(numSlices);
 		sliceCandidates.setSize(numSlices - 1);
+
+		// prepare segmentation image
+		reg = imp.createImagePlus();
+		ImageStack regStack = new ImageStack(imp.getWidth(), imp.getHeight());
+		for (int s = 1; s <= numSlices; s++) {
+			ImageProcessor duplProcessor = imp.getStack().getProcessor(s).duplicate();
+			regStack.addSlice("", duplProcessor);
+		}
+		reg.setStack(regStack);
+		reg.setDimensions(1, numSlices, 1);
+		if (numSlices > 1)
+			reg.setOpenAsHyperStack(true);
+	
+		reg.setTitle("msers of " + imp.getTitle());
+	
 
 		for (int s = 0; s < numSlices; s++) {
 
@@ -79,15 +105,26 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// create slice image
 			ImagePlus sliceImp = new ImagePlus("slice " + s+1, stack.getProcessor(s+1));
-			sliceImage = ImagePlusAdapter.wrap(sliceImp);
+			sliceImage  = ImagePlusAdapter.wrap(sliceImp);
+			ImagePlus sliceReg = new ImagePlus("slice " + s+1, regStack.getProcessor(s+1));
+			sliceRegion = ImagePlusAdapter.wrap(sliceReg);
+			LocalizableByDimCursor<T> regionsCursor = sliceRegion.createLocalizableByDimCursor();
+			while (regionsCursor.hasNext()) {
+				regionsCursor.fwd();
+				regionsCursor.getType().setReal(0.0);
+			}
 
 			// set up algorithm
 			if (mser == null)
 				mser = new MSER<T>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
 
-			mser.process(sliceImage, true, false);
+			mser.process(sliceImage, true, false, sliceRegion);
 
 			IJ.log("Found " + mser.getTopMsers().size() + " parent candidates in slice " + s);
+
+			// visualise result
+			IJ.run(sliceReg, "Fire", "");
+			visualiser.texifyMserTree(mser, sliceReg, "./sipnet-tex/", "slice" + s);
 
 			// TODO; pick startCandidates via GUI
 			if (s == 0) {
