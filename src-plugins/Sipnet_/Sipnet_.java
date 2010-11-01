@@ -91,9 +91,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// TODO; pick startCandidates via GUI
 			if (s == 0)
-				startCandidates.addAll(mser.getTopMsers());
+				startCandidates.addAll(mser.getMsers());
 			else
-				sliceCandidates.set(s - 1, mser.getTopMsers());
+				sliceCandidates.set(s - 1, mser.getMsers());
 		}
 
 		// perform greedy search

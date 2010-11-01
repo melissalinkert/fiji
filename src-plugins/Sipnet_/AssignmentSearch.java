@@ -23,7 +23,7 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 
 		Set<SingleAssignment> assignments = new HashSet<SingleAssignment>();
 
-		// get region that should new list its possible targets
+		// get region that should now list its possible targets
 		Region sourceRegion = sourceRegions.get(path.size());
 
 		// get all possible targets
