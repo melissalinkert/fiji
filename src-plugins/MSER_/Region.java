@@ -1,7 +1,13 @@
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import java.util.PriorityQueue;
 import java.util.Vector;
 
-public class Region {
+public class Region implements Externalizable {
 
 	private static int NextId = 0;
 
@@ -13,8 +19,8 @@ public class Region {
 	private int      size;
 	private double[] center;
 
-	private Region closestRegion;
-	private double minNegLogPAssignment;
+	private PriorityQueue<Region> closestRegions;
+	private double                minNegLogPAssignment;
 
 	public Region(int size, double[] center) {
 
@@ -27,7 +33,7 @@ public class Region {
 		this.parent   = null;
 		this.children = new Vector<Region>();
 
-		this.closestRegion        = null;
+		this.closestRegions       = null;
 		this.minNegLogPAssignment = -1;
 	}
 
@@ -52,8 +58,8 @@ public class Region {
 		return this.center[index];
 	}
 
-	public void setClosestRegion(Region closestRegion) {
-		this.closestRegion = closestRegion;
+	public void setClosestRegions(PriorityQueue<Region> closestRegions) {
+		this.closestRegions = closestRegions;
 	}
 
 	public void setMinNegLogPAssignment(double minNegLogPAssignment) {
@@ -64,8 +70,8 @@ public class Region {
 		return this.minNegLogPAssignment;
 	}
 
-	public Region getClosestRegion() {
-		return this.closestRegion;
+	public PriorityQueue<Region> getClosestRegions() {
+		return this.closestRegions;
 	}
 
 	public Region getParent() {
@@ -93,13 +99,47 @@ public class Region {
 
 	public String toString() {
 
-		String ret = "Region at ";
+		String ret = "Region " + id + ",";
 
 		for (int d = 0; d < center.length; d++)
-			ret += " " + center[d];
+			ret += " " + (int)center[d];
 
 		ret += ", size: " + size;
 
 		return ret;
+	}
+
+	public void writeExternal(ObjectOutput out) throws IOException {
+
+		out.writeInt(id);
+		// omit parent
+		out.writeInt(children.size());
+		for (Region child : children)
+			child.writeExternal(out);
+		out.writeInt(size);
+		out.writeObject(center);
+		// omit closestRegions
+		// omit minNegLogPAssignment
+
+	}
+
+	public void readExternal(ObjectInput in) throws IOException {
+
+		id = in.readInt();
+		if (id >= NextId)
+			NextId = id + 1;
+		int numChildren = in.readInt();
+		for (int i = 0; i < numChildren; i++) {
+			Region child = new Region(0, new double[0]);
+			child.readExternal(in);
+			child.setParent(this);
+			children.add(child);
+		}
+		size = in.readInt();
+		try {
+			center = (double[])in.readObject();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 }
