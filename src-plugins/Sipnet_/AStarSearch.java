@@ -3,8 +3,6 @@ import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import ij.IJ;
-
 public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<P, N>> {
 
 	private PriorityQueue<N> openSet;
@@ -17,12 +15,8 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 
 		while (true) {
 
-			IJ.log("processing node " + currentPath.peek());
-
 			Set<N> nextNodes = expand(currentPath);
 
-			IJ.log("" + nextNodes.size() + " next possible");
-	
 			for (N node : nextNodes) {
 				double g = g(currentPath, node);
 				node.setDistanceFromStart(g);
@@ -31,21 +25,19 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 	
 			openSet.addAll(nextNodes);
 
-			IJ.log("in total, " + openSet.size() + " open nodes");
-	
 			N bestNode = openSet.poll();
 
 			// this can only happen if the target nodes are not reachable from
 			// the start node
-			if (bestNode == null)
+			if (bestNode == null) {
+				noMoreOpenNodes(currentPath);
 				return null;
+			}
 	
 			currentPath = bestNode.getBestPath();
 
-			if (reachedTarget(currentPath)) {
-				IJ.log("Found best path.");
+			if (reachedTarget(currentPath))
 				return currentPath;
-			}
 		}
 	}
 
@@ -55,4 +47,5 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 	protected abstract Set<N> expand(P path);
 
 	protected abstract boolean reachedTarget(P path);
+	protected abstract void    noMoreOpenNodes(P path);
 }

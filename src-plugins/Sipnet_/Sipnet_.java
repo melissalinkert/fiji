@@ -163,7 +163,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		// perform greedy search
 		IJ.log("Searching for the best path greedily");
-		sipnet = new Sipnet(1.0, 0.5);
+		sipnet = new Sipnet(1.0, 0.1);
 		Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
 
 		if (greedySeequence == null)

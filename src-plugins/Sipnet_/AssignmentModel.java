@@ -4,8 +4,8 @@ public class AssignmentModel {
 	static double distanceWeight = 1.0;
 	static double areaWeight     = 1.0;
 
-	static final double MinPAssignment       = 1e-10;
-	static final double MaxNegLogPAssignment = 100*100 + 50*50; //-Math.log(MinPAssignment);
+	static final double MinPAssignment       = 1e-20;
+	static final double MaxNegLogPAssignment = 1000000000; //-Math.log(MinPAssignment);
 
 	static final double negLogP(SingleAssignment assignment) {
 

@@ -41,6 +41,7 @@ public class Visualisation {
 
 	public static void texifyClosestCandidates(Collection<Region> regions, String outputDir) {
 
+		
 	}
 
 	private void texifyRegions(Collection<Region> msers, double scale, int width, int height, int parentId, Writer out) throws IOException {

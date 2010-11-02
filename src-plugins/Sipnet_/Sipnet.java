@@ -29,13 +29,6 @@ public class Sipnet {
 
 				IJ.log("No assignments could be found that have the minimum probability.");
 				return null;
-			} else {
-
-				for (SingleAssignment singleAssignment : assignment) {
-
-					IJ.log(singleAssignment.getSource().toString());
-					IJ.log(" -> " + singleAssignment.getTarget());
-				}
 			}
 
 			greedySeequence.push(assignment);
