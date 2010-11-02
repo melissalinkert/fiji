@@ -1,4 +1,5 @@
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -32,6 +33,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private Image<T> sliceRegion;
 
 	private Visualisation visualiser;
+	private IO            io;
 
 	private MSER<T>  mser;
 	private Sipnet   sipnet;
@@ -72,11 +74,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			return;
 		}
 
-		// setup visualisation
+		// setup visualisation and file IO
 		visualiser = new Visualisation();
-
-		// start points
-		Set<Region> startCandidates = new HashSet<Region>();
+		io         = new IO();
 
 		// setup image stack
 		ImageStack stack = imp.getStack();
@@ -98,45 +98,67 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 		reg.setTitle("msers of " + imp.getTitle());
 	
+		// create set of start points
+		Set<Region> startCandidates = new HashSet<Region>();
 
 		for (int s = 0; s < numSlices; s++) {
 
 			IJ.log("Processing slice " + s + "...");
 
-			// create slice image
-			ImagePlus sliceImp = new ImagePlus("slice " + s+1, stack.getProcessor(s+1));
-			sliceImage  = ImagePlusAdapter.wrap(sliceImp);
-			ImagePlus sliceReg = new ImagePlus("slice " + s+1, regStack.getProcessor(s+1));
-			sliceRegion = ImagePlusAdapter.wrap(sliceReg);
-			LocalizableByDimCursor<T> regionsCursor = sliceRegion.createLocalizableByDimCursor();
-			while (regionsCursor.hasNext()) {
-				regionsCursor.fwd();
-				regionsCursor.getType().setReal(0.0);
+			String mserFilename = "./top-msers-" + s + ".sip";
+
+			HashSet<Region> topMsers = null;
+			HashSet<Region> msers    = null;
+			
+			if (io.exists(mserFilename)) {
+
+				IJ.log("Reading Msers from " + mserFilename);
+				topMsers = io.readMsers(mserFilename);
+				msers    = flatten(topMsers);
+
+			} else {
+
+				// create slice image
+				ImagePlus sliceImp = new ImagePlus("slice " + s+1, stack.getProcessor(s+1));
+				sliceImage  = ImagePlusAdapter.wrap(sliceImp);
+				ImagePlus sliceReg = new ImagePlus("slice " + s+1, regStack.getProcessor(s+1));
+				sliceRegion = ImagePlusAdapter.wrap(sliceReg);
+				LocalizableByDimCursor<T> regionsCursor = sliceRegion.createLocalizableByDimCursor();
+				while (regionsCursor.hasNext()) {
+					regionsCursor.fwd();
+					regionsCursor.getType().setReal(0.0);
+				}
+	
+				// set up algorithm
+				if (mser == null)
+					mser = new MSER<T>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
+	
+				mser.process(sliceImage, true, false, sliceRegion);
+
+				topMsers = mser.getTopMsers();
+				msers    = mser.getMsers();
+	
+				IJ.log("Found " + topMsers.size() + " parent candidates in slice " + s);
+	
+				// visualise result
+				IJ.run(sliceReg, "Fire", "");
+				visualiser.texifyMserTree(mser, sliceReg, "./sipnet-tex/", "slice" + s);
+	
+				// write msers to file
+				io.writeMsers(topMsers, "./top-msers-" + s + ".sip");
 			}
-
-			// set up algorithm
-			if (mser == null)
-				mser = new MSER<T>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
-
-			mser.process(sliceImage, true, false, sliceRegion);
-
-			IJ.log("Found " + mser.getTopMsers().size() + " parent candidates in slice " + s);
-
-			// visualise result
-			IJ.run(sliceReg, "Fire", "");
-			visualiser.texifyMserTree(mser, sliceReg, "./sipnet-tex/", "slice" + s);
 
 			// TODO; pick startCandidates via GUI
 			if (s == 0) {
-				Vector<Region> msers = new Vector<Region>();
-				msers.addAll(mser.getMsers());
+				Vector<Region> vmsers = new Vector<Region>();
+				vmsers.addAll(msers);
 				// randomly select some start candidates
 				for (int i = 0; i < 50; i++) {
-					int rand = (int)(Math.random()*msers.size());
-					startCandidates.add(msers.get(rand));
+					int rand = (int)(Math.random()*vmsers.size());
+					startCandidates.add(vmsers.get(rand));
 				}
 			} else
-				sliceCandidates.set(s - 1, mser.getMsers());
+				sliceCandidates.set(s - 1, msers);
 		}
 
 		// perform greedy search
@@ -173,5 +195,16 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		}
 
 		imp.updateAndDraw();
+	}
+
+	private HashSet<Region> flatten(Collection<Region> parents) {
+
+		HashSet<Region> allRegions = new HashSet<Region>();
+
+		allRegions.addAll(parents);
+		for (Region parent : parents)
+			allRegions.addAll(flatten(parent.getChildren()));
+
+		return allRegions;
 	}
 }
