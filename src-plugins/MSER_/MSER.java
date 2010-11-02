@@ -37,8 +37,6 @@ public class MSER<T extends RealType<T>> {
 	 * Internal Data
 	 */
 
-	// the image to process
-	private Image<T>  image;
 	// an image with all found regions
 	private Image<T>  regions;
 	private int       size;
@@ -669,12 +667,5 @@ public class MSER<T extends RealType<T>> {
 			position[d] = (index/prod) % dimensions[d];
 			prod *= dimensions[d];
 		}
-	}
-
-	private String arrayString(double[] array) {
-		String ret = "";
-		for (int d = 0; d < array.length; d++)
-			ret += " " + array[d];
-		return ret;
 	}
 }
