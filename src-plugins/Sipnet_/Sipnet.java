@@ -7,11 +7,14 @@ import ij.IJ;
 public class Sipnet {
 
 	private AssignmentSearch assignmentSearch;
+	private Visualiser       visualiser;
 
-	public Sipnet(double distanceWeight, double areaWeight) {
+	public Sipnet(double distanceWeight, double areaWeight, Visualiser visualiser) {
 
 		AssignmentModel.setDistanceWeight(distanceWeight);
 		AssignmentModel.setAreaWeight(areaWeight);
+
+		this.visualiser = visualiser;
 	}
 
 	public Sequence greedySearch(Set<Region> startCandidates, Vector<Set<Region>> sliceCandidates) {
@@ -22,6 +25,8 @@ public class Sipnet {
 		for (Set<Region> targetRegions : sliceCandidates) {
 
 			assignmentSearch = new AssignmentSearch(sourceRegions, targetRegions);
+
+			visualiser.texifyClosestCandidates(sourceRegions, greedySeequence.size());
 
 			Assignment assignment = assignmentSearch.findBestPath(new Assignment());
 

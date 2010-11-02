@@ -5,6 +5,8 @@ import java.util.Set;
 
 public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<P, N>> {
 
+	private static final int MaxOpenNodes = 1000;
+
 	private PriorityQueue<N> openSet;
 	private P currentPath;
 
@@ -33,6 +35,9 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 				noMoreOpenNodes(currentPath);
 				return null;
 			}
+
+			if (openSet.size() > MaxOpenNodes)
+				return null;
 	
 			currentPath = bestNode.getBestPath();
 

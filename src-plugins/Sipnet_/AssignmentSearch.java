@@ -44,6 +44,10 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 
 		this.sourceRegions.addAll(sourceRegions);
 		this.targetRegions.addAll(targetRegions);
+
+		// build cache
+		for (Region sourceRegion : sourceRegions)
+			cacheClosestRegions(sourceRegion);
 	}
 
 	protected Set<SingleAssignment> expand(Assignment path) {
@@ -52,9 +56,6 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 
 		// get region that should now list its possible targets
 		Region sourceRegion = sourceRegions.get(path.size());
-
-		// get closest regions, if not done for this one before
-		cacheClosestRegions(sourceRegion);
 
 		// get all possible targets
 A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
@@ -101,11 +102,7 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 		// for all source regions, that have not been assigned yet...
 		for (int i = node.getBestPath().size(); i < sourceRegions.size(); i++) {
 
-			// ...get their closest region and its likelihood...
-			cacheClosestRegions(sourceRegions.get(i));
-
-			// ...and use the sum of all as our optimistic estimate of the
-			// remaining distance
+			// ...sum up all best distances as our optimistic estimate of
 			distance += sourceRegions.get(i).getMinNegLogPAssignment();
 		}
 

@@ -32,7 +32,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private Image<T> sliceImage;
 	private Image<T> sliceRegion;
 
-	private Visualisation visualiser;
+	private Visualiser visualiser;
 	private IO            io;
 
 	private MSER<T>  mser;
@@ -75,7 +75,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		}
 
 		// setup visualisation and file IO
-		visualiser = new Visualisation();
+		visualiser = new Visualiser(imp, "./sipnet-tex/");
 		io         = new IO();
 
 		// setup image stack
@@ -142,7 +142,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 				// visualise result
 				IJ.run(sliceReg, "Fire", "");
-				visualiser.texifyMserTree(mser, sliceReg, "./sipnet-tex/", "slice" + s);
+				visualiser.texifyMserTree(mser, s);
 	
 				// write msers to file
 				io.writeMsers(topMsers, "./top-msers-" + s + ".sip");
@@ -163,7 +163,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		// perform greedy search
 		IJ.log("Searching for the best path greedily");
-		sipnet = new Sipnet(1.0, 0.1);
+		sipnet = new Sipnet(1.0, 0.1, visualiser);
 		Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
 
 		if (greedySeequence == null)
