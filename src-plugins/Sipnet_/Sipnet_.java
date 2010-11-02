@@ -74,14 +74,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			return;
 		}
 
-		// setup visualisation and file IO
-		visualiser = new Visualiser(imp, "./sipnet-tex/");
-		io         = new IO();
-
 		// setup image stack
 		ImageStack stack = imp.getStack();
 		numSlices = stack.getSize();
-		sliceCandidates = new Vector<Set<Region>>(numSlices);
+		sliceCandidates = new Vector<Set<Region>>(numSlices - 1);
 		sliceCandidates.setSize(numSlices - 1);
 
 		// prepare segmentation image
@@ -98,6 +94,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 		reg.setTitle("msers of " + imp.getTitle());
 	
+		// setup visualisation and file IO
+		visualiser = new Visualiser(reg, "./sipnet-tex/");
+		io         = new IO();
+
 		// create set of start points
 		Set<Region> startCandidates = new HashSet<Region>();
 
@@ -150,20 +150,18 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// TODO; pick startCandidates via GUI
 			if (s == 0) {
-				Vector<Region> vmsers = new Vector<Region>();
-				vmsers.addAll(msers);
-				// randomly select some start candidates
-				for (int i = 0; i < 50; i++) {
-					int rand = (int)(Math.random()*vmsers.size());
-					startCandidates.add(vmsers.get(rand));
-				}
+
+				int[] starterIds = new int[]{52, 247, 985, 937, 25, 962, 963, 974, 882, 974, 976, 963, 971, 941, 885, 294, 248};
+				for (Region region : msers)
+					if (contains(starterIds, region.getId()))
+						startCandidates.add(region);
 			} else
 				sliceCandidates.set(s - 1, msers);
 		}
 
 		// perform greedy search
 		IJ.log("Searching for the best path greedily");
-		sipnet = new Sipnet(1.0, 0.1, visualiser);
+		sipnet = new Sipnet(visualiser);
 		Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
 
 		if (greedySeequence == null)
@@ -173,7 +171,6 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		IJ.setForegroundColor(255, 255, 255);
 		int slice = 1;
 		for (Assignment assignment : greedySeequence) {
-			int id = 0;
 			for (SingleAssignment singleAssignment : assignment) {
 
 				Region source = singleAssignment.getSource();
@@ -182,14 +179,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				int x = (int)source.getCenter()[0];
 				int y = (int)source.getCenter()[1];
 				IJ.setSlice(slice);
-				IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
+				IJ.runMacro("drawString(\"" + source.getId() + "\", " + x + ", " + y + ")");
 
 				x = (int)target.getCenter()[0];
 				y = (int)target.getCenter()[1];
 				IJ.setSlice(slice+1);
-				IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
-
-				id++;
+				IJ.runMacro("drawString(\"" + source.getId() + "\", " + x + ", " + y + ")");
 			}
 			slice++;
 		}
@@ -206,5 +201,13 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			allRegions.addAll(flatten(parent.getChildren()));
 
 		return allRegions;
+	}
+
+	private boolean contains(int[] list, int value) {
+
+		for (int x : list)
+			if (x == value)
+				return true;
+		return false;
 	}
 }

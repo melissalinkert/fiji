@@ -39,6 +39,9 @@ public class Visualiser {
 		try {
 			FileWriter out = new FileWriter(texFile);
 			out.write("\\begin{tikzpicture}\n");
+			out.write("\\ifthenelse{\\isundefined{\\shownodenums}}%\n");
+			out.write("  {\\def\\nodenum#1{}}%\n");
+			out.write("  {\\def\\nodenum#1{#1}}%\n");
 			out.write("\\def\\imagewidth{" + texWidth + "cm}\n");
 			out.write("\\node (image) {\\includegraphics[width=\\imagewidth]{mser-tree" + slice + ".png}};\n");
 			texifyRegions(mser.getTopMsers(), scale, width, height, -1, out);
@@ -47,6 +50,8 @@ public class Visualiser {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		texFile.setLastModified(System.currentTimeMillis());
 	}
 
 	public void texifyClosestCandidates(Collection<Region> regions, int slice) {
@@ -63,14 +68,19 @@ public class Visualiser {
 		try {
 			FileWriter out = new FileWriter(texFile);
 			out.write("\\begin{tikzpicture}\n");
+			out.write("\\ifthenelse{\\isundefined{\\shownodenums}}%\n");
+			out.write("  {\\def\\nodenum#1{}}%\n");
+			out.write("  {\\def\\nodenum#1{#1}}%\n");
 			out.write("\\def\\imagewidth{" + texWidth + "cm}\n");
-			out.write("\\node (image) {\\includegraphics[width=\\imagewidth]{mser-closest-regions" + slice + ".png}};\n");
+			out.write("\\node (image) {\\includegraphics[width=\\imagewidth]{mser-tree" + slice + ".png}};\n");
 			texifyClosestCandidates(regions, scale, width, height, out);
 			out.write("\\end{tikzpicture}\n");
 			out.flush();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		texFile.setLastModified(System.currentTimeMillis());
 	}
 
 	private void texifyClosestCandidates(Collection<Region> msers, double scale, int width, int height, Writer out) throws IOException {
@@ -117,6 +127,6 @@ public class Visualiser {
 
 		out.write("\\node[circle, fill=green, inner sep=" + radius*scale +
 		          ", opacity=0.5] (node" + mser.getId() +
-		          ") at ($(image) + (" + offsetX + ", " + -offsetY + ")$) {};\n");
+		          ") at ($(image) + (" + offsetX + ", " + -offsetY + ")$) {\\nodenum{\\tiny " + mser.getId() + "}};\n");
 	}
 }

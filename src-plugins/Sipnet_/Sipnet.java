@@ -9,10 +9,7 @@ public class Sipnet {
 	private AssignmentSearch assignmentSearch;
 	private Visualiser       visualiser;
 
-	public Sipnet(double distanceWeight, double areaWeight, Visualiser visualiser) {
-
-		AssignmentModel.setDistanceWeight(distanceWeight);
-		AssignmentModel.setAreaWeight(areaWeight);
+	public Sipnet(Visualiser visualiser) {
 
 		this.visualiser = visualiser;
 	}
@@ -22,11 +19,15 @@ public class Sipnet {
 		Sequence    greedySeequence = new Sequence();
 		Set<Region> sourceRegions   = startCandidates;
 
+		IJ.log("Starting greedy search for " + sliceCandidates.size() + " assignments");
+
 		for (Set<Region> targetRegions : sliceCandidates) {
+
+			IJ.log("Finding assignments to slice " + (greedySeequence.size() + 1));
 
 			assignmentSearch = new AssignmentSearch(sourceRegions, targetRegions);
 
-			visualiser.texifyClosestCandidates(sourceRegions, greedySeequence.size());
+			visualiser.texifyClosestCandidates(sourceRegions, greedySeequence.size() + 1);
 
 			Assignment assignment = assignmentSearch.findBestPath(new Assignment());
 

@@ -40,6 +40,8 @@ public class IO {
 			for (Region mser : topMsers)
 				mser.writeExternal(oout);
 
+			out.flush();
+
 		} catch (FileNotFoundException e) {
 
 			IJ.log("File " + filename + " could not be opened for writing.");

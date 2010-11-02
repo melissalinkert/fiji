@@ -9,8 +9,11 @@ import ij.IJ;
 
 public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> {
 
-	private static final int MaxTargetRegions = 10;
-	private static final int MinTargetRegions = 5;
+	private static final int MaxTargetRegions = 5;
+	private static final int MinTargetRegions = 1;
+
+	//private static final double MinPAssignment       = 1e-20;
+	private static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
 
 	private Vector<Region> sourceRegions;
 	private Vector<Region> targetRegions;
@@ -60,30 +63,28 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 		// get all possible targets
 A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 
-			double negLogPAssignement = AssignmentModel.negLogP(sourceRegion, targetRegion);
-			if (negLogPAssignement <= AssignmentModel.MaxNegLogPAssignment) {
+			// check if target region was already assigned
+			// TODO: optimize
+			for (SingleAssignment singleAssignment : path)
+				if (targetRegion == singleAssignment.getTarget())
+					continue A;
 
-				// check if target region was already assigned
-				// TODO: optimize
-				for (SingleAssignment singleAssignment : path)
-					if (targetRegion == singleAssignment.getTarget())
-						continue A;
+			// check for concurrent hypothesis consistency
+			// TODO: optimize
+			//for (SingleAssignment singleAssignment : path)
+				//if (conflicts(targetRegion, singleAssignment.getTarget()))
+					//continue A;
 
-				// check for concurrent hypothesis consistency
-				// TODO: optimize
-				for (SingleAssignment singleAssignment : path)
-					if (conflicts(targetRegion, singleAssignment.getTarget()))
-						continue A;
+			SingleAssignment assignment =
+			    new SingleAssignment(sourceRegion, targetRegion,
+			                         AssignmentModel.negLogP(sourceRegion, targetRegion));
 
-				SingleAssignment assignment = new SingleAssignment(sourceRegion, targetRegion, negLogPAssignement);
+			Assignment bestPath = new Assignment();
+			bestPath.addAll(path);
+			bestPath.push(assignment);
+			assignment.setBestPath(bestPath);
 
-				Assignment bestPath = new Assignment();
-				bestPath.addAll(path);
-				bestPath.push(assignment);
-				assignment.setBestPath(bestPath);
-
-				assignments.add(assignment);
-			}
+			assignments.add(assignment);
 		}
 
 		return assignments;
@@ -130,17 +131,29 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 
 			closestRegions.addAll(targetRegions);
 
+			// DEBUG
+if (false)
+			if (sourceRegion.getId() == 937) {
+				IJ.log("closest regions to " + sourceRegion);
+				Region region = closestRegions.poll();
+				while (region != null) {
+					IJ.log(region.toString());
+					IJ.log("" + AssignmentModel.negLogP(sourceRegion, region));
+					region = closestRegions.poll();
+				}
+			}
+
 			// remove unlikely regions
 			PriorityQueue<Region> prunedClosestRegions = new PriorityQueue<Region>(MaxTargetRegions, new RegionComparator(sourceRegion));
 
 			while (prunedClosestRegions.size() < MaxTargetRegions &&
-				   AssignmentModel.negLogP(sourceRegion, closestRegions.peek()) <= AssignmentModel.MaxNegLogPAssignment)
+				   AssignmentModel.negLogP(sourceRegion, closestRegions.peek()) <= MaxNegLogPAssignment)
 				prunedClosestRegions.add(closestRegions.poll());
 
 			if (prunedClosestRegions.size() < MinTargetRegions) {
 				IJ.log("Oh no! For region " + sourceRegion +
 				       " there are less than " + MinTargetRegions + " within the threshold of " +
-				       AssignmentModel.MaxNegLogPAssignment);
+				       MaxNegLogPAssignment);
 				IJ.log("Closest non-selected candidate distance: " + AssignmentModel.negLogP(sourceRegion, closestRegions.peek()));
 
 				// fill in these values anyway
