@@ -131,18 +131,6 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 
 			closestRegions.addAll(targetRegions);
 
-			// DEBUG
-if (false)
-			if (sourceRegion.getId() == 937) {
-				IJ.log("closest regions to " + sourceRegion);
-				Region region = closestRegions.poll();
-				while (region != null) {
-					IJ.log(region.toString());
-					IJ.log("" + AssignmentModel.negLogP(sourceRegion, region));
-					region = closestRegions.poll();
-				}
-			}
-
 			// remove unlikely regions
 			PriorityQueue<Region> prunedClosestRegions = new PriorityQueue<Region>(MaxTargetRegions, new RegionComparator(sourceRegion));
 
