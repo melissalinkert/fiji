@@ -25,18 +25,19 @@ import mpicbg.imglib.type.numeric.RealType;
 public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	// the stack to process
-	private ImagePlus imp;
-	private ImagePlus reg;
-	private int numSlices;
+	private ImagePlus    imp;
+	private ImagePlus    reg;
+	private int          numSlices;
 
-	private Image<T> sliceImage;
-	private Image<T> sliceRegion;
+	private Image<T>     sliceImage;
+	private Image<T>     sliceRegion;
 
-	private Visualiser visualiser;
-	private IO            io;
+	private Texifyer     texifyer;
+	private Visualiser3D visualiser;
+	private IO           io;
 
-	private MSER<T>  mser;
-	private Sipnet   sipnet;
+	private MSER<T>      mser;
+	private Sipnet       sipnet;
 
 	private Vector<Set<Region>> sliceCandidates;
 
@@ -79,9 +80,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			reg.setTitle("msers of " + imp.getTitle());
 		
 			// setup visualisation and file IO
-			visualiser = new Visualiser(reg, "./sipnet-tex/");
+			texifyer   = new Texifyer(reg, "./sipnet-tex/");
+			visualiser = new Visualiser3D();
 			io         = new IO();
-	
+
 			// create set of start points
 			Set<Region> startCandidates = new HashSet<Region>();
 	
@@ -89,13 +91,14 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 				IJ.log("Processing slice " + s + "...");
 	
-				String mserFilename = "./top-msers-" + s + ".sip";
+				String mserFilename       = "./cache/" + imp.getTitle() + "top-msers-" + s + ".sip";
+				String sliceImageFilename = "./cache/" + imp.getTitle() + "msers-" + s + ".tif";
 	
 				HashSet<Region> topMsers = null;
 				HashSet<Region> msers    = null;
 
 				// create slice image
-				IJ.log("creating slice image " + (s+1));
+				IJ.log("Creating slice image " + (s+1));
 				ImagePlus sliceImp = new ImagePlus("slice " + s+1, stack.getProcessor(s+1));
 				sliceImage  = ImagePlusAdapter.wrap(sliceImp);
 				ImagePlus sliceReg = new ImagePlus("slice " + s+1, regStack.getProcessor(s+1));
@@ -106,6 +109,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					IJ.log("Reading Msers from " + mserFilename);
 					topMsers = io.readMsers(mserFilename);
 					msers    = flatten(topMsers);
+					sliceReg = IJ.openImage(sliceImageFilename);
 	
 				} else {
 	
@@ -121,7 +125,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						mser = new MSER<T>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
 		
 					mser.process(sliceImage, true, false, sliceRegion);
-	
+
 					topMsers = mser.getTopMsers();
 					msers    = mser.getMsers();
 		
@@ -129,10 +133,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		
 					// visualise result
 					IJ.run(sliceReg, "Fire", "");
-					visualiser.texifyMserTree(mser, s);
+					texifyer.texifyMserTree(mser, s);
 		
-					// write msers to file
-					io.writeMsers(topMsers, "./top-msers-" + s + ".sip");
+					// write msers and msers image to file
+					io.writeMsers(topMsers, mserFilename);
+					IJ.save(sliceReg, sliceImageFilename);
 				}
 	
 				// for the first slice, let the user select the start candidates
@@ -149,11 +154,13 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 			// perform greedy search
 			IJ.log("Searching for the best path greedily");
-			sipnet = new Sipnet(visualiser);
+			sipnet = new Sipnet(texifyer);
 			Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
 	
-			if (greedySeequence == null)
+			if (greedySeequence == null) {
+				IJ.log("No sequence could be found.");
 				return;
+			}
 	
 			// visualize result
 			IJ.setForegroundColor(255, 255, 255);
@@ -179,7 +186,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			}
 	
 			imp.updateAndDraw();
-			}
+
+			visualiser.showAssignments(greedySeequence, imp);
+		}
 	}
 
 	public void run(String args) {

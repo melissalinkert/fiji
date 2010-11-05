@@ -260,6 +260,15 @@ public class CandidateSelector {
 		if (abort)
 			return null;
 
+		// fallback for easy testing
+		if (regionImp.getRoi() == null) {
+			int[] starterIds = new int[]{89, 234, 844, 841, 821, 765, 820, 784, 759, 786, 756, 775, 757, 755, 886, 1018, 752, 749, 283, 135, 750, 259, 261};
+			for (Region region : regions)
+				if (contains(starterIds, region.getId()))
+					selection.add(region);
+			return selection;
+		}
+
 		// select all regions that are the closest to the RIOs
 		for (int x = 0; x < regionImp.getWidth(); x++)
 			for (int y = 0; y < regionImp.getHeight(); y++)
@@ -280,12 +289,6 @@ public class CandidateSelector {
 
 					selection.add(bestRegion);
 				}
-
-
-		//int[] starterIds = new int[]{52, 247, 985, 937, 25, 962, 963, 974, 882, 974, 976, 963, 971, 941, 885, 294, 248};
-		//for (Region region : regions)
-			//if (contains(starterIds, region.getId()))
-				//selection.add(region);
 
 		return selection;
 	}

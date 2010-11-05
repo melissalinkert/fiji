@@ -7,9 +7,9 @@ import ij.IJ;
 public class Sipnet {
 
 	private AssignmentSearch assignmentSearch;
-	private Visualiser       visualiser;
+	private Texifyer       visualiser;
 
-	public Sipnet(Visualiser visualiser) {
+	public Sipnet(Texifyer visualiser) {
 
 		this.visualiser = visualiser;
 	}

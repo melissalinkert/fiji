@@ -71,9 +71,9 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 
 			// check for concurrent hypothesis consistency
 			// TODO: optimize
-			//for (SingleAssignment singleAssignment : path)
-				//if (conflicts(targetRegion, singleAssignment.getTarget()))
-					//continue A;
+			for (SingleAssignment singleAssignment : path)
+				if (conflicts(targetRegion, singleAssignment.getTarget()))
+					continue A;
 
 			SingleAssignment assignment =
 			    new SingleAssignment(sourceRegion, targetRegion,

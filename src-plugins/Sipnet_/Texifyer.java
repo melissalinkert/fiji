@@ -12,14 +12,14 @@ import ij.io.FileSaver;
 
 import mpicbg.imglib.type.numeric.RealType;
 
-public class Visualiser {
+public class Texifyer {
 
 	final double texWidth = 13.0;
 
 	private ImagePlus regionImp;
 	private String    outputDir;
 
-	public Visualiser(ImagePlus regionImp, String outputDir) {
+	public Texifyer(ImagePlus regionImp, String outputDir) {
 
 		this.regionImp = regionImp;
 		this.outputDir = outputDir;
