@@ -76,6 +76,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			reg.setDimensions(1, numSlices, 1);
 			if (numSlices > 1)
 				reg.setOpenAsHyperStack(true);
+			IJ.run(reg, "Fire", "");
 		
 			reg.setTitle("msers of " + imp.getTitle());
 		
@@ -133,6 +134,19 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		
 					// visualise result
 					IJ.run(sliceReg, "Fire", "");
+					regionsCursor.reset();
+					double maxValue = 0.0;
+					while (regionsCursor.hasNext()) {
+						regionsCursor.fwd();
+						if (regionsCursor.getType().getRealFloat() > maxValue)
+							maxValue = regionsCursor.getType().getRealFloat();
+					}
+					regionsCursor.reset();
+					while (regionsCursor.hasNext()) {
+						regionsCursor.fwd();
+						regionsCursor.getType().setReal(
+							128.0 * regionsCursor.getType().getRealFloat()/maxValue);
+					}
 					texifyer.texifyMserTree(mser, s);
 		
 					// write msers and msers image to file
@@ -165,7 +179,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			// visualize result
 			IJ.setForegroundColor(255, 255, 255);
 			IJ.selectWindow(imp.getTitle());
-			int slice = 1;
+			int slice = greedySeequence.size();
 			for (Assignment assignment : greedySeequence) {
 				for (SingleAssignment singleAssignment : assignment) {
 	
@@ -182,7 +196,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					IJ.setSlice(slice+1);
 					IJ.runMacro("drawString(\"" + source.getId() + "\", " + x + ", " + y + ")");
 				}
-				slice++;
+				slice--;
 			}
 	
 			imp.updateAndDraw();
