@@ -187,7 +187,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 			imp.updateAndDraw();
 
-			visualiser.showAssignments(greedySeequence, imp);
+			visualiser.showAssignments(greedySeequence);
 		}
 	}
 

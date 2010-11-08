@@ -36,6 +36,8 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 
 			currentPath = bestNode.getBestPath();
 
+			goingTo(bestNode);
+
 			if (reachedTarget(currentPath))
 				return currentPath;
 		}
@@ -46,6 +48,8 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 
 	protected abstract Set<N> expand(P path);
 
+	// to be overwritten by subclasses
 	protected abstract boolean reachedTarget(P path);
-	protected abstract void    noMoreOpenNodes(P path);
+	protected void noMoreOpenNodes(P path) {};
+	protected void goingTo(N node) {};
 }

@@ -25,9 +25,16 @@ public class Visualiser3D {
 		universe = new Image3DUniverse();
 	}
 
-	public void showAssignments(Sequence sequence, ImagePlus slices) {
+	public void showSlices(ImagePlus slices) {
 
 		int numSlices = slices.getStack().getSize();
+
+		int resample  = 1;
+
+		if (numSlices > 10)
+			resample *= 2;
+		if (numSlices > 20)
+			resample *= 2;
 
 		// display slices
 		for (int s = 0; s < numSlices; s++) {
@@ -42,8 +49,13 @@ public class Visualiser3D {
 			slice.setLocked(true);
 		}
 
+	}
+
+	public void showAssignments(Sequence sequence) {
+
 		// connect regions
-		int s = 0;
+		int s = sequence.size() - 1;
+		// from back to front (sequence is a stack)
 		for (Assignment assignment : sequence) {
 			for (SingleAssignment singleAssignment : assignment) {
 
@@ -57,8 +69,12 @@ public class Visualiser3D {
 				line.add(new Point3f((float)from[0], (float)from[1], (float)(s*sliceDistance)));
 				line.add(new Point3f((float)to[0],   (float)to[1],   (float)((s+1)*sliceDistance)));
 
+				IJ.log("line from " + (float)from[0] + " " + (float)from[1] + " " + (float)(s*sliceDistance));
+				IJ.log("       to " + (float)to[0] + " " + (float)to[1] + " " + (float)((s+1)*sliceDistance));
+
 				universe.addLineMesh(line, new Color3f(0, 255, 0), "sa-" + s + "-" + id1 + "-" + id2, true);
 			}
+			s--;
 		}
 
 		IJ.log("Opening 3D viewer to display result...");

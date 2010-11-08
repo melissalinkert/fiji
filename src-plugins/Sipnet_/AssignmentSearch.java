@@ -122,6 +122,11 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 		IJ.showProgress(sourceRegions.size(), sourceRegions.size());
 	}
 
+	protected void goingTo(SingleAssignment singleAssignment) {
+
+		IJ.log("connected " + singleAssignment.getSource() + " to " + singleAssignment.getTarget());
+	}
+
 	private void cacheClosestRegions(Region sourceRegion) {
 
 		// cache all possible targets
