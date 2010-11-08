@@ -69,9 +69,6 @@ public class Visualiser3D {
 				line.add(new Point3f((float)from[0], (float)from[1], (float)(s*sliceDistance)));
 				line.add(new Point3f((float)to[0],   (float)to[1],   (float)((s+1)*sliceDistance)));
 
-				IJ.log("line from " + (float)from[0] + " " + (float)from[1] + " " + (float)(s*sliceDistance));
-				IJ.log("       to " + (float)to[0] + " " + (float)to[1] + " " + (float)((s+1)*sliceDistance));
-
 				universe.addLineMesh(line, new Color3f(0, 255, 0), "sa-" + s + "-" + id1 + "-" + id2, true);
 			}
 			s--;

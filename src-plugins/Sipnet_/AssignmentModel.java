@@ -1,10 +1,19 @@
 
+import Jama.Matrix;
+
 public class AssignmentModel {
 
-	static double distanceVariance = 100;
-	static double distanceLogZ     = Math.log(Math.sqrt(2*Math.PI*distanceVariance));
-	static double areaVariance     = 1;
-	static double areaLogZ         = Math.log(Math.sqrt(2*Math.PI*areaVariance));
+	static double covaPosition = 10.0;
+	static double covaSize     = 10000.0;
+
+	static double[][] cova = {{covaPosition, 0.0, 0.0},
+	                          {0.0, covaPosition, 0.0},
+	                          {0.0, 0.0, covaSize}};
+
+	static Matrix covariance       = new Matrix(cova);
+	static Matrix invCovariance    = covariance.inverse();
+	static double normaliser       = 1.0/(Math.sqrt(covariance.times(2.0*Math.PI).det()));;
+	static double negLogNormaliser = -Math.log(normaliser);
 
 	static final double negLogP(SingleAssignment assignment) {
 
@@ -13,35 +22,21 @@ public class AssignmentModel {
 
 	static final double negLogP(Region source, Region target) {
 
-		double nlDistance = negLogDistance(source.getCenter(),
-		                                   target.getCenter());
+		Matrix diff = new Matrix(3, 1);
 
-		double nlArea     = negLogArea(source.getSize(),
-		                               target.getSize());
+		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
+		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
+		diff.set(2, 0, target.getSize()      - source.getSize());
 
-		return nlDistance + nlArea;
+		return negLogNormaliser + 0.5*(diff.transpose().times(invCovariance).times(diff)).get(0, 0);
 	}
 
-	static final double negLogDistance(double[] center1, double[] center2) {
+	static final void setCovariance(double[][] cova) {
 
-		return ((center1[0] - center2[0])*(center1[0] - center2[0]) +
-		        (center1[1] - center2[1])*(center1[1] - center2[1]))/(2*distanceVariance)
-		       - distanceLogZ;
-	}
+		covariance = new Matrix(cova);
+		normaliser = 1.0/(Math.sqrt(covariance.times(2.0*Math.PI).det()));
 
-	static final double negLogArea(int size1, int size2) {
-
-		double sizeChange = 1.0 - size2/size1;
-		return (sizeChange*sizeChange)/(2*areaVariance) - areaLogZ;
-	}
-
-	static void setDistanceVariance(double distanceVariance) {
-
-		AssignmentModel.distanceVariance = distanceVariance;
-	}
-
-	static void setAreaVariance(double areaVariance) {
-
-		AssignmentModel.areaVariance = areaVariance;
+		invCovariance    = covariance.inverse();
+		negLogNormaliser = -Math.log(normaliser);
 	}
 }
