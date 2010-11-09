@@ -5,7 +5,7 @@ public class AssignmentModel {
 
 	static double covaPosition  = 10.0;
 	static double covaSize      = 10000.0;
-	static double covaNeighbors = 1.0;
+	static double covaNeighbors = 10.0;
 
 	static double[][] covaAppearance =
 	    {{covaPosition, 0.0, 0.0},
@@ -69,15 +69,15 @@ public class AssignmentModel {
 				}
 			}
 
-			// if not existing (not assigned yet) use original neighbor instead
+			// if not existing (not assigned yet) assume there will be a target
+			// neighbor with the exact same distance of the source to its respective
+			// neighbor
 			// (this yields a quite optimistic estimate)
 			if (correspond == null)
-				correspond = neighbor;
-
-			// contribute to mean
-			neighborDistance += Math.sqrt(
-			    (target.getCenter()[0] - correspond.getCenter()[0])*(target.getCenter()[0] - correspond.getCenter()[0]) -
-			    (target.getCenter()[1] - correspond.getCenter()[1])*(target.getCenter()[1] - correspond.getCenter()[1]));
+				neighborDistance += source.distance2To(neighbor);
+			else
+				// contribute to mean
+				neighborDistance += target.distance2To(correspond);
 		}
 
 		return neighborDistance/source.getNeighbors().size();
