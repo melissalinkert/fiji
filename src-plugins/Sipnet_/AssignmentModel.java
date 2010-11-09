@@ -5,55 +5,62 @@ public class AssignmentModel {
 
 	static double covaPosition  = 10.0;
 	static double covaSize      = 10000.0;
-	static double covaNeighbors = 10.0;
+	static double covaNeighbors = 1.0;
 
-	// number of neighbors to consider for mean neighbor distance
-	static int    numNeighbors  = 3;
+	static double[][] covaAppearance =
+	    {{covaPosition, 0.0, 0.0},
+	     {0.0, covaPosition, 0.0},
+	     {0.0, 0.0, covaSize}};
 
-	static double[][] cova = {{covaPosition, 0.0, 0.0, 0.0},
-	                          {0.0, covaPosition, 0.0, 0.0},
-	                          {0.0, 0.0, covaSize, 0.0},
-	                          {0.0, 0.0, 0.0, covaNeighbors}};
+	static Matrix covariance           = new Matrix(covaAppearance);
+	static Matrix invCovariance        = covariance.inverse();
+	static double normAppearance       = 1.0/(Math.sqrt(covariance.times(2.0*Math.PI).det()));;
+	static double negLogNormAppearance = -Math.log(normAppearance);
+	static double normNeighbors        = 1.0/(Math.sqrt(covaNeighbors*2.0*Math.PI));
+	static double negLogNormNeighbors  = -Math.log(normNeighbors);
 
-	static Matrix covariance       = new Matrix(cova);
-	static Matrix invCovariance    = covariance.inverse();
-	static double normaliser       = 1.0/(Math.sqrt(covariance.times(2.0*Math.PI).det()));;
-	static double negLogNormaliser = -Math.log(normaliser);
+	static final double negLogPAppearance(SingleAssignment assignment) {
 
-	static final double negLogP(SingleAssignment assignment) {
-
-		return negLogP(assignment.getSource(), assignment.getTarget());
+		return negLogPAppearance(assignment.getSource(), assignment.getTarget());
 	}
 
-	static final double negLogP(Candidate source, Candidate target) {
+	static final double negLogPAppearance(Candidate source, Candidate target) {
 
-		Matrix diff = new Matrix(4, 1);
+		Matrix diff = new Matrix(3, 1);
 
 		diff.set(0, 0, target.getCenter()[0]            - source.getCenter()[0]);
 		diff.set(1, 0, target.getCenter()[1]            - source.getCenter()[1]);
 		diff.set(2, 0, target.getSize()                 - source.getSize());
-		diff.set(3, 0, meanNeighborDistance(source, target, assignment) - source.getMeanNeighborDistance());
 
-		return negLogNormaliser + 0.5*(diff.transpose().times(invCovariance).times(diff)).get(0, 0);
+		return negLogNormAppearance + 0.5*(diff.transpose().times(invCovariance).times(diff)).get(0, 0);
 	}
 
-	static final void setCovariance(double[][] cova) {
+	/**
+	 * @param source The source candidate (that knows its neighbors)
+	 * @param target The target candidate
+	 * @param currentAssignment A possibly partial assignment
+	 * @return The negative log-probability of the change in the mean neighbor
+	 * distance. If the assignment does not cover all of the neighbors of the
+	 * source node, the result will be an upper bound on that probability (i.e.,
+	 * an optimistic guess.
+	 */
+	static final double negLogPNeighbors(Candidate source, Candidate target, Assignment currentAssignment) {
 
-		covariance = new Matrix(cova);
-		normaliser = 1.0/(Math.sqrt(covariance.times(2.0*Math.PI).det()));
+		double meanNeighborDistance = meanNeighborDistance(source, target, currentAssignment);
 
-		invCovariance    = covariance.inverse();
-		negLogNormaliser = -Math.log(normaliser);
+		return negLogNormNeighbors + 0.5*((source.getMeanNeighborDistance() - meanNeighborDistance)*
+		                                  (source.getMeanNeighborDistance() - meanNeighborDistance)/
+		                                  covaNeighbors);
 	}
 
-	static final double meanNeighborDistance(Region region, Set<Region> neighbors, Assignment assignment) {
+	static final double meanNeighborDistance(Candidate source, Candidate target, Assignment assignment) {
 
 		double neighborDistance = 0.0;
 
-		for (Region neighbor : neighbors) {
+		for (Candidate neighbor : source.getNeighbors()) {
 
-			// get corresponding neighbor in region's slice
-			Region correspond = null;
+			// get corresponding neighbor in target's slice
+			Candidate correspond = null;
 			for (SingleAssignment singleAssignment : assignment) {
 
 				if (singleAssignment.getSource() == neighbor) {
@@ -62,17 +69,17 @@ public class AssignmentModel {
 				}
 			}
 
-			// if not existing (not assigned yet) use closest region in region's
-			// slice instead
+			// if not existing (not assigned yet) use original neighbor instead
+			// (this yields a quite optimistic estimate)
 			if (correspond == null)
-				correspond = neighbor.getClosestRegions().peek();
+				correspond = neighbor;
 
 			// contribute to mean
 			neighborDistance += Math.sqrt(
-			    (region.getCenter()[0] - correspond.getCenter()[0])*(region.getCenter()[0] - correspond.getCenter()[0]) -
-			    (region.getCenter()[1] - correspond.getCenter()[1])*(region.getCenter()[1] - correspond.getCenter()[1]));
+			    (target.getCenter()[0] - correspond.getCenter()[0])*(target.getCenter()[0] - correspond.getCenter()[0]) -
+			    (target.getCenter()[1] - correspond.getCenter()[1])*(target.getCenter()[1] - correspond.getCenter()[1]));
 		}
 
-		return neighborDistance/numNeighbors;
+		return neighborDistance/source.getNeighbors().size();
 	}
 }
