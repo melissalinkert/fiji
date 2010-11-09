@@ -20,7 +20,7 @@ public class AssignmentModel {
 		return negLogP(assignment.getSource(), assignment.getTarget());
 	}
 
-	static final double negLogP(Region source, Region target) {
+	static final double negLogP(Candidate source, Candidate target) {
 
 		Matrix diff = new Matrix(3, 1);
 

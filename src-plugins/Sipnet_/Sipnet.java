@@ -14,14 +14,14 @@ public class Sipnet {
 		this.visualiser = visualiser;
 	}
 
-	public Sequence greedySearch(Set<Region> startCandidates, Vector<Set<Region>> sliceCandidates) {
+	public Sequence greedySearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates) {
 
 		Sequence    greedySeequence = new Sequence();
-		Set<Region> sourceRegions   = startCandidates;
+		Set<Candidate> sourceRegions   = startCandidates;
 
 		IJ.log("Starting greedy search for " + sliceCandidates.size() + " assignments");
 
-		for (Set<Region> targetRegions : sliceCandidates) {
+		for (Set<Candidate> targetRegions : sliceCandidates) {
 
 			IJ.log("Finding assignments to slice " + (greedySeequence.size() + 1));
 

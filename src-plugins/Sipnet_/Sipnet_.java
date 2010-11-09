@@ -36,10 +36,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private Visualiser3D visualiser;
 	private IO           io;
 
-	private MSER<T>      mser;
-	private Sipnet       sipnet;
+	private MSER<T, Candidate> mser;
+	private Sipnet             sipnet;
 
-	private Vector<Set<Region>> sliceCandidates;
+	private Vector<Set<Candidate>> sliceCandidates;
 
 	// parameters
 	private int    delta        = 10;
@@ -62,7 +62,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			// setup image stack
 			ImageStack stack = imp.getStack();
 			numSlices = stack.getSize();
-			sliceCandidates = new Vector<Set<Region>>(numSlices - 1);
+			sliceCandidates = new Vector<Set<Candidate>>(numSlices - 1);
 			sliceCandidates.setSize(numSlices - 1);
 	
 			// prepare segmentation image
@@ -86,7 +86,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			io         = new IO();
 
 			// create set of start points
-			Set<Region> startCandidates = new HashSet<Region>();
+			Set<Candidate> startCandidates = new HashSet<Candidate>();
 	
 			for (int s = 0; s < numSlices; s++) {
 	
@@ -95,8 +95,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				String mserFilename       = "./cache/" + imp.getTitle() + "top-msers-" + s + ".sip";
 				String sliceImageFilename = "./cache/" + imp.getTitle() + "msers-" + s + ".tif";
 	
-				HashSet<Region> topMsers = null;
-				HashSet<Region> msers    = null;
+				HashSet<Candidate> topMsers = null;
+				HashSet<Candidate> msers    = null;
 
 				// create slice image
 				IJ.log("Creating slice image " + (s+1));
@@ -123,7 +123,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		
 					// set up algorithm
 					if (mser == null)
-						mser = new MSER<T>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
+						mser = new MSER<T, Candidate>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
 		
 					mser.process(sliceImage, true, false, sliceRegion);
 
@@ -183,8 +183,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			for (Assignment assignment : greedySeequence) {
 				for (SingleAssignment singleAssignment : assignment) {
 	
-					Region source = singleAssignment.getSource();
-					Region target = singleAssignment.getTarget();
+					Candidate source = singleAssignment.getSource();
+					Candidate target = singleAssignment.getTarget();
 	
 					int x = (int)source.getCenter()[0];
 					int y = (int)source.getCenter()[1];
@@ -231,12 +231,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		procThread.start();
 	}
 
-	private HashSet<Region> flatten(Collection<Region> parents) {
+	private HashSet<Candidate> flatten(Collection<Candidate> parents) {
 
-		HashSet<Region> allRegions = new HashSet<Region>();
+		HashSet<Candidate> allRegions = new HashSet<Candidate>();
 
 		allRegions.addAll(parents);
-		for (Region parent : parents)
+		for (Candidate parent : parents)
 			allRegions.addAll(flatten(parent.getChildren()));
 
 		return allRegions;
