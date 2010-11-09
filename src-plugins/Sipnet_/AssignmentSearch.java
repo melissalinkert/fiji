@@ -77,7 +77,7 @@ A:		for (Region targetRegion : sourceRegion.getClosestRegions()) {
 
 			SingleAssignment assignment =
 			    new SingleAssignment(sourceRegion, targetRegion,
-			                         AssignmentModel.negLogP(sourceRegion, targetRegion));
+			                         AssignmentModel.negLogP(path, sourceRegion, targetRegion));
 
 			Assignment bestPath = new Assignment();
 			bestPath.addAll(path);

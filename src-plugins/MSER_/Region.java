@@ -21,6 +21,7 @@ public class Region implements Externalizable {
 
 	private PriorityQueue<Region> closestRegions;
 	private double                minNegLogPAssignment;
+	private double                meanNeighborDistance;
 
 	public Region(int size, double[] center) {
 
@@ -35,6 +36,7 @@ public class Region implements Externalizable {
 
 		this.closestRegions       = null;
 		this.minNegLogPAssignment = -1;
+		this.meanNeighborDistance = 0.0;
 	}
 
 	public void setParent(Region parent) {
@@ -64,6 +66,16 @@ public class Region implements Externalizable {
 
 	public void setMinNegLogPAssignment(double minNegLogPAssignment) {
 		this.minNegLogPAssignment = minNegLogPAssignment;
+	}
+
+	public void setMeanNeighborDistance(double meanNeighborDistance)
+	{
+		this.meanNeighborDistance = meanNeighborDistance;
+	}
+
+	public double getMeanNeighborDistance()
+	{
+		return this.meanNeighborDistance;
 	}
 
 	public double getMinNegLogPAssignment() {
