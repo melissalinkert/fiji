@@ -83,6 +83,7 @@ A:		for (Candidate targetCandidate : sourceCandidate.getClosestCandidates()) {
 			// estimate of the path length
 			Candidate closestAvailableCandidate = null;
 
+			// TODO: optimize
 A:			for (Candidate region : sourceCandidates.get(i).getClosestCandidates()) {
 				for (SingleAssignment assignment : node.getBestPath()) {
 
@@ -101,7 +102,7 @@ A:			for (Candidate region : sourceCandidates.get(i).getClosestCandidates()) {
 				continue;
 			}
 
-			//distance += sourceCandidates.get(i).getNegLogPAssignment(closestAvailableCandidate);
+			distance += sourceCandidates.get(i).getNegLogPAssignment(closestAvailableCandidate);
 		}
 
 		return distance;
@@ -116,6 +117,7 @@ A:			for (Candidate region : sourceCandidates.get(i).getClosestCandidates()) {
 
 	protected void noMoreOpenNodes(Assignment assignment) {
 
+		IJ.log("Oh no! There are no more open nodes and I didn't reach my target yet.");
 		IJ.showProgress(sourceCandidates.size(), sourceCandidates.size());
 	}
 

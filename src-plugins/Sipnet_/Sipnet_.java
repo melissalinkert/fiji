@@ -123,7 +123,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		
 					// set up algorithm
 					if (mser == null)
-						mser = new MSER<T, Candidate>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity);
+						mser = new MSER<T, Candidate>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity, new CandidateFactory());
 		
 					mser.process(sliceImage, true, false, sliceRegion);
 

@@ -13,7 +13,7 @@ public class Candidate extends Region<Candidate> {
 
 	// closest candidates to this candidate and their assignment probabilities
 	private Vector<Candidate>          closestCandidates;
-	private HashMap<Candidate, Double> negLogPAssignment;
+	private HashMap<Candidate, Double> negLogPAssignments;
 
 	private class CandidateComparator implements Comparator<Candidate> {
 
@@ -42,7 +42,7 @@ public class Candidate extends Region<Candidate> {
 		super(size, center, candidateFactory);
 
 		this.closestCandidates    = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.negLogPAssignment = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
+		this.negLogPAssignments = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
 	}
 
 	public void cacheClosestCandidates(Set<Candidate> targetCandidates) {
@@ -60,7 +60,7 @@ public class Candidate extends Region<Candidate> {
 			if (negLogP <= AssignmentSearch.MaxNegLogPAssignment) {
 
 				closestCandidates.add(sortedCandidates.peek());
-				negLogPAssignment.put(sortedCandidates.poll(), negLogP);
+				negLogPAssignments.put(sortedCandidates.poll(), negLogP);
 			} else
 				break;
 		}
@@ -73,17 +73,12 @@ public class Candidate extends Region<Candidate> {
 		}
 	}
 
-	public void setMinNegLogPAssignment(double minNegLogPAssignment) {
-		//this.minNegLogPAssignment = minNegLogPAssignment;
+	public Vector<Candidate> getClosestCandidates() {
+		return closestCandidates;
 	}
 
-	public double getMinNegLogPAssignment() {
-		//return this.minNegLogPAssignment;
-		return 0.0;
-	}
-
-	public PriorityQueue<Candidate> getClosestCandidates() {
-		return new PriorityQueue<Candidate>();
+	public double getNegLogPAssignment(Candidate candidate) {
+		return negLogPAssignments.get(candidate);
 	}
 
 	public String toString() {
