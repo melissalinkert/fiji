@@ -26,7 +26,7 @@ public class IO {
 		return ((new File(filename1)).lastModified() > (new File(filename2)).lastModified());
 	}
 
-	public void writeMsers(Collection<Region> topMsers, String filename) {
+	public void writeMsers(Collection<Candidate> topMsers, String filename) {
 
 		File outfile = new File(filename);
 
@@ -37,7 +37,7 @@ public class IO {
 	
 			oout.writeInt(topMsers.size());
 
-			for (Region mser : topMsers)
+			for (Candidate mser : topMsers)
 				mser.writeExternal(oout);
 
 			out.flush();
@@ -54,9 +54,9 @@ public class IO {
 		}
 	}
 
-	public HashSet<Region> readMsers(String filename) {
+	public HashSet<Candidate> readMsers(String filename) {
 
-		HashSet<Region> regions = new HashSet<Region>();
+		HashSet<Candidate> regions = new HashSet<Candidate>();
 
 		File infile = new File(filename);
 
@@ -69,7 +69,7 @@ public class IO {
 			IJ.log("Trying to read " + numMsers + " top msers");
 
 			for (int i = 0; i < numMsers; i++) {
-				Region region = new Region(0, new double[0]);
+				Candidate region = new Candidate(0, new double[0]);
 				region.readExternal(oin);
 				regions.add(region);
 			}

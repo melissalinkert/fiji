@@ -34,7 +34,27 @@ public class MSER_<T extends RealType<T>> implements PlugIn {
 
 	private int[] dimensions;
 
-	private MSER<T>   mser;
+	private SimpleRegionFactory regionFactory = new SimpleRegionFactory();
+
+	// for the plugin, use plain regions without candy
+	private class SimpleRegionFactory implements RegionFactory<SimpleRegion> {
+
+		public SimpleRegion create() {
+			return create(0, new double[0]);
+		}
+
+		public SimpleRegion create(int size, double[] center) {
+			return new SimpleRegion(size, center);
+		}
+	}
+
+	private class SimpleRegion extends Region<SimpleRegion> {
+		public SimpleRegion(int size, double[] center) {
+			super(size, center, regionFactory);
+		}
+	};
+
+	private MSER<T, SimpleRegion>   mser;
 
 	public void run(String args) {
 
@@ -106,7 +126,7 @@ public class MSER_<T extends RealType<T>> implements PlugIn {
 		}
 	
 		// set up algorithm
-		mser = new MSER<T>(dimensions, delta, minArea, maxArea, maxVariation, minDiversity);
+		mser = new MSER<T, SimpleRegion>(dimensions, delta, minArea, maxArea, maxVariation, minDiversity, regionFactory);
 	
 		Thread processThread = new Thread(new Runnable() {
 			public void run() {
@@ -127,21 +147,21 @@ public class MSER_<T extends RealType<T>> implements PlugIn {
 		}
 
 		// visualize MSER centers
-		HashSet<Region> topMsers = mser.getTopMsers();
+		HashSet<SimpleRegion> topMsers = mser.getTopMsers();
 
 		regionsCursor = regions.createLocalizableByDimCursor();
 		drawRegions(topMsers);
 	}
 
-	private void drawRegions(Collection<Region> msers) {
+	private void drawRegions(Collection<SimpleRegion> msers) {
 
-		for (Region mser: msers) {
+		for (SimpleRegion mser: msers) {
 			drawRegions(mser.getChildren());
 			drawRegion(mser, (int)(Math.sqrt(mser.getSize())/10));
 		}
 	}
 
-	private void drawRegion(Region mser, int radius) {
+	private void drawRegion(SimpleRegion mser, int radius) {
 
 		int[] center = new int[dimensions.length];
 		for (int d = 0; d < dimensions.length; d++) {

@@ -4,26 +4,23 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import java.util.PriorityQueue;
 import java.util.Vector;
 
-public class Region implements Externalizable {
+public class Region<R extends Region<R>> implements Externalizable {
 
 	private static int NextId = 0;
 
 	private int id;
 
-	private Region         parent;
-	private Vector<Region> children;
+	private R         parent;
+	private Vector<R> children;
 
 	private int      size;
 	private double[] center;
 
-	private PriorityQueue<Region> closestRegions;
-	private double                minNegLogPAssignment;
-	private double                meanNeighborDistance;
+	private RegionFactory<R> regionFactory;
 
-	public Region(int size, double[] center) {
+	public Region(int size, double[] center, RegionFactory<R> regionFactory) {
 
 		this.id       = NextId;
 		NextId++;
@@ -32,19 +29,22 @@ public class Region implements Externalizable {
 		this.center   = new double[center.length];
 		System.arraycopy(center, 0, this.center, 0, center.length);
 		this.parent   = null;
-		this.children = new Vector<Region>();
+		this.children = new Vector<R>();
 
-		this.closestRegions       = null;
-		this.minNegLogPAssignment = -1;
-		this.meanNeighborDistance = 0.0;
+		this.regionFactory = regionFactory;
 	}
 
-	public void setParent(Region parent) {
+	public void setParent(R parent) {
 
 		this.parent = parent;
 	}
 
-	public Vector<Region> getChildren() {
+	public void addChildren(Vector<R> children) {
+
+		this.children.addAll(children);
+	}
+
+	public Vector<R> getChildren() {
 		return this.children;
 	}
 
@@ -60,42 +60,11 @@ public class Region implements Externalizable {
 		return this.center[index];
 	}
 
-	public void setClosestRegions(PriorityQueue<Region> closestRegions) {
-		this.closestRegions = closestRegions;
-	}
-
-	public void setMinNegLogPAssignment(double minNegLogPAssignment) {
-		this.minNegLogPAssignment = minNegLogPAssignment;
-	}
-
-	public void setMeanNeighborDistance(double meanNeighborDistance)
-	{
-		this.meanNeighborDistance = meanNeighborDistance;
-	}
-
-	public double getMeanNeighborDistance()
-	{
-		return this.meanNeighborDistance;
-	}
-
-	public double getMinNegLogPAssignment() {
-		return this.minNegLogPAssignment;
-	}
-
-	public PriorityQueue<Region> getClosestRegions() {
-		return this.closestRegions;
-	}
-
-	public Region getParent() {
+	public R getParent() {
 		return this.parent;
 	}
 
-	public void addChildren(Vector<Region> children) {
-
-		this.children.addAll(children);
-	}
-
-	public boolean isAncestorOf(Region other) {
+	public boolean isAncestorOf(R other) {
 
 		while (other.getParent() != null)
 			if (other.getParent() == this)
@@ -126,13 +95,10 @@ public class Region implements Externalizable {
 		out.writeInt(id);
 		// omit parent
 		out.writeInt(children.size());
-		for (Region child : children)
+		for (R child : children)
 			child.writeExternal(out);
 		out.writeInt(size);
 		out.writeObject(center);
-		// omit closestRegions
-		// omit minNegLogPAssignment
-
 	}
 
 	public void readExternal(ObjectInput in) throws IOException {
@@ -142,9 +108,9 @@ public class Region implements Externalizable {
 			NextId = id + 1;
 		int numChildren = in.readInt();
 		for (int i = 0; i < numChildren; i++) {
-			Region child = new Region(0, new double[0]);
+			R child = regionFactory.create();
 			child.readExternal(in);
-			child.setParent(this);
+			child.setParent((R)this);
 			children.add(child);
 		}
 		size = in.readInt();

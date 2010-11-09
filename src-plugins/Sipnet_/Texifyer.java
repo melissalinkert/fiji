@@ -25,7 +25,7 @@ public class Texifyer {
 		this.outputDir = outputDir;
 	}
 
-	public <T extends RealType<T>> void texifyMserTree(MSER<T> mser, int slice) {
+	public <T extends RealType<T>> void texifyMserTree(MSER<T, Candidate> mser, int slice) {
 
 		ImagePlus imp = new ImagePlus("", regionImp.getStack().getProcessor(slice + 1));
 		FileSaver saver = new FileSaver(imp);
@@ -54,7 +54,7 @@ public class Texifyer {
 		texFile.setLastModified(System.currentTimeMillis());
 	}
 
-	public void texifyClosestCandidates(Collection<Region> regions, int slice) {
+	public void texifyClosestCandidates(Collection<Candidate> regions, int slice) {
 
 		ImagePlus imp = new ImagePlus("", regionImp.getStack().getProcessor(slice + 1));
 		FileSaver saver = new FileSaver(imp);
@@ -83,13 +83,13 @@ public class Texifyer {
 		texFile.setLastModified(System.currentTimeMillis());
 	}
 
-	private void texifyClosestCandidates(Collection<Region> msers, double scale, int width, int height, Writer out) throws IOException {
+	private void texifyClosestCandidates(Collection<Candidate> msers, double scale, int width, int height, Writer out) throws IOException {
 
-		for (Region region : msers) {
+		for (Candidate region : msers) {
 
 			texifyRegion(region, Math.sqrt(region.getSize()), scale, width, height, out);
 
-			for (Region closest : region.getClosestRegions()) {
+			for (Candidate closest : region.getClosestCandidates()) {
 
 				texifyRegion(closest, Math.sqrt(closest.getSize()), scale, width, height, out);
 				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)AssignmentModel.negLogP(region, closest) + "} (node" + closest.getId() + ");\n");
@@ -97,15 +97,15 @@ public class Texifyer {
 		}
 	}
 
-	private void texifyRegions(Collection<Region> msers, double scale, int width, int height, int parentId, Writer out) throws IOException {
+	private void texifyRegions(Collection<Candidate> msers, double scale, int width, int height, int parentId, Writer out) throws IOException {
 
-		for (Region mser: msers) {
+		for (Candidate mser: msers) {
 			int newParentId = texifyChild(mser, Math.sqrt(mser.getSize()), scale, width, height, parentId, out);
 			texifyRegions(mser.getChildren(), scale, width, height, newParentId, out);
 		}
 	}
 
-	private int texifyChild(Region mser, double radius, double scale, int width, int height, int parentId, Writer out) throws IOException {
+	private int texifyChild(Candidate mser, double radius, double scale, int width, int height, int parentId, Writer out) throws IOException {
 
 		texifyRegion(mser, radius, scale, width, height, out);
 
@@ -115,7 +115,7 @@ public class Texifyer {
 		return mser.getId();
 	}
 
-	private void texifyRegion(Region mser, double radius, double scale, int width, int height, Writer out) throws IOException {
+	private void texifyRegion(Candidate mser, double radius, double scale, int width, int height, Writer out) throws IOException {
 
 		int[] center = new int[mser.getCenter().length];
 		for (int d = 0; d < mser.getCenter().length; d++)

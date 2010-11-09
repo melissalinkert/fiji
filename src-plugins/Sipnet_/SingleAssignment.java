@@ -1,12 +1,12 @@
 
 public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 
-	Region source;
-	Region target;
+	Candidate source;
+	Candidate target;
 
 	double negLogP;
 
-	public SingleAssignment(Region source, Region target, double negLogP)
+	public SingleAssignment(Candidate source, Candidate target, double negLogP)
 	{
 		this.source = source;
 		this.target = target;
@@ -14,22 +14,22 @@ public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 		this.negLogP = negLogP;
 	}
 
-	public Region getSource()
+	public Candidate getSource()
 	{
 		return this.source;
 	}
 
-	public void setSource(Region source)
+	public void setSource(Candidate source)
 	{
 		this.source = source;
 	}
 
-	public void setTarget(Region target)
+	public void setTarget(Candidate target)
 	{
 		this.target = target;
 	}
 
-	public Region getTarget()
+	public Candidate getTarget()
 	{
 		return this.target;
 	}

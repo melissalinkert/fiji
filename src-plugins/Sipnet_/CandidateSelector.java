@@ -36,7 +36,7 @@ import java.awt.Component;
 public class CandidateSelector {
 
 	private ImagePlus   regionImp;
-	private Set<Region> regions;
+	private Set<Candidate> regions;
 
 	private CountDownLatch latch;
 
@@ -229,18 +229,18 @@ public class CandidateSelector {
 		}
 	}
 
-	public CandidateSelector(ImagePlus regionImp, HashSet<Region> regions) {
+	public CandidateSelector(ImagePlus regionImp, HashSet<Candidate> regions) {
 
 		this.regionImp = regionImp;
 		this.regions   = regions;
 	}
 
-	public Set<Region> getUserSelection() {
+	public Set<Candidate> getUserSelection() {
 
-		Set<Region> selection = new HashSet<Region>();
+		Set<Candidate> selection = new HashSet<Candidate>();
 
 		// highligh region centers in region image
-		for (Region region : regions)
+		for (Candidate region : regions)
 			regionImp.getProcessor().setf((int)region.getCenter()[0], (int)region.getCenter()[1], 255.0f);
 
 		// show the region image
@@ -263,7 +263,7 @@ public class CandidateSelector {
 		// fallback for easy testing
 		if (regionImp.getRoi() == null) {
 			int[] starterIds = new int[]{89, 234, 844, 841, 821, 765, 820, 784, 759, 786, 756, 775, 757, 755, 886, 1018, 752, 749, 283, 135, 750, 259, 261};
-			for (Region region : regions)
+			for (Candidate region : regions)
 				if (contains(starterIds, region.getId()))
 					selection.add(region);
 			return selection;
@@ -275,9 +275,9 @@ public class CandidateSelector {
 				if (regionImp.getRoi().contains(x, y)) {
 
 					double minDistance = 0;
-					Region bestRegion  = null;
+					Candidate bestRegion  = null;
 
-					for (Region region : regions) {
+					for (Candidate region : regions) {
 
 						double distance = (x-region.getCenter()[0])*(x-region.getCenter()[0]) +
 						                  (y-region.getCenter()[1])*(y-region.getCenter()[1]);
