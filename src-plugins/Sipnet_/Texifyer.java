@@ -92,7 +92,7 @@ public class Texifyer {
 			for (Region closest : region.getClosestRegions()) {
 
 				texifyRegion(closest, Math.sqrt(closest.getSize()), scale, width, height, out);
-				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + AssignmentModel.negLogP(region, closest) + "} (node" + closest.getId() + ");\n");
+				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)AssignmentModel.negLogP(region, closest) + "} (node" + closest.getId() + ");\n");
 			}
 		}
 	}
