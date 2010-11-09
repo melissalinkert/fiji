@@ -114,7 +114,7 @@ public class Candidate extends Region<Candidate> {
 
 		while (neighbors.size() < AssignmentSearch.NumNeighbors && sortedNeighbors.peek() != null) {
 
-			double distance = distanceTo(sortedNeighbors.peek());
+			double distance = distance2To(sortedNeighbors.peek());
 
 			// don't consider yourself as a neighbor
 			if (distance == 0) {
@@ -181,11 +181,6 @@ public class Candidate extends Region<Candidate> {
 		       (getCenter()[0] - candidate.getCenter()[0]) +
 		       (getCenter()[1] - candidate.getCenter()[1])*
 		       (getCenter()[1] - candidate.getCenter()[1]);
-	}
-
-	public double distanceTo(Candidate candidate) {
-
-		return Math.sqrt(distance2To(candidate));
 	}
 
 	public String toString() {
