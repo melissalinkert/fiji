@@ -304,8 +304,10 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 	 *                     stable
 	 * @param minDiversity Minimum diversity for a component to be considered
 	 *                     stable
+	 * @param regionFactory An implementation of RegionFactory for the specified
+	 *                      type of regions
 	 */
-	public MSER(int[] dimensions, int delta, int minArea, int maxArea, double maxVariation, double minDiversity) {
+	public MSER(int[] dimensions, int delta, int minArea, int maxArea, double maxVariation, double minDiversity, RegionFactory<R> regionFactory) {
 
 		this.dimensions = dimensions;
 		numDimensions = dimensions.length;
@@ -338,6 +340,8 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		msers    = new HashSet<R>();
 
 		setParameters(delta, minArea, maxArea, maxVariation, minDiversity);
+
+		this.regionFactory = regionFactory;
 	}
 
 	/**

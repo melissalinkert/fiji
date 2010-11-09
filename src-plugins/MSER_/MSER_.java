@@ -126,7 +126,7 @@ public class MSER_<T extends RealType<T>> implements PlugIn {
 		}
 	
 		// set up algorithm
-		mser = new MSER<T, SimpleRegion>(dimensions, delta, minArea, maxArea, maxVariation, minDiversity);
+		mser = new MSER<T, SimpleRegion>(dimensions, delta, minArea, maxArea, maxVariation, minDiversity, regionFactory);
 	
 		Thread processThread = new Thread(new Runnable() {
 			public void run() {
