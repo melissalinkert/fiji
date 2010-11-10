@@ -6,12 +6,10 @@ public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 
 	double negLogP;
 
-	public SingleAssignment(Candidate source, Candidate target, double negLogP)
+	public SingleAssignment(Candidate source, Candidate target)
 	{
 		this.source = source;
 		this.target = target;
-
-		this.negLogP = negLogP;
 	}
 
 	public Candidate getSource()
@@ -27,6 +25,11 @@ public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 	public void setTarget(Candidate target)
 	{
 		this.target = target;
+	}
+
+	public void setNegLogP(double negLogP)
+	{
+		this.negLogP = negLogP;
 	}
 
 	public Candidate getTarget()

@@ -56,8 +56,17 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 				if (conflicts(targetCandidate, singleAssignment.getTarget()))
 					continue A;
 
-			// create a new assignment, i.e., "move" to it and remember the
+			// create a new assignment, then "move" to it and remember the
 			// distance
+			SingleAssignment singleAssignment =
+			    new SingleAssignment(sourceCandidate, targetCandidate);
+
+			Assignment bestPath = new Assignment();
+			bestPath.addAll(path);
+			bestPath.push(singleAssignment);
+			singleAssignment.setBestPath(bestPath);
+
+			assignments.add(singleAssignment);
 
 			// the appearance part of the distance
 			double distance = AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate);
@@ -71,14 +80,14 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 				if (neighborIndex >= path.size())
 					allAssigned = false;
 			if (allAssigned)
-				distance += AssignmentModel.negLogPNeighbors(sourceCandidate, targetCandidate, path);
+				distance += AssignmentModel.negLogPNeighbors(sourceCandidate, targetCandidate, bestPath);
 
 			// from all assigned candidates with only one unassigned neighbor, is source
 			// the neighbor?
-			for (SingleAssignment singleAssignment : path) {
+			for (SingleAssignment prevSingleAssignment : path) {
 
-				Candidate assignedSourceCandidate = singleAssignment.getSource();
-				Candidate assignedTargetCandidate = singleAssignment.getTarget();
+				Candidate assignedSourceCandidate = prevSingleAssignment.getSource();
+				Candidate assignedTargetCandidate = prevSingleAssignment.getTarget();
 
 				boolean sourceIsNeighbor       = false;
 				int     numUnassignedNeighbors = 0;
@@ -95,18 +104,10 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 				// now that all neighbors are assigned in "path", we can compute
 				// the exact mean-neighbor-distance probability
 				if (numUnassignedNeighbors == 1 && sourceIsNeighbor)
-					distance += AssignmentModel.negLogPNeighbors(assignedSourceCandidate, assignedTargetCandidate, path);
+					distance += AssignmentModel.negLogPNeighbors(assignedSourceCandidate, assignedTargetCandidate, bestPath);
 			}
 
-			SingleAssignment assignment =
-			    new SingleAssignment(sourceCandidate, targetCandidate, distance);
-
-			Assignment bestPath = new Assignment();
-			bestPath.addAll(path);
-			bestPath.push(assignment);
-			assignment.setBestPath(bestPath);
-
-			assignments.add(assignment);
+			singleAssignment.setNegLogP(distance);
 		}
 
 		return assignments;
