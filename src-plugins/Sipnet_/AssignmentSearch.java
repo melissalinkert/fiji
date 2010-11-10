@@ -11,7 +11,7 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 	public static final int MinTargetCandidates = 1;
 
 	// number of neighbors to consider for mean neighbor distance
-	public static final int NumNeighbors = 3;
+	public static final int NumNeighbors = 5;
 
 	//private static final double MinPAssignment       = 1e-20;
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
@@ -71,40 +71,40 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 			// the appearance part of the distance
 			double distance = AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate);
 
-			// for each set of source neurons and its neighbors that was completed
-			// by this assignment, add the mean-neighbor-distance probabiltiy
-			
-			// are all neighbors of source assigned?
-			boolean allAssigned = true;
-			for (int neighborIndex : sourceCandidate.getNeighborIndices())
-				if (neighborIndex >= path.size())
-					allAssigned = false;
-			if (allAssigned)
-				distance += AssignmentModel.negLogPNeighbors(sourceCandidate, targetCandidate, bestPath);
+			// the neighbor part of the distance
 
-			// from all assigned candidates with only one unassigned neighbor, is source
-			// the neighbor?
+			// for all already assigned neighbors of this target
+			for (int i = 0; i < AssignmentSearch.NumNeighbors; i++) {
+
+				int neighborIndex = sourceCandidate.getNeighborIndices().get(i);
+
+				if (neighborIndex < path.size()) {
+					// distance to correspondence of original neighbor
+					double neighborDistance = targetCandidate.distance2To(path.get(neighborIndex).getTarget());
+					// probability of distance change
+					distance += AssignmentModel.negLogPNeighbor(sourceCandidate.getNeighborDistances().get(i), neighborDistance);
+				}
+			}
+
+			// for all assigned candidates that have the target as neighbor now
 			for (SingleAssignment prevSingleAssignment : path) {
 
 				Candidate assignedSourceCandidate = prevSingleAssignment.getSource();
 				Candidate assignedTargetCandidate = prevSingleAssignment.getTarget();
 
-				boolean sourceIsNeighbor       = false;
-				int     numUnassignedNeighbors = 0;
+				for (int i = 0; i < AssignmentSearch.NumNeighbors; i++) {
 
-				for (int neighborIndex : assignedSourceCandidate.getNeighborIndices()) {
+					int neighborIndex = assignedSourceCandidate.getNeighborIndices().get(i);
 
-					if (neighborIndex >= path.size())
-						numUnassignedNeighbors++;
+					// targetCandidate is this neighbor of assignedTargetCandidate now
+					if (neighborIndex == path.size()) {
+						// distance to correspondence of original neighbor
+						double neighborDistance = targetCandidate.distance2To(assignedTargetCandidate);
+						// probability of distance change
+						distance += AssignmentModel.negLogPNeighbor(assignedSourceCandidate.getNeighborDistances().get(i), neighborDistance);
 
-					if (neighborIndex == path.size())
-						sourceIsNeighbor = true;
+					}
 				}
-
-				// now that all neighbors are assigned in "path", we can compute
-				// the exact mean-neighbor-distance probability
-				if (numUnassignedNeighbors == 1 && sourceIsNeighbor)
-					distance += AssignmentModel.negLogPNeighbors(assignedSourceCandidate, assignedTargetCandidate, bestPath);
 			}
 
 			singleAssignment.setNegLogP(distance);
@@ -151,33 +151,6 @@ A:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) 
 
 			// optimistic guess on the appearance probability
 			distance += sourceCandidates.get(i).getNegLogPAppearance(closestAvailableCandidate);
-			// optimistic guess on the mean neighbor distance probability
-			distance += AssignmentModel.negLogPNeighbors(sourceCandidates.get(i), closestAvailableCandidate, node.getBestPath());
-
-			sourceCandidates.get(i).getNegLogPAppearance(closestAvailableCandidate);
-		}
-
-		// for all source candidates, who's neighbors are not assigned yet and
-		// that are already assigned
-		for (SingleAssignment singleAssignment : node.getBestPath()) {
-
-			Candidate sourceCandidate = singleAssignment.getSource();
-			Candidate targetCandidate = singleAssignment.getTarget();
-
-			boolean allAssigned = true;
-
-			for (int neighborIndex : sourceCandidate.getNeighborIndices())
-				// neighbor unassigned?
-				if (neighborIndex >= node.getBestPath().size()) {
-					allAssigned = false;
-					break;
-				}
-
-			if (!allAssigned) {
-
-				// optimistic guess on the mean neighbor distance probability
-				distance += AssignmentModel.negLogPNeighbors(sourceCandidate, targetCandidate, node.getBestPath());
-			}
 		}
 
 		return distance;

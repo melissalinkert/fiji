@@ -13,13 +13,12 @@ public class Candidate extends Region<Candidate> {
 	// most similar candidates (to position and appearance) to this candidate
 	// in the next slice and their assignment probabilities
 	private Vector<Candidate>          mostSimilarCandidates;
-	private HashMap<Candidate, Double> negLogPAppearance;
+	private HashMap<Candidate, Double> negLogPAppearances;
 
 	// closest candidates in x-y of same slice
-	private Vector<Candidate>          neighbors;
-	private HashMap<Candidate, Double> neighborDistances;
-	private Vector<Integer>            neighborIndices;
-	private double                     meanNeighborDistance;
+	private Vector<Candidate> neighbors;
+	private Vector<Double>    neighborDistances;
+	private Vector<Integer>   neighborIndices;
 
 	private class LikelihoodComparator implements Comparator<Candidate> {
 
@@ -70,9 +69,9 @@ public class Candidate extends Region<Candidate> {
 		super(size, center, candidateFactory);
 
 		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.negLogPAppearance     = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
+		this.negLogPAppearances     = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
 		this.neighbors             = new Vector<Candidate>(AssignmentSearch.NumNeighbors);
-		this.neighborDistances     = new HashMap<Candidate, Double>(AssignmentSearch.NumNeighbors);
+		this.neighborDistances     = new Vector<Double>(AssignmentSearch.NumNeighbors);
 		this.neighborIndices       = new Vector<Integer>(AssignmentSearch.NumNeighbors);
 	}
 
@@ -91,7 +90,7 @@ public class Candidate extends Region<Candidate> {
 			if (negLogP <= AssignmentSearch.MaxNegLogPAssignment) {
 
 				mostSimilarCandidates.add(sortedCandidates.peek());
-				negLogPAppearance.put(sortedCandidates.poll(), negLogP);
+				negLogPAppearances.put(sortedCandidates.poll(), negLogP);
 			} else
 				break;
 		}
@@ -106,29 +105,23 @@ public class Candidate extends Region<Candidate> {
 
 	public void findNeighbors(Vector<Candidate> candidates) {
 
-		meanNeighborDistance = 0.0;
-
 		PriorityQueue<Candidate> sortedNeighbors =
 		    new PriorityQueue<Candidate>(AssignmentSearch.NumNeighbors, new DistanceComparator(this));
 		sortedNeighbors.addAll(candidates);
 
 		while (neighbors.size() < AssignmentSearch.NumNeighbors && sortedNeighbors.peek() != null) {
 
-			double distance = distance2To(sortedNeighbors.peek());
+			Candidate neighbor = sortedNeighbors.poll();
 
 			// don't consider yourself as a neighbor
-			if (distance == 0) {
-				sortedNeighbors.poll();
+			if (neighbor == this)
 				continue;
-			}
 
-			neighbors.add(sortedNeighbors.peek());
-			neighborDistances.put(sortedNeighbors.poll(), distance);
+			double distance = distance2To(neighbor);
 
-			meanNeighborDistance += distance;
+			neighbors.add(neighbor);
+			neighborDistances.add(distance);
 		}
-
-		meanNeighborDistance /= neighbors.size();
 
 		// store indices of closest neighbors (used to decide whether all
 		// neighbors have been assigned already during the search)
@@ -160,6 +153,11 @@ public class Candidate extends Region<Candidate> {
 		return neighborIndices;
 	}
 
+	public Vector<Double> getNeighborDistances() {
+
+		return neighborDistances;
+	}
+
 	public Vector<Candidate> getMostLikelyCandidates() {
 
 		return mostSimilarCandidates;
@@ -167,12 +165,7 @@ public class Candidate extends Region<Candidate> {
 
 	public double getNegLogPAppearance(Candidate candidate) {
 
-		return negLogPAppearance.get(candidate);
-	}
-
-	public double getMeanNeighborDistance() {
-
-		return meanNeighborDistance;
+		return negLogPAppearances.get(candidate);
 	}
 
 	public double distance2To(Candidate candidate) {
