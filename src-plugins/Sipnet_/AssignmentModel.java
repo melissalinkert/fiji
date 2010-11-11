@@ -30,7 +30,7 @@ public class AssignmentModel {
 
 		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
 		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
-		diff.set(2, 0, 1.0 - (double)(target.getSize()/source.getSize()));
+		diff.set(2, 0, target.getSize()      - source.getSize());
 
 		return negLogNormAppearance + 0.5*(diff.transpose().times(invCovariance).times(diff)).get(0, 0);
 	}
@@ -39,7 +39,7 @@ public class AssignmentModel {
 
 		return negLogNormNeighborDistance +
 		    0.5*((originalDistance - distance)*
-		          originalDistance - distance)/
-		          covaNeighborDistance;
+		         (originalDistance - distance)/
+		          covaNeighborDistance);
 	}
 }

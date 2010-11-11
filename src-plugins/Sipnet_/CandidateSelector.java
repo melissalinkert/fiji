@@ -262,7 +262,9 @@ public class CandidateSelector {
 
 		// fallback for easy testing
 		if (regionImp.getRoi() == null) {
-			int[] starterIds = new int[]{89, 234, 844, 841, 821, 765, 820, 784, 759, 786, 756, 775, 757, 755, 886, 1018, 752, 749, 283, 135, 750, 259, 261};
+			//int[] starterIds = new int[]{89, 234, 844, 841, 821, 765, 820, 784, 759, 786, 756, 775, 757, 755, 886, 1018, 752, 749, 283, 135, 750, 259, 261};
+			int[] starterIds = new int[]{1184, 999, 1145, 957, 978, 956, 955, 835};
+			//int[] starterIds = new int[]{1184, 999, 1145, 957};
 			for (Candidate region : regions)
 				if (contains(starterIds, region.getId()))
 					selection.add(region);
@@ -280,7 +282,7 @@ public class CandidateSelector {
 					for (Candidate region : regions) {
 
 						double distance = (x-region.getCenter()[0])*(x-region.getCenter()[0]) +
-						                  (y-region.getCenter()[1])*(y-region.getCenter()[1]);
+										  (y-region.getCenter()[1])*(y-region.getCenter()[1]);
 						if (distance < minDistance || bestRegion == null) {
 							minDistance = distance;
 							bestRegion  = region;
