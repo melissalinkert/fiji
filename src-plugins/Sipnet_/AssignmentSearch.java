@@ -34,7 +34,7 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 		}
 	}
 
-	protected Set<SingleAssignment> expand(Assignment path) {
+	protected Set<SingleAssignment> expand(final Assignment path) {
 
 		Set<SingleAssignment> assignments = new HashSet<SingleAssignment>();
 
@@ -76,11 +76,16 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 			// for all already assigned neighbors of this target
 			for (int i = 0; i < AssignmentSearch.NumNeighbors; i++) {
 
+				// the index of the source neighbor
 				int neighborIndex = sourceCandidate.getNeighborIndices().get(i);
 
+				// this neighbor was assigned already
 				if (neighborIndex < path.size()) {
-					// distance to correspondence of original neighbor
-					double neighborDistance = targetCandidate.distance2To(path.get(neighborIndex).getTarget());
+
+					// get the asignee of this neighbor
+					Candidate correspond = path.getSingleAssignment(neighborIndex).getTarget();
+					// distance to correspondence
+					double neighborDistance = targetCandidate.distanceTo(correspond);
 					// probability of distance change
 					distance += AssignmentModel.negLogPNeighbor(sourceCandidate.getNeighborDistances().get(i), neighborDistance);
 				}
@@ -99,10 +104,9 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 					// targetCandidate is this neighbor of assignedTargetCandidate now
 					if (neighborIndex == path.size()) {
 						// distance to correspondence of original neighbor
-						double neighborDistance = targetCandidate.distance2To(assignedTargetCandidate);
+						double neighborDistance = targetCandidate.distanceTo(assignedTargetCandidate);
 						// probability of distance change
 						distance += AssignmentModel.negLogPNeighbor(assignedSourceCandidate.getNeighborDistances().get(i), neighborDistance);
-
 					}
 				}
 			}
@@ -171,7 +175,9 @@ A:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) 
 
 	protected void goingTo(SingleAssignment singleAssignment) {
 
-		IJ.log("connected " + singleAssignment.getSource() + " to " + singleAssignment.getTarget());
+		IJ.log("continuing with node:");
+		for (SingleAssignment sa : singleAssignment.getBestPath())
+			IJ.log("   " + sa.getSource() + " -> " + sa.getTarget());
 	}
 
 	private boolean conflicts(Candidate candidate1, Candidate candidate2) {
