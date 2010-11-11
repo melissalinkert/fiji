@@ -52,8 +52,8 @@ public class Candidate extends Region<Candidate> {
 
 		public int compare(Candidate region1, Candidate region2) {
 
-			double d1 = sourceCandidate.distance2To(region1);
-			double d2 = sourceCandidate.distance2To(region2);
+			double d1 = sourceCandidate.distanceTo(region1);
+			double d2 = sourceCandidate.distanceTo(region2);
 
 			if (d1 < d2)
 				return -1;
@@ -117,7 +117,7 @@ public class Candidate extends Region<Candidate> {
 			if (neighbor == this)
 				continue;
 
-			double distance = distance2To(neighbor);
+			double distance = distanceTo(neighbor);
 
 			neighbors.add(neighbor);
 			neighborDistances.add(distance);
@@ -168,12 +168,12 @@ public class Candidate extends Region<Candidate> {
 		return negLogPAppearances.get(candidate);
 	}
 
-	public double distance2To(Candidate candidate) {
+	public double distanceTo(Candidate candidate) {
 
-		return (getCenter()[0] - candidate.getCenter()[0])*
-		       (getCenter()[0] - candidate.getCenter()[0]) +
-		       (getCenter()[1] - candidate.getCenter()[1])*
-		       (getCenter()[1] - candidate.getCenter()[1]);
+		double diffx = getCenter()[0] - candidate.getCenter()[0];
+		double diffy = getCenter()[1] - candidate.getCenter()[1];
+
+		return Math.sqrt(diffx*diffx + diffy*diffy);
 	}
 
 	public String toString() {
