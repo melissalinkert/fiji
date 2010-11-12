@@ -69,10 +69,7 @@ public class Candidate extends Region<Candidate> {
 		super(size, center, candidateFactory);
 
 		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.negLogPAppearances     = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
-		this.neighbors             = new Vector<Candidate>(AssignmentSearch.NumNeighbors);
-		this.neighborDistances     = new Vector<Double>(AssignmentSearch.NumNeighbors);
-		this.neighborIndices       = new Vector<Integer>(AssignmentSearch.NumNeighbors);
+		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
@@ -105,6 +102,10 @@ public class Candidate extends Region<Candidate> {
 
 	public void findNeighbors(Vector<Candidate> candidates) {
 
+		neighbors         = new Vector<Candidate>(AssignmentSearch.NumNeighbors);
+		neighborDistances = new Vector<Double>(AssignmentSearch.NumNeighbors);
+		neighborIndices   = new Vector<Integer>(AssignmentSearch.NumNeighbors);
+
 		PriorityQueue<Candidate> sortedNeighbors =
 		    new PriorityQueue<Candidate>(AssignmentSearch.NumNeighbors, new DistanceComparator(this));
 		sortedNeighbors.addAll(candidates);
@@ -125,8 +126,6 @@ public class Candidate extends Region<Candidate> {
 
 		// store indices of closest neighbors (used to decide whether all
 		// neighbors have been assigned already during the search)
-
-		neighborIndices = new Vector<Integer>(neighbors.size());
 
 		for (Candidate neighbor : neighbors)
 			for (int i = 0; i < candidates.size(); i++)
