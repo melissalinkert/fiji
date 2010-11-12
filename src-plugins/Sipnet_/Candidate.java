@@ -18,6 +18,7 @@ public class Candidate extends Region<Candidate> {
 	// closest candidates in x-y of same slice
 	private Vector<Candidate> neighbors;
 	private Vector<Double>    neighborDistances;
+	private Vector<double[]>  neighborOffsets;
 	private Vector<Integer>   neighborIndices;
 
 	private class LikelihoodComparator implements Comparator<Candidate> {
@@ -104,6 +105,7 @@ public class Candidate extends Region<Candidate> {
 
 		neighbors         = new Vector<Candidate>(AssignmentSearch.NumNeighbors);
 		neighborDistances = new Vector<Double>(AssignmentSearch.NumNeighbors);
+		neighborOffsets   = new Vector<double[]>(AssignmentSearch.NumNeighbors);
 		neighborIndices   = new Vector<Integer>(AssignmentSearch.NumNeighbors);
 
 		PriorityQueue<Candidate> sortedNeighbors =
@@ -118,10 +120,12 @@ public class Candidate extends Region<Candidate> {
 			if (neighbor == this)
 				continue;
 
-			double distance = distanceTo(neighbor);
+			double   distance = distanceTo(neighbor);
+			double[] offset   = offsetTo(neighbor);
 
 			neighbors.add(neighbor);
 			neighborDistances.add(distance);
+			neighborOffsets.add(offset);
 		}
 
 		// store indices of closest neighbors (used to decide whether all
@@ -157,6 +161,11 @@ public class Candidate extends Region<Candidate> {
 		return neighborDistances;
 	}
 
+	public Vector<double[]> getNeighborOffsets() {
+
+		return neighborOffsets;
+	}
+
 	public Vector<Candidate> getMostLikelyCandidates() {
 
 		return mostSimilarCandidates;
@@ -173,6 +182,16 @@ public class Candidate extends Region<Candidate> {
 		double diffy = getCenter()[1] - candidate.getCenter()[1];
 
 		return Math.sqrt(diffx*diffx + diffy*diffy);
+	}
+
+	public double[] offsetTo(Candidate candidate) {
+
+		double[] offset = new double[2];
+
+		offset[0] = candidate.getCenter()[0] - getCenter()[0];
+		offset[1] = candidate.getCenter()[1] - getCenter()[1];
+
+		return offset;
 	}
 
 	public String toString() {

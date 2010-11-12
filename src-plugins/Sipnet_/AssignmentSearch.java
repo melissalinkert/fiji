@@ -85,9 +85,9 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 					// get the asignee of this neighbor
 					Candidate correspond = path.getSingleAssignment(neighborIndex).getTarget();
 					// distance to correspondence
-					double neighborDistance = targetCandidate.distanceTo(correspond);
+					double[] neighborOffset = targetCandidate.offsetTo(correspond);
 					// probability of distance change
-					distance += AssignmentModel.negLogPNeighbor(sourceCandidate.getNeighborDistances().get(i), neighborDistance);
+					distance += AssignmentModel.negLogPNeighbor(sourceCandidate.getNeighborOffsets().get(i), neighborOffset);
 				}
 			}
 
@@ -104,9 +104,9 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 					// targetCandidate is this neighbor of assignedTargetCandidate now
 					if (neighborIndex == path.size()) {
 						// distance to correspondence of original neighbor
-						double neighborDistance = targetCandidate.distanceTo(assignedTargetCandidate);
+						double[] neighborOffset = targetCandidate.offsetTo(assignedTargetCandidate);
 						// probability of distance change
-						distance += AssignmentModel.negLogPNeighbor(assignedSourceCandidate.getNeighborDistances().get(i), neighborDistance);
+						distance += AssignmentModel.negLogPNeighbor(assignedSourceCandidate.getNeighborOffsets().get(i), neighborOffset);
 					}
 				}
 			}
