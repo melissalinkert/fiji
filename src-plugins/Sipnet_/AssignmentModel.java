@@ -4,8 +4,8 @@ import Jama.Matrix;
 public class AssignmentModel {
 
 	static double covaPosition         = 10.0;
-	static double covaSize             = 10000.0;
-	static double covaNeighborDistance = 1.0;
+	static double covaSize             = 1000.0;
+	static double covaNeighborDistance = 5.0;
 
 	static double[][] covaAppearance =
 	    {{covaPosition, 0.0, 0.0},
@@ -37,9 +37,9 @@ public class AssignmentModel {
 
 	static final double negLogPNeighbor(double originalDistance, double distance) {
 
+		double diff = originalDistance - distance;
+
 		return negLogNormNeighborDistance +
-		    0.5*((originalDistance - distance)*
-		         (originalDistance - distance)/
-		          covaNeighborDistance);
+		    0.5*(diff*diff)/covaNeighborDistance;
 	}
 }
