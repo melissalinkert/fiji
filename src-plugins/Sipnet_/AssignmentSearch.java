@@ -131,20 +131,80 @@ A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) 
 
 		double distance = 0.0;
 
-		// for all source candidates, that have not been assigned yet...
+		// for all sources, that have not been assigned yet...
 		for (int i = node.getBestPath().size(); i < sourceCandidates.size(); i++) {
 
-			// ...sum up all best distances to still available candidates as our optimistic
-			// estimate of the path length
+			Candidate source = sourceCandidates.get(i);
+
+			// find best neighbor value for each neighbor of source...
+			for (int j = 0; j < AssignmentSearch.NumNeighbors; j++) {
+
+				double minNegLogPNeighbor = -1;
+
+				int       neighborIndex = source.getNeighborIndices().get(j);
+				Candidate neighbor      = source.getNeighbors().get(j);
+
+				// ...of each possible candidate of source and...
+A:				for (Candidate sourceCandidate : source.getMostLikelyCandidates()) {
+
+					for (SingleAssignment assignment : node.getBestPath())
+						if (sourceCandidate == assignment.getTarget())
+							continue A;
+
+					// ...of each possible candidate for neighbor (might be only
+					// one, if neighbor is assigned already)
+					if (neighborIndex < node.getBestPath().size()) {
+
+						// neighbor was assigned already
+						Candidate neighborCandidate = node.getBestPath().getSingleAssignment(neighborIndex).getTarget();
+
+						double[] neighborOffset = sourceCandidate.offsetTo(neighborCandidate);
+
+						// get neighbor value
+						double negLogPNeighbor = AssignmentModel.negLogPNeighbor(source.getNeighborOffsets().get(j), neighborOffset);
+
+						if (negLogPNeighbor < minNegLogPNeighbor || minNegLogPNeighbor < 0)
+							minNegLogPNeighbor = negLogPNeighbor;
+
+					} else {
+
+						// consider all possible neighbor candidates
+B:						for (Candidate neighborCandidate : neighbor.getMostLikelyCandidates()) {
+	
+							for (SingleAssignment assignment : node.getBestPath())
+								if (neighborCandidate == assignment.getTarget())
+									continue B;
+
+							double[] neighborOffset = sourceCandidate.offsetTo(neighborCandidate);
+	
+							// get neighbor value
+							double negLogPNeighbor = AssignmentModel.negLogPNeighbor(source.getNeighborOffsets().get(j), neighborOffset);
+	
+							if (negLogPNeighbor < minNegLogPNeighbor || minNegLogPNeighbor < 0)
+								minNegLogPNeighbor = negLogPNeighbor;
+						}
+					}
+				}
+
+				if (minNegLogPNeighbor < 0) {
+					IJ.log("Oh no! For the computation of h (neighbor part) there are no more available regions!");
+					continue;
+				}
+
+				distance += minNegLogPNeighbor;
+			}
+
+
+			// sum up all best distances to still available candidates
 			Candidate closestAvailableCandidate = null;
 
 			// TODO: optimize
-A:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) {
+C:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) {
 				for (SingleAssignment assignment : node.getBestPath()) {
 
 					// this close region is assigned already
 					if (closestAvailableCandidate == assignment.getTarget())
-						continue A;
+						continue C;
 				}
 
 				// we found a close unassigned region
