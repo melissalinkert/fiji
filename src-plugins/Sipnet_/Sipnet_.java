@@ -11,6 +11,7 @@ import ij.WindowManager;
 
 import ij.gui.GenericDialog;
 
+import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
 
 import ij.process.ImageProcessor;
@@ -110,7 +111,20 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					IJ.log("Reading Msers from " + mserFilename);
 					topMsers = io.readMsers(mserFilename);
 					msers    = flatten(topMsers);
-					sliceReg = IJ.openImage(sliceImageFilename);
+
+					IJ.log("Readgin Mser images from " + sliceImageFilename);
+					ImagePlus fileSliceReg    = IJ.openImage(sliceImageFilename);
+					Image<T>  fileSliceRegion = ImagePlusAdapter.wrap(fileSliceReg);
+
+					LocalizableByDimCursor<T> regionsCursor     = sliceRegion.createLocalizableByDimCursor();
+					LocalizableByDimCursor<T> fileRegionsCursor = fileSliceRegion.createLocalizableByDimCursor();
+					while (regionsCursor.hasNext()) {
+						regionsCursor.fwd();
+						fileRegionsCursor.fwd();
+						regionsCursor.getType().setReal(fileRegionsCursor.getType().getRealFloat());
+					}
+
+					fileSliceReg.close();
 	
 				} else {
 	
@@ -177,8 +191,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			}
 	
 			// visualize result
+			ImagePlus regCopy = (new Duplicator()).run(reg);
+			regCopy.show();
 			IJ.setForegroundColor(255, 255, 255);
-			IJ.selectWindow(imp.getTitle());
+			IJ.selectWindow(regCopy.getTitle());
 			int slice = bestSequence.size();
 			for (SequenceNode node: bestSequence) {
 
@@ -202,7 +218,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				slice--;
 			}
 	
-			imp.updateAndDraw();
+			regCopy.updateAndDraw();
 
 			visualiser.showAssignments(bestSequence);
 		}
