@@ -179,7 +179,6 @@ PLUGIN_TARGETS=plugins/Jython_Interpreter.jar \
 	plugins/VIB_.jar \
 	plugins/Anisotropic_Diffusion_2D.jar \
 	plugins/Simple_Neurite_Tracer.jar \
-	plugins/SPIM_Registration.jar \
 	plugins/QuickPALM_.jar \
 	plugins/3D_Viewer.jar \
 	plugins/CPU_Meter.jar \
@@ -266,7 +265,7 @@ src-plugins/Fiji/icon.png[cp $PRE $TARGET] <- images/icon.png
 MAINCLASS(jars/javac.jar)=com.sun.tools.javac.Main
 
 CLASSPATH(jars/fiji-scripting.jar)=jars/jython.jar:jars/Fiji.jar:jars/bsh-2.0b4.jar:jars/js.jar
-CLASSPATH(plugins/Sipnet_.jar)=plugins/MSER_.jar
+CLASSPATH(plugins/Sipnet_.jar)=plugins/MSER_.jar:plugins/3D_Viewer.jar
 CLASSPATH(plugins/Refresh_Javas.jar)=jars/fiji-scripting.jar:jars/fake.jar:jars/Fiji.jar
 CLASSPATH(plugins/Jython_Interpreter.jar)=jars/fiji-scripting.jar:jars/jython.jar
 CLASSPATH(plugins/Clojure_Interpreter.jar)=jars/fiji-scripting.jar:jars/clojure.jar
@@ -309,7 +308,6 @@ CLASSPATH(jars/VIB-lib.jar)=jars/Jama-1.0.2.jar:jars/junit-4.5.jar:jars/pal-opti
 CLASSPATH(plugins/Simple_Neurite_Tracer.jar)=$JAVA3D_JARS:jars/VIB-lib.jar:plugins/VIB_.jar:jars/pal-optimization.jar:jars/junit-4.5.jar:plugins/3D_Viewer.jar:jars/commons-math.jar:jars/jfreechart-1.0.13.jar:jars/jcommon-1.0.12.jar:jars/batik.jar
 CLASSPATH(plugins/3D_Viewer.jar)=jars/VIB-lib.jar:jars/imglib.jar:jars/Jama-1.0.2.jar:$JAVA3D_JARS
 CLASSPATH(jars/jep.jar)=jars/Jama-1.0.2.jar:jars/junit-4.5.jar
-CLASSPATH(plugins/SPIM_Registration.jar)=$JAVA3D_JARS:jars/imglib.jar:jars/mpicbg.jar:plugins/3D_Viewer.jar:jars/weka.jar:jars/fiji-lib.jar:plugins/loci_tools.jar:plugins/Fiji_Plugins.jar:jars/VIB-lib.jar:jars/Jama-1.0.2.jar
 CLASSPATH(plugins/Bug_Submitter.jar)=plugins/Fiji_Updater.jar
 CLASSPATH(plugins/TopoJ_.jar)=jars/Jama-1.0.2.jar
 CLASSPATH(jars/imagescience.jar)=plugins/Image_5D.jar
