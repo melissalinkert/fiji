@@ -13,22 +13,36 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 		openSet     = new PriorityQueue<N>();
 		currentPath = startPath;
 
+		return findNextBestPath();
+	}
+
+	public P findNextBestPath() {
+
+		if (openSet == null)
+			return null;
+
 		while (true) {
 
-			Set<N> nextNodes = expand(currentPath);
+			// whenever currentPath == null, the search has been restarted - in
+			// this case, we have to find the next best node before expanding
+			if (currentPath != null) {
 
-			for (N node : nextNodes) {
-				double g = g(currentPath, node);
-				node.setDistanceFromStart(g);
-				node.setEstimatedDistance(g + h(node));
-			}
+				Set<N> nextNodes = expand(currentPath);
 	
-			openSet.addAll(nextNodes);
+				for (N node : nextNodes) {
+					double g = g(currentPath, node);
+					node.setDistanceFromStart(g);
+					node.setEstimatedDistance(g + h(node));
+				}
+		
+				openSet.addAll(nextNodes);
+			}
 
 			N bestNode = openSet.poll();
 
 			// this can only happen if the target nodes are not reachable from
-			// the start node
+			// the start node or all paths to the target nodes have been
+			// explored already
 			if (bestNode == null) {
 				noMoreOpenNodes(currentPath);
 				return null;
@@ -38,8 +52,13 @@ public abstract class AStarSearch<P extends LinkedList<N>, N extends SearchNode<
 
 			goingTo(bestNode);
 
-			if (reachedTarget(currentPath))
-				return currentPath;
+			if (reachedTarget(currentPath)) {
+
+				P bestPath  = currentPath;
+				currentPath = null;
+
+				return bestPath;
+			}
 		}
 	}
 

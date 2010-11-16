@@ -10,8 +10,8 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 	public static final int MaxTargetCandidates = 5;
 	public static final int MinTargetCandidates = 1;
 
-	// number of neighbors to consider for mean neighbor distance
-	public static final int NumNeighbors = 5;
+	// number of neighbors to consider for neighbor offset
+	public static final int NumNeighbors = 1;
 
 	//private static final double MinPAssignment       = 1e-20;
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
@@ -235,13 +235,6 @@ C:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) 
 
 		IJ.log("Oh no! There are no more open nodes and I didn't reach my target yet.");
 		IJ.showProgress(sourceCandidates.size(), sourceCandidates.size());
-	}
-
-	protected void goingTo(SingleAssignment singleAssignment) {
-
-		IJ.log("continuing with node:");
-		for (SingleAssignment sa : singleAssignment.getBestPath())
-			IJ.log("   " + sa.getSource() + " -> " + sa.getTarget());
 	}
 
 	private boolean conflicts(Candidate candidate1, Candidate candidate2) {

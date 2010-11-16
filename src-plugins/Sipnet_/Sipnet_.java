@@ -166,12 +166,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					sliceCandidates.set(s - 1, msers);
 			}
 	
-			// perform greedy search
-			IJ.log("Searching for the best path greedily");
+			// perform search
+			IJ.log("Searching for the best path");
 			sipnet = new Sipnet(texifyer);
-			Sequence greedySeequence = sipnet.greedySearch(startCandidates, sliceCandidates);
+			Sequence bestSequence = sipnet.bestSearch(startCandidates, sliceCandidates);
 	
-			if (greedySeequence == null) {
+			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");
 				return;
 			}
@@ -179,8 +179,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			// visualize result
 			IJ.setForegroundColor(255, 255, 255);
 			IJ.selectWindow(imp.getTitle());
-			int slice = greedySeequence.size();
-			for (Assignment assignment : greedySeequence) {
+			int slice = bestSequence.size();
+			for (SequenceNode node: bestSequence) {
+
+				Assignment assignment = node.getAssignment();
+
 				for (SingleAssignment singleAssignment : assignment) {
 	
 					Candidate source = singleAssignment.getSource();
@@ -201,7 +204,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	
 			imp.updateAndDraw();
 
-			visualiser.showAssignments(greedySeequence);
+			visualiser.showAssignments(bestSequence);
 		}
 	}
 

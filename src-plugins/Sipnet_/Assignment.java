@@ -1,5 +1,7 @@
 
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 @SuppressWarnings("serial")
 public class Assignment extends LinkedList<SingleAssignment> {
@@ -14,5 +16,25 @@ public class Assignment extends LinkedList<SingleAssignment> {
 	public SingleAssignment getSingleAssignment(int index) {
 
 		return get(size() - 1 - index);
+	}
+
+	public Set<Candidate> getTargets() {
+
+		Set<Candidate> targets = new HashSet<Candidate>();
+
+		for (SingleAssignment singleAssignment : this)
+			targets.add(singleAssignment.getTarget());
+
+		return targets;
+	}
+
+	public double getNegLogP() {
+
+		double negLogP = 0.0;
+
+		for (SingleAssignment singleAssignment : this)
+			negLogP += singleAssignment.getNegLogP();
+
+		return negLogP;
 	}
 }

@@ -16,8 +16,8 @@ public class Sipnet {
 
 	public Sequence greedySearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates) {
 
-		Sequence    greedySeequence = new Sequence();
-		Set<Candidate> sourceRegions   = startCandidates;
+		Sequence    greedySeequence  = new Sequence();
+		Set<Candidate> sourceRegions = startCandidates;
 
 		IJ.log("Starting greedy search for " + sliceCandidates.size() + " assignments");
 
@@ -37,7 +37,7 @@ public class Sipnet {
 				return null;
 			}
 
-			greedySeequence.push(assignment);
+			greedySeequence.push(new SequenceNode(assignment));
 
 			sourceRegions.clear();
 			for (SingleAssignment singleAssignment : assignment)
@@ -45,5 +45,12 @@ public class Sipnet {
 		}
 
 		return greedySeequence;
+	}
+
+	public Sequence bestSearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates) {
+
+		SequenceSearch sequenceSearch = new SequenceSearch(startCandidates, sliceCandidates);
+
+		return sequenceSearch.findBestPath(new Sequence());
 	}
 }

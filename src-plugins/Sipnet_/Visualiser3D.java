@@ -56,7 +56,10 @@ public class Visualiser3D {
 		// connect regions
 		int s = sequence.size() - 1;
 		// from back to front (sequence is a stack)
-		for (Assignment assignment : sequence) {
+		for (SequenceNode node : sequence) {
+
+			Assignment assignment = node.getAssignment();
+
 			for (SingleAssignment singleAssignment : assignment) {
 
 				double[] from = singleAssignment.getSource().getCenter();
