@@ -36,10 +36,9 @@ public class Visualiser {
 
 					int x = (int)target.getCenter()[0];
 					int y = (int)target.getCenter()[1];
+					double confidence = singleAssignment.getNegLogP();
 
-					IJ.setSlice(slice+1);
-					IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
-
+					drawCandidate(x, y, slice + 1, id, confidence);
 					id++;
 				}
 			}
@@ -51,16 +50,22 @@ public class Visualiser {
 
 				int id = ids.get(target);
 				ids.put(source, id);
-
 				int x = (int)source.getCenter()[0];
 				int y = (int)source.getCenter()[1];
-				IJ.setSlice(slice);
-				IJ.runMacro("drawString(\"" + id + "\", " + x + ", " + y + ")");
+				double confidence = singleAssignment.getNegLogP();
+
+				drawCandidate(x, y, slice, id, confidence);
 			}
 			slice--;
 		}
 
 		blockCopy.updateAndDraw();
+	}
+
+	private void drawCandidate(int x, int y, int slice, int id, double confidence) {
+
+		IJ.setSlice(slice);
+		IJ.runMacro("drawString(\"" + id + " (" + confidence + "+)\", " + x + ", " + y + ")");
 	}
 
 }
