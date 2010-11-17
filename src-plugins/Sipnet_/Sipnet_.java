@@ -11,7 +11,6 @@ import ij.WindowManager;
 
 import ij.gui.GenericDialog;
 
-import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
 
 import ij.process.ImageProcessor;
@@ -34,7 +33,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private Image<T>     sliceRegion;
 
 	private Texifyer     texifyer;
-	private Visualiser3D visualiser;
+	private Visualiser   visualiser;
+	private Visualiser3D visualiser3d;
 	private IO           io;
 
 	private MSER<T, Candidate> mser;
@@ -82,9 +82,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			reg.setTitle("msers of " + imp.getTitle());
 		
 			// setup visualisation and file IO
-			texifyer   = new Texifyer(reg, "./sipnet-tex/");
-			visualiser = new Visualiser3D();
-			io         = new IO();
+			texifyer     = new Texifyer(reg, "./sipnet-tex/");
+			visualiser   = new Visualiser();
+			visualiser3d = new Visualiser3D();
+			io           = new IO();
 
 			// create set of start points
 			Set<Candidate> startCandidates = new HashSet<Candidate>();
@@ -190,37 +191,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 	
-			// visualize result
-			ImagePlus regCopy = (new Duplicator()).run(reg);
-			regCopy.show();
-			IJ.setForegroundColor(255, 255, 255);
-			IJ.selectWindow(regCopy.getTitle());
-			int slice = bestSequence.size();
-			for (SequenceNode node: bestSequence) {
-
-				Assignment assignment = node.getAssignment();
-
-				for (SingleAssignment singleAssignment : assignment) {
-	
-					Candidate source = singleAssignment.getSource();
-					Candidate target = singleAssignment.getTarget();
-	
-					int x = (int)source.getCenter()[0];
-					int y = (int)source.getCenter()[1];
-					IJ.setSlice(slice);
-					IJ.runMacro("drawString(\"" + source.getId() + "\", " + x + ", " + y + ")");
-	
-					x = (int)target.getCenter()[0];
-					y = (int)target.getCenter()[1];
-					IJ.setSlice(slice+1);
-					IJ.runMacro("drawString(\"" + source.getId() + "\", " + x + ", " + y + ")");
-				}
-				slice--;
-			}
-	
-			regCopy.updateAndDraw();
-
-			visualiser.showAssignments(bestSequence);
+			visualiser.drawSequence(reg, bestSequence);
+			visualiser3d.showAssignments(bestSequence);
 		}
 	}
 
