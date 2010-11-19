@@ -91,7 +91,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		public int size;
 	}
 
-	private class ConnectedComponent {
+	class ConnectedComponent {
 
 		public int head;
 		public int tail;
@@ -293,6 +293,40 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 
 			childRegions.addAll(children);
 		}
+
+		/**
+		 * Computes the perimenter of a region as the sum of cracks (edges between
+		 * pixels) that seperate the region from the other pixels. This also
+		 * includes holes of the connected component.
+		 */
+		public int getPerimeter() {
+
+			int index     = head;
+			int numCracks = 0;
+
+			// collect all indices in a hash set
+			HashSet<Integer> indices = new HashSet<Integer>();
+			while (next[index] != index && next[index] != NONE) {
+
+				indices.add(index);
+				index = next[index];
+			}
+
+			index = head;
+			while (next[index] != index && next[index] != NONE) {
+
+				for (int offset : neighborOffsets) {
+
+					if (!indices.contains(index + offset))
+						numCracks++;
+				}
+
+				index = next[index];
+			}
+
+			return numCracks;
+		}
+
 	}
 
 	/**
@@ -612,7 +646,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 
 		visualizeMser(component);
 
-		R newRegion = regionFactory.create(component.size, component.center);
+		R newRegion = regionFactory.create(component);
 
 		msers.add(newRegion);
 

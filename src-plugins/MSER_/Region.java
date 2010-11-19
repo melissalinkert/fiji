@@ -16,20 +16,22 @@ public class Region<R extends Region<R>> implements Externalizable {
 	private Vector<R> children;
 
 	private int      size;
+	private int      perimeter;
 	private double[] center;
 
 	private RegionFactory<R> regionFactory;
 
-	public Region(int size, double[] center, RegionFactory<R> regionFactory) {
+	public Region(int size, int perimeter, double[] center, RegionFactory<R> regionFactory) {
 
-		this.id       = NextId;
+		this.id        = NextId;
 		NextId++;
 
-		this.size     = size;
-		this.center   = new double[center.length];
+		this.size      = size;
+		this.perimeter = perimeter;
+		this.center    = new double[center.length];
 		System.arraycopy(center, 0, this.center, 0, center.length);
-		this.parent   = null;
-		this.children = new Vector<R>();
+		this.parent    = null;
+		this.children  = new Vector<R>();
 
 		this.regionFactory = regionFactory;
 	}
@@ -45,14 +47,22 @@ public class Region<R extends Region<R>> implements Externalizable {
 	}
 
 	public Vector<R> getChildren() {
+
 		return this.children;
 	}
 
 	public int getSize() {
+
 		return this.size;
 	}
 
+	public int getPerimeter() {
+
+		return this.perimeter;
+	}
+
 	public double[] getCenter() {
+
 		return this.center;
 	}
 
@@ -98,6 +108,7 @@ public class Region<R extends Region<R>> implements Externalizable {
 		for (R child : children)
 			child.writeExternal(out);
 		out.writeInt(size);
+		out.writeInt(perimeter);
 		out.writeObject(center);
 	}
 
@@ -113,7 +124,8 @@ public class Region<R extends Region<R>> implements Externalizable {
 			child.setParent((R)this);
 			children.add(child);
 		}
-		size = in.readInt();
+		size      = in.readInt();
+		perimeter = in.readInt();
 		try {
 			center = (double[])in.readObject();
 		} catch (ClassNotFoundException e) {

@@ -40,17 +40,17 @@ public class MSER_<T extends RealType<T>> implements PlugIn {
 	private class SimpleRegionFactory implements RegionFactory<SimpleRegion> {
 
 		public SimpleRegion create() {
-			return create(0, new double[0]);
+			return new SimpleRegion(0, new double[]{0.0, 0.0});
 		}
 
-		public SimpleRegion create(int size, double[] center) {
-			return new SimpleRegion(size, center);
+		public SimpleRegion create(MSER<?, SimpleRegion>.ConnectedComponent component) {
+			return new SimpleRegion(component.size, component.center);
 		}
 	}
 
 	private class SimpleRegion extends Region<SimpleRegion> {
 		public SimpleRegion(int size, double[] center) {
-			super(size, center, regionFactory);
+			super(size, 0, center, regionFactory);
 		}
 	};
 
