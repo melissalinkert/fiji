@@ -3,14 +3,16 @@ import Jama.Matrix;
 
 public class AssignmentModel {
 
-	static double covaPosition         = 10.0;
-	static double covaSize             = 1000.0;
+	static double covaPosition         = 100.0;
+	static double covaSize             = 1.0;
+	static double covaCircularity      = 0.5;
 	static double covaNeighborPosition = 5.0;
 
 	static double[][] covaApp =
-	    {{covaPosition, 0.0, 0.0},
-	     {0.0, covaPosition, 0.0},
-	     {0.0, 0.0, covaSize}};
+	    {{covaPosition, 0.0, 0.0, 0.0},
+	     {0.0, covaPosition, 0.0, 0.0},
+	     {0.0, 0.0, covaSize, 0.0},
+		 {0.0, 0.0, 0.0, covaCircularity}};
 	static double[][] covaNeighOff =
 	    {{covaNeighborPosition, 0.0},
 	     {0.0, covaNeighborPosition}};
@@ -32,11 +34,15 @@ public class AssignmentModel {
 
 	static final double negLogPAppearance(Candidate source, Candidate target) {
 
-		Matrix diff = new Matrix(3, 1);
+		double ciruclaritySource = 4*Math.PI*source.getSize()/(source.getPerimeter()*source.getPerimeter());
+		double ciruclarityTarget = 4*Math.PI*target.getSize()/(target.getPerimeter()*target.getPerimeter());
+
+		Matrix diff = new Matrix(4, 1);
 
 		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
 		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
-		diff.set(2, 0, target.getSize()      - source.getSize());
+		diff.set(2, 0, (Math.sqrt(target.getSize()) - Math.sqrt(source.getSize()))/Math.sqrt(source.getSize()));
+		diff.set(3, 0, ciruclaritySource - ciruclarityTarget);
 
 		return negLogNormAppearance + 0.5*(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}

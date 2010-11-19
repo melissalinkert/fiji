@@ -28,6 +28,7 @@ import javax.swing.JPanel;
 
 import fiji.util.gui.OverlayedImageCanvas;
 
+import ij.IJ;
 import ij.ImagePlus;
 
 import ij.gui.ImageWindow;
@@ -262,9 +263,7 @@ public class CandidateSelector {
 
 		// fallback for easy testing
 		if (regionImp.getRoi() == null) {
-			//int[] starterIds = new int[]{89, 234, 844, 841, 821, 765, 820, 784, 759, 786, 756, 775, 757, 755, 886, 1018, 752, 749, 283, 135, 750, 259, 261};
-			int[] starterIds = new int[]{1184, 999, 1145, 957, 978, 956, 955, 835};
-			//int[] starterIds = new int[]{1184, 999, 1145, 957};
+			int[] starterIds = new int[]{143, 247, 248, 294, 937, 976, 985, 1036, 1108, 1113};
 			for (Candidate region : regions)
 				if (contains(starterIds, region.getId()))
 					selection.add(region);
@@ -292,6 +291,9 @@ public class CandidateSelector {
 					selection.add(bestRegion);
 				}
 
+		IJ.log("selected candidates:");
+		for (Candidate candidate : selection)
+			IJ.log("  " + candidate.getId());
 		return selection;
 	}
 

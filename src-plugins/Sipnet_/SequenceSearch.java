@@ -1,6 +1,5 @@
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
@@ -13,10 +12,13 @@ public class SequenceSearch extends AStarSearch<Sequence, SequenceNode> {
 	private Set<Candidate>         startCandidates;
 	private Vector<Set<Candidate>> sliceCandidates;
 
-	public SequenceSearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates) {
+	private Texifyer               texifyer;
+
+	public SequenceSearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates, Texifyer texifyer) {
 
 		this.startCandidates = startCandidates;
 		this.sliceCandidates = sliceCandidates;
+		this.texifyer        = texifyer;
 	}
 
 	protected Set<SequenceNode> expand(Sequence path) {
@@ -28,6 +30,10 @@ public class SequenceSearch extends AStarSearch<Sequence, SequenceNode> {
 		Set<Candidate>    nextCandidates   = sliceCandidates.get(path.size());
 
 		AssignmentSearch  assignmentSearch = new AssignmentSearch(activeCandidates, nextCandidates);
+
+		// TODO:
+		// texify candidates of best found sequence only
+		texifyer.texifyClosestCandidates(activeCandidates, path.size() + 1);
 
 		double sumProbs = 0.0;
 

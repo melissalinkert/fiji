@@ -8,7 +8,7 @@ import ij.plugin.Duplicator;
 
 public class Visualiser {
 
-	public void drawSequence(ImagePlus blockImage, Sequence sequence) {
+	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence) {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
@@ -38,7 +38,7 @@ public class Visualiser {
 					int y = (int)target.getCenter()[1];
 					double confidence = singleAssignment.getNegLogP();
 
-					drawCandidate(x, y, slice + 1, id, confidence);
+					drawCandidate(x, y, slice + 1, id, confidence, drawConfidence);
 					id++;
 				}
 			}
@@ -54,7 +54,7 @@ public class Visualiser {
 				int y = (int)source.getCenter()[1];
 				double confidence = singleAssignment.getNegLogP();
 
-				drawCandidate(x, y, slice, id, confidence);
+				drawCandidate(x, y, slice, id, confidence, drawConfidence);
 			}
 			slice--;
 		}
@@ -62,10 +62,13 @@ public class Visualiser {
 		blockCopy.updateAndDraw();
 	}
 
-	private void drawCandidate(int x, int y, int slice, int id, double confidence) {
+	private void drawCandidate(int x, int y, int slice, int id, double confidence, boolean drawConfidence) {
 
+		String annotation = "" + id;
+		if (drawConfidence)
+			annotation += " (" + confidence + ")";
 		IJ.setSlice(slice);
-		IJ.runMacro("drawString(\"" + id + " (" + confidence + "+)\", " + x + ", " + y + ")");
+		IJ.runMacro("drawString(\"" + annotation + "\", " + x + ", " + y + ")");
 	}
 
 }

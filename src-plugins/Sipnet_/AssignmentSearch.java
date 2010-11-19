@@ -11,7 +11,7 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 	public static final int MinTargetCandidates = 1;
 
 	// number of neighbors to consider for neighbor offset
-	public static final int NumNeighbors = 1;
+	public static final int NumNeighbors = 3;
 
 	//private static final double MinPAssignment       = 1e-20;
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);

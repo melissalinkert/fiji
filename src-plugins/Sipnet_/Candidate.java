@@ -65,9 +65,9 @@ public class Candidate extends Region<Candidate> {
 		}
 	}
 	
-	public Candidate(int size, double[] center) {
+	public Candidate(int size, int perimeter, double[] center) {
 
-		super(size, center, candidateFactory);
+		super(size, perimeter, center, candidateFactory);
 
 		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
@@ -77,7 +77,7 @@ public class Candidate extends Region<Candidate> {
 
 		// sort all candidates according to appearance likelihood
 		PriorityQueue<Candidate> sortedCandidates =
-		    new PriorityQueue<Candidate>(AssignmentSearch.MaxTargetCandidates, new LikelihoodComparator(this));
+			new PriorityQueue<Candidate>(AssignmentSearch.MaxTargetCandidates, new LikelihoodComparator(this));
 		sortedCandidates.addAll(targetCandidates);
 
 		// cache most likely candidates
@@ -95,8 +95,8 @@ public class Candidate extends Region<Candidate> {
 
 		if (mostSimilarCandidates.size() < AssignmentSearch.MinTargetCandidates) {
 			IJ.log("Oh no! For region " + this + " there are less than " +
-			       AssignmentSearch.MinTargetCandidates + " within the threshold of " +
-			       AssignmentSearch.MaxNegLogPAssignment);
+				   AssignmentSearch.MinTargetCandidates + " within the threshold of " +
+				   AssignmentSearch.MaxNegLogPAssignment);
 			IJ.log("Closest non-selected candidate distance: " + AssignmentModel.negLogPAppearance(this, sortedCandidates.peek()));
 		}
 	}
@@ -109,7 +109,7 @@ public class Candidate extends Region<Candidate> {
 		neighborIndices   = new Vector<Integer>(AssignmentSearch.NumNeighbors);
 
 		PriorityQueue<Candidate> sortedNeighbors =
-		    new PriorityQueue<Candidate>(AssignmentSearch.NumNeighbors, new DistanceComparator(this));
+			new PriorityQueue<Candidate>(AssignmentSearch.NumNeighbors, new DistanceComparator(this));
 		sortedNeighbors.addAll(candidates);
 
 		while (neighbors.size() < AssignmentSearch.NumNeighbors && sortedNeighbors.peek() != null) {
@@ -202,6 +202,7 @@ public class Candidate extends Region<Candidate> {
 			ret += " " + (int)getCenter()[d];
 
 		ret += ", size: " + getSize();
+		ret += ", perimeter: " + getPerimeter();
 
 		return ret;
 	}
