@@ -1,5 +1,4 @@
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -26,21 +25,15 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	// the stack to process
 	private ImagePlus    imp;
-	private ImagePlus    reg;
+	private ImagePlus    msersImp;
 	private int          numSlices;
-
-	private Image<T>     sliceImage;
-	private Image<T>     sliceRegion;
 
 	private Texifyer     texifyer;
 	private Visualiser   visualiser;
 	private Visualiser3D visualiser3d;
 	private IO           io;
 
-	private MSER<T, Candidate> mser;
-	private Sipnet             sipnet;
-
-	private Vector<Set<Candidate>> sliceCandidates;
+	private Sipnet       sipnet;
 
 	// parameters
 	private int    delta        = 10;
@@ -59,140 +52,140 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				IJ.showMessage("Please open an image first.");
 				return;
 			}
+			numSlices = imp.getStack().getSize();
 	
-			// setup image stack
-			ImageStack stack = imp.getStack();
-			numSlices = stack.getSize();
-			sliceCandidates = new Vector<Set<Candidate>>(numSlices - 1);
-			sliceCandidates.setSize(numSlices - 1);
-	
-			// prepare segmentation image
-			reg = imp.createImagePlus();
-			ImageStack regStack = new ImageStack(imp.getWidth(), imp.getHeight());
-			for (int s = 1; s <= numSlices; s++) {
-				ImageProcessor duplProcessor = imp.getStack().getProcessor(s).duplicate();
-				regStack.addSlice("", duplProcessor);
-			}
-			reg.setStack(regStack);
-			reg.setDimensions(1, numSlices, 1);
-			if (numSlices > 1)
-				reg.setOpenAsHyperStack(true);
-			IJ.run(reg, "Fire", "");
-		
-			reg.setTitle("msers of " + imp.getTitle());
-		
 			// setup visualisation and file IO
-			texifyer     = new Texifyer(reg, "./sipnet-tex/");
 			visualiser   = new Visualiser();
 			visualiser3d = new Visualiser3D();
 			io           = new IO();
 
-			// create set of start points
-			Set<Candidate> startCandidates = new HashSet<Candidate>();
-	
-			for (int s = 0; s < numSlices; s++) {
-	
-				IJ.log("Processing slice " + s + "...");
-	
-				String mserFilename       = "./cache/" + imp.getTitle() + "top-msers-" + s + ".sip";
-				String sliceImageFilename = "./cache/" + imp.getTitle() + "msers-" + s + ".tif";
-	
-				HashSet<Candidate> topMsers = null;
-				HashSet<Candidate> msers    = null;
+			// create result cacher
+			ResultCacher resultCacher = new ResultCacher("./.cache", io);
 
-				// create slice image
-				IJ.log("Creating slice image " + (s+1));
-				ImagePlus sliceImp = new ImagePlus("slice " + s+1, stack.getProcessor(s+1));
-				sliceImage  = ImagePlusAdapter.wrap(sliceImp);
-				ImagePlus sliceReg = new ImagePlus("slice " + s+1, regStack.getProcessor(s+1));
-				sliceRegion = ImagePlusAdapter.wrap(sliceReg);
+			// create membrance probability image
+			String classifierFile = "membrane_classifier.arff";
+			ImagePlus membraneImp = resultCacher.readMembraneProbabilities(imp.getFileInfo().fileName, classifierFile);
+
+			if (membraneImp == null) {
+
+				// TODO:
+				// create membrane image...
+				IJ.log("Could not read membrane image and automatic creation is not implemented yet!");
+				return;
+
+				//resultCacher.writeMembraneProbabilities(membraneImp, imp.getFileInfo().fileName, classifierFile);
+			}
+
+			// setup mser algorithm
+			MSER<T, Candidate> mser =
+				new MSER<T, Candidate>(new int[]{imp.getWidth(), imp.getHeight()},
+				                       delta,
+				                       minArea,
+				                       maxArea,
+				                       maxVariation,
+				                       minDiversity,
+				                       new CandidateFactory());
+
+			// read candidate msers
+			msersImp = resultCacher.readMserImages(imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+			Vector<Set<Candidate>> sliceCandidates =
+				resultCacher.readMsers(imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+
+			if (msersImp == null || sliceCandidates == null) {
+
+				// prepare segmentation image
+				msersImp = imp.createImagePlus();
+				ImageStack regStack = new ImageStack(imp.getWidth(), imp.getHeight());
+				for (int s = 1; s <= numSlices; s++) {
+					ImageProcessor duplProcessor = imp.getStack().getProcessor(s).duplicate();
+					regStack.addSlice("", duplProcessor);
+				}
+				msersImp.setStack(regStack);
+				msersImp.setDimensions(1, numSlices, 1);
+				if (numSlices > 1)
+					msersImp.setOpenAsHyperStack(true);
+				IJ.run(msersImp, "Fire", "");
+
+				msersImp.setTitle("msers of " + imp.getTitle());
+
+				texifyer = new Texifyer(msersImp, "./sipnet-tex/");
+
+				// prepare slice candidates
+				sliceCandidates = new Vector<Set<Candidate>>();
+				sliceCandidates.setSize(numSlices);
+				Vector<Set<Candidate>> sliceTopMsers = new Vector<Set<Candidate>>();
+				sliceTopMsers.setSize(numSlices);
+
+				// extract msers from membrane image
+				for (int s = 0; s < numSlices; s++) {
 				
-				if (io.exists(mserFilename)) {
-	
-					IJ.log("Reading Msers from " + mserFilename);
-					topMsers = io.readMsers(mserFilename);
-					msers    = flatten(topMsers);
+					IJ.log("Extracing MSERs from slice " + s + "...");
 
-					IJ.log("Readgin Mser images from " + sliceImageFilename);
-					ImagePlus fileSliceReg    = IJ.openImage(sliceImageFilename);
-					Image<T>  fileSliceRegion = ImagePlusAdapter.wrap(fileSliceReg);
+					HashSet<Candidate> topMsers = null;
+					HashSet<Candidate> msers    = null;
 
-					LocalizableByDimCursor<T> regionsCursor     = sliceRegion.createLocalizableByDimCursor();
-					LocalizableByDimCursor<T> fileRegionsCursor = fileSliceRegion.createLocalizableByDimCursor();
-					while (regionsCursor.hasNext()) {
-						regionsCursor.fwd();
-						fileRegionsCursor.fwd();
-						regionsCursor.getType().setReal(fileRegionsCursor.getType().getRealFloat());
+					// create slice images
+					ImagePlus sliceMembraneImp = new ImagePlus("slice " + s+1, membraneImp.getStack().getProcessor(s+1));
+					Image<T> sliceMembrane     = ImagePlusAdapter.wrap(sliceMembraneImp);
+					ImagePlus sliceMsersImp    = new ImagePlus("slice " + s+1, msersImp.getStack().getProcessor(s+1));
+					Image<T> sliceMsers        = ImagePlusAdapter.wrap(sliceMsersImp);
+
+					// black out msers image
+					LocalizableByDimCursor<T> msersCursor = sliceMsers.createLocalizableByDimCursor();
+					while (msersCursor.hasNext()) {
+						msersCursor.fwd();
+						msersCursor.getType().setReal(0.0);
 					}
 
-					fileSliceReg.close();
-	
-				} else {
-	
-					// black out region image
-					LocalizableByDimCursor<T> regionsCursor = sliceRegion.createLocalizableByDimCursor();
-					while (regionsCursor.hasNext()) {
-						regionsCursor.fwd();
-						regionsCursor.getType().setReal(0.0);
-					}
-		
-					// set up algorithm
-					if (mser == null)
-						mser = new MSER<T, Candidate>(sliceImage.getDimensions(), delta, minArea, maxArea, maxVariation, minDiversity, new CandidateFactory());
-		
-					mser.process(sliceImage, true, false, sliceRegion);
-
+					// process slice image
+					mser.process(sliceMembrane, true, false, sliceMsers);
 					topMsers = mser.getTopMsers();
 					msers    = mser.getMsers();
-		
 					IJ.log("Found " + topMsers.size() + " parent candidates in slice " + s);
-		
+
+					// store slice candidates
+					sliceCandidates.set(s, new HashSet<Candidate>(msers));
+					sliceTopMsers.set(s, new HashSet<Candidate>(topMsers));
+
 					// visualise result
-					IJ.run(sliceReg, "Fire", "");
-					regionsCursor.reset();
+					msersCursor.reset();
 					double maxValue = 0.0;
-					while (regionsCursor.hasNext()) {
-						regionsCursor.fwd();
-						if (regionsCursor.getType().getRealFloat() > maxValue)
-							maxValue = regionsCursor.getType().getRealFloat();
+					while (msersCursor.hasNext()) {
+						msersCursor.fwd();
+						if (msersCursor.getType().getRealFloat() > maxValue)
+							maxValue = msersCursor.getType().getRealFloat();
 					}
-					regionsCursor.reset();
-					while (regionsCursor.hasNext()) {
-						regionsCursor.fwd();
-						regionsCursor.getType().setReal(
-							128.0 * regionsCursor.getType().getRealFloat()/maxValue);
+					msersCursor.reset();
+					while (msersCursor.hasNext()) {
+						msersCursor.fwd();
+						msersCursor.getType().setReal(
+							128.0 * msersCursor.getType().getRealFloat()/maxValue);
 					}
 					texifyer.texifyMserTree(mser, s);
-		
-					// write msers and msers image to file
-					io.writeMsers(topMsers, mserFilename);
-					IJ.save(sliceReg, sliceImageFilename);
 				}
-	
-				// for the first slice, let the user select the start candidates
-				if (s == 0) {
-	
-					CandidateSelector candidateSelector = new CandidateSelector(reg, msers);
-					startCandidates = candidateSelector.getUserSelection();
-	
-					if (startCandidates == null)
-						return;
-				} else
-					sliceCandidates.set(s - 1, msers);
+
+				resultCacher.writeMserImages(msersImp, imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.writeMsers(sliceTopMsers, imp.getFileInfo().fileName, classifierFile, mser.getParameters());
 			}
-	
+
+			// select start candidates
+			CandidateSelector candidateSelector = new CandidateSelector(msersImp, sliceCandidates.get(0));
+			Set<Candidate>    startCandidates   = candidateSelector.getUserSelection();
+			if (startCandidates == null)
+				return;
+
 			// perform search
 			IJ.log("Searching for the best path");
-			sipnet = new Sipnet(texifyer);
-			Sequence bestSequence = sipnet.bestSearch(startCandidates, sliceCandidates);
+			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
+			sipnet   = new Sipnet(texifyer);
+			Sequence bestSequence = sipnet.bestSearch(startCandidates, sliceCandidates.subList(1, sliceCandidates.size()));
 	
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");
 				return;
 			}
 	
-			visualiser.drawSequence(reg, bestSequence, false);
-			//visualiser.drawSequence(reg, bestSequence, true);
+			visualiser.drawSequence(msersImp, bestSequence, false);
 			visualiser3d.showAssignments(bestSequence);
 		}
 	}
@@ -221,16 +214,5 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		// start processing thread and return
 		ProcessingThread procThread = new ProcessingThread();
 		procThread.start();
-	}
-
-	private HashSet<Candidate> flatten(Collection<Candidate> parents) {
-
-		HashSet<Candidate> allRegions = new HashSet<Candidate>();
-
-		allRegions.addAll(parents);
-		for (Candidate parent : parents)
-			allRegions.addAll(flatten(parent.getChildren()));
-
-		return allRegions;
 	}
 }

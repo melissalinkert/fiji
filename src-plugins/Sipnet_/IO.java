@@ -11,6 +11,8 @@ import java.io.ObjectOutputStream;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.Vector;
 
 import ij.IJ;
 
@@ -26,7 +28,7 @@ public class IO {
 		return ((new File(filename1)).lastModified() > (new File(filename2)).lastModified());
 	}
 
-	public void writeMsers(Collection<Candidate> topMsers, String filename) {
+	public void writeMsers(Vector<Set<Candidate>> sliceTopMsers, String filename) {
 
 		File outfile = new File(filename);
 
@@ -35,17 +37,21 @@ public class IO {
 	
 			ObjectOutput oout = new ObjectOutputStream(out);
 	
-			oout.writeInt(topMsers.size());
+			oout.writeInt(sliceTopMsers.size());
 
-			for (Candidate mser : topMsers)
-				mser.writeExternal(oout);
+			for (Collection<Candidate> topMsers : sliceTopMsers) {
+
+				oout.writeInt(topMsers.size());
+
+				for (Candidate mser : topMsers)
+					mser.writeExternal(oout);
+			}
 
 			out.flush();
 
 		} catch (FileNotFoundException e) {
 
 			IJ.log("File " + filename + " could not be opened for writing.");
-			e.printStackTrace();
 
 		} catch (IOException e) {
 
@@ -54,9 +60,9 @@ public class IO {
 		}
 	}
 
-	public HashSet<Candidate> readMsers(String filename) {
+	public Vector<Set<Candidate>> readMsers(String filename) {
 
-		HashSet<Candidate> regions = new HashSet<Candidate>();
+		Vector<Set<Candidate>> sliceTopMsers = new Vector<Set<Candidate>>();
 
 		File infile = new File(filename);
 
@@ -64,27 +70,39 @@ public class IO {
 			FileInputStream in = new FileInputStream(infile);
 	
 			ObjectInput oin = new ObjectInputStream(in);
-	
-			int numMsers = oin.readInt();
-			IJ.log("Trying to read " + numMsers + " top msers");
 
-			for (int i = 0; i < numMsers; i++) {
-				Candidate region = new Candidate(0, 0, new double[0]);
-				region.readExternal(oin);
-				regions.add(region);
+			int numSlices = oin.readInt();
+
+			for (int s = 0; s < numSlices; s++) {
+	
+				Set<Candidate> topMsers = new HashSet<Candidate>();
+
+				int numMsers = oin.readInt();
+				IJ.log("Trying to read " + numMsers + " top msers");
+
+				for (int i = 0; i < numMsers; i++) {
+					Candidate region = new Candidate(0, 0, new double[0]);
+					region.readExternal(oin);
+					topMsers.add(region);
+				}
+
+				sliceTopMsers.add(topMsers);
 			}
 
 		} catch (FileNotFoundException e) {
 
 			IJ.log("File " + filename + " could not be opened for reading.");
-			e.printStackTrace();
+
+			return null;
 
 		} catch (IOException e) {
 
 			IJ.log("Something went wrong when trying to read from " + filename);
 			e.printStackTrace();
+
+			return null;
 		}
 
-		return regions;
+		return sliceTopMsers;
 	}
 }

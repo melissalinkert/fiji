@@ -230,7 +230,7 @@ public class CandidateSelector {
 		}
 	}
 
-	public CandidateSelector(ImagePlus regionImp, HashSet<Candidate> regions) {
+	public CandidateSelector(ImagePlus regionImp, Set<Candidate> regions) {
 
 		this.regionImp = regionImp;
 		this.regions   = regions;

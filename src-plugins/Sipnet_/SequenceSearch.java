@@ -1,7 +1,7 @@
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Vector;
+import java.util.List;
 
 import ij.IJ;
 
@@ -10,11 +10,11 @@ public class SequenceSearch extends AStarSearch<Sequence, SequenceNode> {
 	public static final int NumAssignments = 3;
 
 	private Set<Candidate>         startCandidates;
-	private Vector<Set<Candidate>> sliceCandidates;
+	private List<Set<Candidate>> sliceCandidates;
 
 	private Texifyer               texifyer;
 
-	public SequenceSearch(Set<Candidate> startCandidates, Vector<Set<Candidate>> sliceCandidates, Texifyer texifyer) {
+	public SequenceSearch(Set<Candidate> startCandidates, List<Set<Candidate>> sliceCandidates, Texifyer texifyer) {
 
 		this.startCandidates = startCandidates;
 		this.sliceCandidates = sliceCandidates;
