@@ -185,6 +185,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 	
+			visualiser.drawSequence(imp, bestSequence, false);
 			visualiser.drawSequence(msersImp, bestSequence, false);
 			visualiser3d.showAssignments(bestSequence);
 		}

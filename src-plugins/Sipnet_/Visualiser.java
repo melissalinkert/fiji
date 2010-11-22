@@ -8,6 +8,8 @@ import ij.plugin.Duplicator;
 
 public class Visualiser {
 
+	private final double MaxConfidence = 100;
+
 	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence) {
 
 		// visualize result
@@ -16,6 +18,7 @@ public class Visualiser {
 
 		IJ.setForegroundColor(255, 255, 255);
 		IJ.selectWindow(blockCopy.getTitle());
+		IJ.run("RGB Color", "");
 
 		int slice = sequence.size();
 
@@ -72,14 +75,19 @@ public class Visualiser {
 
 		String annotation = "" + id;
 		IJ.setSlice(slice);
+		IJ.setForegroundColor(0, 0, 0);
 		IJ.runMacro("drawString(\"" + annotation + "\", " + x + ", " + y + ")");
 	}
 
 	private void drawConnection(int x1, int y1, int x2, int y2, int slice, double confidence) {
 
+		int red   = (int)(Math.min(confidence/MaxConfidence, 1.0)*255);
+		int green = 255 - red;
+
 		IJ.setSlice(slice);
+		IJ.setForegroundColor(red, green, 0);
 		IJ.makeLine(x1, y1, x2, y2);
 		IJ.run("Draw", "slice");
+		IJ.run("Select None", "");
 	}
-
 }
