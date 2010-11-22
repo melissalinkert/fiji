@@ -19,7 +19,8 @@ public class Visualiser {
 
 		int slice = sequence.size();
 
-		HashMap<Candidate, Integer> ids = new HashMap<Candidate, Integer>();
+		HashMap<Candidate, Integer>  ids             = new HashMap<Candidate, Integer>();
+		HashMap<Candidate, double[]> previousCenters = new HashMap<Candidate, double[]>();
 
 		for (SequenceNode node: sequence) {
 
@@ -30,15 +31,15 @@ public class Visualiser {
 				int id = 1;
 				for (SingleAssignment singleAssignment : assignment) {
 
-					ids.put(singleAssignment.getTarget(), id);
-
 					Candidate target = singleAssignment.getTarget();
+
+					ids.put(target, id);
+					previousCenters.put(target, target.getCenter());
 
 					int x = (int)target.getCenter()[0];
 					int y = (int)target.getCenter()[1];
-					double confidence = singleAssignment.getNegLogP();
 
-					drawCandidate(x, y, slice + 1, id, confidence, drawConfidence);
+					drawCandidate(x, y, slice + 1, id);
 					id++;
 				}
 			}
@@ -49,12 +50,17 @@ public class Visualiser {
 				Candidate target = singleAssignment.getTarget();
 
 				int id = ids.get(target);
+				double[] previousCenter = previousCenters.get(target);
 				ids.put(source, id);
-				int x = (int)source.getCenter()[0];
-				int y = (int)source.getCenter()[1];
+				previousCenters.put(source, source.getCenter());
+				int px = (int)previousCenter[0];
+				int py = (int)previousCenter[1];
+				int x  = (int)source.getCenter()[0];
+				int y  = (int)source.getCenter()[1];
 				double confidence = singleAssignment.getNegLogP();
 
-				drawCandidate(x, y, slice, id, confidence, drawConfidence);
+				drawCandidate(x, y, slice, id);
+				drawConnection(px, py, x, y, slice, confidence);
 			}
 			slice--;
 		}
@@ -62,13 +68,18 @@ public class Visualiser {
 		blockCopy.updateAndDraw();
 	}
 
-	private void drawCandidate(int x, int y, int slice, int id, double confidence, boolean drawConfidence) {
+	private void drawCandidate(int x, int y, int slice, int id) {
 
 		String annotation = "" + id;
-		if (drawConfidence)
-			annotation += " (" + confidence + ")";
 		IJ.setSlice(slice);
 		IJ.runMacro("drawString(\"" + annotation + "\", " + x + ", " + y + ")");
+	}
+
+	private void drawConnection(int x1, int y1, int x2, int y2, int slice, double confidence) {
+
+		IJ.setSlice(slice);
+		IJ.makeLine(x1, y1, x2, y2);
+		IJ.run("Draw", "slice");
 	}
 
 }
