@@ -64,7 +64,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// create membrance probability image
 			String classifierFile = "membrane_classifier.arff";
-			ImagePlus membraneImp = resultCacher.readMembraneProbabilities(imp.getFileInfo().fileName, classifierFile);
+			ImagePlus membraneImp = resultCacher.readMembraneProbabilities(imp.getOriginalFileInfo().fileName, classifierFile);
 
 			if (membraneImp == null) {
 
@@ -73,7 +73,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				IJ.log("Could not read membrane image and automatic creation is not implemented yet!");
 				return;
 
-				//resultCacher.writeMembraneProbabilities(membraneImp, imp.getFileInfo().fileName, classifierFile);
+				//resultCacher.writeMembraneProbabilities(membraneImp, imp.getOriginalFileInfo().fileName, classifierFile);
 			}
 
 			// setup mser algorithm
@@ -87,9 +87,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				                       new CandidateFactory());
 
 			// read candidate msers
-			msersImp = resultCacher.readMserImages(imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+			msersImp = resultCacher.readMserImages(imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
 			Vector<Set<Candidate>> sliceCandidates =
-				resultCacher.readMsers(imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.readMsers(imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
 
 			if (msersImp == null || sliceCandidates == null) {
 
@@ -164,8 +164,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					texifyer.texifyMserTree(mser, s);
 				}
 
-				resultCacher.writeMserImages(msersImp, imp.getFileInfo().fileName, classifierFile, mser.getParameters());
-				resultCacher.writeMsers(sliceTopMsers, imp.getFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.writeMserImages(msersImp, imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.writeMsers(sliceTopMsers, imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
 			}
 
 			// select start candidates
