@@ -1,11 +1,19 @@
 
-import java.util.HashSet;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 
+import org.gnu.glpk.GLPK;
+import org.gnu.glpk.GLPKConstants;
+import org.gnu.glpk.GlpkException;
+import org.gnu.glpk.SWIGTYPE_p_double;
+import org.gnu.glpk.SWIGTYPE_p_int;
+import org.gnu.glpk.glp_prob;
+
 import ij.IJ;
 
-public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> {
+public class AssignmentSearch {
 
 	public static final int MaxTargetCandidates = 5;
 	public static final int MinTargetCandidates = 1;
@@ -18,6 +26,18 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 
 	private Vector<Candidate> sourceCandidates;
 	private Vector<Candidate> targetCandidates;
+
+	private HashMap<Candidate, HashMap<Candidate, Long>> nodeNums;
+	private long nextNodeId = 1;
+
+	// dummy candidates
+	private Candidate deathNode;
+	private Candidate emergeNode;
+	private Candidate neglectNode;
+	private Candidate neglectCollectNode;
+
+	// linear program
+	glp_prob problem;
 
 	public AssignmentSearch(Set<Candidate> sourceCandidates, Set<Candidate> targetCandidates) {
 
@@ -32,209 +52,345 @@ public class AssignmentSearch extends AStarSearch<Assignment, SingleAssignment> 
 			sourceCandidate.cacheMostSimilarCandidates(this.targetCandidates);
 			sourceCandidate.findNeighbors(this.sourceCandidates);
 		}
+
+		this.deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+		this.emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+		this.neglectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+		this.neglectCollectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 	}
 
-	protected Set<SingleAssignment> expand(final Assignment path) {
+	public Assignment findBestAssignment() {
 
-		Set<SingleAssignment> assignments = new HashSet<SingleAssignment>();
+		try {
 
-		// get region that should now list its possible targets
-		Candidate sourceCandidate = sourceCandidates.get(path.size());
+			setupProblem();
 
-		// get all possible targets
-A:		for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
+		} catch (GlpkException e) {
 
-			// check if target region was already assigned
-			// TODO: optimize
-			for (SingleAssignment singleAssignment : path)
-				if (targetCandidate == singleAssignment.getTarget())
-					continue A;
+			e.printStackTrace();
 
-			// check for concurrent hypothesis consistency
-			// TODO: optimize
-			for (SingleAssignment singleAssignment : path)
-				if (conflicts(targetCandidate, singleAssignment.getTarget()))
-					continue A;
-
-			// create a new assignment, then "move" to it and remember the
-			// distance
-			SingleAssignment singleAssignment =
-			    new SingleAssignment(sourceCandidate, targetCandidate);
-
-			Assignment bestPath = new Assignment();
-			bestPath.addAll(path);
-			bestPath.push(singleAssignment);
-			singleAssignment.setBestPath(bestPath);
-
-			assignments.add(singleAssignment);
-
-			// the appearance part of the distance
-			double distance = AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate);
-
-			// the neighbor part of the distance
-
-			// for all already assigned neighbors of this target
-			for (int i = 0; i < AssignmentSearch.NumNeighbors; i++) {
-
-				// the index of the source neighbor
-				int neighborIndex = sourceCandidate.getNeighborIndices().get(i);
-
-				// this neighbor was assigned already
-				if (neighborIndex < path.size()) {
-
-					// get the asignee of this neighbor
-					Candidate correspond = path.getSingleAssignment(neighborIndex).getTarget();
-
-					// offset to correspondence
-					double[] neighborOffset = targetCandidate.offsetTo(correspond);
-
-					// probability of distance change
-					distance += AssignmentModel.negLogPNeighbor(sourceCandidate.getNeighborOffsets().get(i), neighborOffset);
-				}
-			}
-
-			// for all assigned candidates that have the target as neighbor now
-			for (SingleAssignment prevSingleAssignment : path) {
-
-				Candidate assignedSourceCandidate = prevSingleAssignment.getSource();
-				Candidate assignedTargetCandidate = prevSingleAssignment.getTarget();
-
-				for (int i = 0; i < AssignmentSearch.NumNeighbors; i++) {
-
-					int neighborIndex = assignedSourceCandidate.getNeighborIndices().get(i);
-
-					// targetCandidate is this neighbor of assignedTargetCandidate now
-					if (neighborIndex == path.size()) {
-
-						// offset of assigned candidate to target candidate
-						double[] neighborOffset = assignedTargetCandidate.offsetTo(targetCandidate);
-
-						// probability of distance change
-						distance += AssignmentModel.negLogPNeighbor(assignedSourceCandidate.getNeighborOffsets().get(i), neighborOffset);
-					}
-				}
-			}
-
-			singleAssignment.setNegLogP(distance);
 		}
 
-		return assignments;
+		return new Assignment();
 	}
 
+	public Assignment findNextBestPath() {
 
-	protected double g(Assignment path, SingleAssignment node) {
-
-		return (path.peek() != null ? path.peek().getDistanceFromStart() : 0.0) + node.getNegLogP();
+		return new Assignment();
 	}
 
-	protected double h(SingleAssignment node) {
+	private void setupProblem() {
 
-		double distance = 0.0;
+		int numVariables   = computeNumVariables();
+		int numConstraints = computeNumConstraints();
+		int requiredFlow   = computeRequiredFlow();
 
-		// for all sources, that have not been assigned yet...
-		for (int i = node.getBestPath().size(); i < sourceCandidates.size(); i++) {
+		// create problem
+		problem = GLPK.glp_create_prob();
+		GLPK.glp_set_prob_name(problem, "assignment problem");
 
-			Candidate source = sourceCandidates.get(i);
+		// setup variables
+		GLPK.glp_add_cols(problem, numVariables);
 
-			// find best neighbor value for each neighbor of source...
-			for (int j = 0; j < AssignmentSearch.NumNeighbors; j++) {
+		for (int i = 1; i <= numVariables; i++) {
 
-				double minNegLogPNeighbor = -1;
-
-				int       neighborIndex = source.getNeighborIndices().get(j);
-				Candidate neighbor      = source.getNeighbors().get(j);
-
-				// ...of each possible candidate of source and...
-A:				for (Candidate sourceCandidate : source.getMostLikelyCandidates()) {
-
-					for (SingleAssignment assignment : node.getBestPath())
-						if (sourceCandidate == assignment.getTarget())
-							continue A;
-
-					// ...of each possible candidate for neighbor (might be only
-					// one, if neighbor is assigned already)
-					if (neighborIndex < node.getBestPath().size()) {
-
-						// neighbor was assigned already
-						Candidate neighborCandidate = node.getBestPath().getSingleAssignment(neighborIndex).getTarget();
-
-						double[] neighborOffset = sourceCandidate.offsetTo(neighborCandidate);
-
-						// get neighbor value
-						double negLogPNeighbor = AssignmentModel.negLogPNeighbor(source.getNeighborOffsets().get(j), neighborOffset);
-
-						if (negLogPNeighbor < minNegLogPNeighbor || minNegLogPNeighbor < 0)
-							minNegLogPNeighbor = negLogPNeighbor;
-
-					} else {
-
-						// consider all possible neighbor candidates
-B:						for (Candidate neighborCandidate : neighbor.getMostLikelyCandidates()) {
-	
-							for (SingleAssignment assignment : node.getBestPath())
-								if (neighborCandidate == assignment.getTarget())
-									continue B;
-
-							double[] neighborOffset = sourceCandidate.offsetTo(neighborCandidate);
-	
-							// get neighbor value
-							double negLogPNeighbor = AssignmentModel.negLogPNeighbor(source.getNeighborOffsets().get(j), neighborOffset);
-	
-							if (negLogPNeighbor < minNegLogPNeighbor || minNegLogPNeighbor < 0)
-								minNegLogPNeighbor = negLogPNeighbor;
-						}
-					}
-				}
-
-				if (minNegLogPNeighbor < 0) {
-					IJ.log("Oh no! For the computation of h (neighbor part) there are no more available regions!");
-					continue;
-				}
-
-				distance += minNegLogPNeighbor;
-			}
-
-
-			// sum up all best distances to still available candidates
-			Candidate closestAvailableCandidate = null;
-
-			// TODO: optimize
-C:			for (Candidate region : sourceCandidates.get(i).getMostLikelyCandidates()) {
-				for (SingleAssignment assignment : node.getBestPath()) {
-
-					// this close region is assigned already
-					if (closestAvailableCandidate == assignment.getTarget())
-						continue C;
-				}
-
-				// we found a close unassigned region
-				closestAvailableCandidate = region;
-				break;
-			}
-
-			if (closestAvailableCandidate == null) {
-				IJ.log("Oh no! For the computation of h there are no more available close regions!");
-				continue;
-			}
-
-			// optimistic guess on the appearance probability
-			distance += sourceCandidates.get(i).getNegLogPAppearance(closestAvailableCandidate);
+			GLPK.glp_set_col_name(problem, i, "x" + i);
+			GLPK.glp_set_col_kind(problem, i, GLPKConstants.GLP_CV);
+			GLPK.glp_set_col_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, requiredFlow);
 		}
 
-		return distance;
+		// setup constraints
+		GLPK.glp_add_rows(problem, numConstraints);
+
+		// outgoing flow for each source candidate
+		int i = 1;
+		for (Candidate sourceCandidate : sourceCandidates) {
+
+			int            numEdges = sourceCandidate.getMostLikelyCandidates().size() + 1;
+			SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
+			int            index    = 1;
+
+			// to the target candidates
+			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
+
+				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, targetCandidate));
+				index++;
+			}
+
+			// to the delete node
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
+
+			GLPK.glp_set_row_name(problem, i, "c" + i);
+			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 1.0, 1.0);
+
+			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
+			for (int j = 1; j <= numEdges; j++)
+				GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+			GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+			i++;
+		}
+
+		// incoming flow for each target candidate
+		for (Candidate targetCandidate : targetCandidates) {
+
+			// get all source candidates that have targetCandidate as target
+			Vector<Candidate> partners = new Vector<Candidate>();
+			for (Candidate sourceCandidate : sourceCandidates)
+				if (sourceCandidate.getMostLikelyCandidates().contains(targetCandidate))
+					partners.add(sourceCandidate);
+
+			int numEdges = partners.size() + 2;
+			SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
+			int            index    = 1;
+
+			// from the source candidates
+			for (Candidate sourceCandidate : partners) {
+
+				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, targetCandidate));
+				index++;
+			}
+
+			// from the neglect node
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, neglectNode));
+			index++;
+
+			// from the emerge node
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, emergeNode));
+			index++;
+
+			GLPK.glp_set_row_name(problem, i, "c" + i);
+			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 1.0, 1.0);
+
+			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
+			for (int j = 1; j <= numEdges; j++)
+				GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+			GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+			i++;
+		}
+
+		// outgoing flow from the neglect node
+		int            numEdges = targetCandidates.size() + 1;
+		SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
+		int            index    = 1;
+
+		// to the target candidates
+		for (Candidate targetCandidate : targetCandidates) {
+
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, neglectNode));
+			index++;
+		}
+
+		// to the neglect-collect node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(neglectNode, neglectCollectNode));
+		index++;
+
+		SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
+		for (int j = 1; j <= numEdges; j++)
+			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+		// should be number of target candidates
+		GLPK.glp_set_row_name(problem, i, "c" + i);
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+
+		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+		i++;
+
+		// outgoing flow from the emerge node
+		numEdges = targetCandidates.size() + 2;
+		varNums  = GLPK.new_intArray(numEdges + 1);
+		index    = 1;
+
+		// to the target candidates
+		for (Candidate targetCandidate : targetCandidates) {
+
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, emergeNode));
+			index++;
+		}
+
+		// to the neglect-collect node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, neglectCollectNode));
+		index++;
+
+		// to the death node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, deathNode));
+		index++;
+
+		varCoefs = GLPK.new_doubleArray(numEdges + 1);
+		for (int j = 1; j <= numEdges; j++)
+			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+		// should be number of target candidates
+		GLPK.glp_set_row_name(problem, i, "c" + i);
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+
+		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+		i++;
+
+		// incoming flow to the death node
+		numEdges = sourceCandidates.size() + 1;
+		varNums  = GLPK.new_intArray(numEdges + 1);
+		index    = 1;
+
+		// from the target candidates
+		for (Candidate sourceCandidate: sourceCandidates) {
+
+			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
+			index++;
+		}
+
+		// from the emerge node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, deathNode));
+		index++;
+
+		varCoefs = GLPK.new_doubleArray(numEdges + 1);
+		for (int j = 1; j <= numEdges; j++)
+			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+		// should be number of source candidates
+		GLPK.glp_set_row_name(problem, i, "c" + i);
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, sourceCandidates.size(), sourceCandidates.size());
+
+		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+		i++;
+
+		// incoming flow to the neglect-collect node
+		numEdges = 2;
+		varNums  = GLPK.new_intArray(numEdges + 1);
+		index    = 1;
+
+		// from the emerge node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, neglectCollectNode));
+		index++;
+
+		// from the neglect node
+		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(neglectNode, neglectCollectNode));
+		index++;
+
+		varCoefs = GLPK.new_doubleArray(numEdges + 1);
+		for (int j = 1; j <= numEdges; j++)
+			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
+
+		// should be number of target candidates
+		GLPK.glp_set_row_name(problem, i, "c" + i);
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+
+		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+		i++;
+
+		IJ.log("" + i + " constraints set.");
+
+		// setup objective function
+		GLPK.glp_set_ojb_name(problem, "min cost");
+		GLPK.glp_set_obj_dir(problem, GLPKConstants.GLP_MIN);
 	}
 
-	protected boolean reachedTarget(Assignment assignment) {
+	private int computeNumVariables() {
 
-		IJ.showProgress(assignment.size(), sourceCandidates.size());
+		// the number of variables is the number of edges for which we would
+		// like to calculate the flow
+		
+		int numVariables = 0;
 
-		return assignment.size() == sourceCandidates.size();
+		// for the connections between the source and target candidates
+		for (Candidate sourceCandidate : sourceCandidates)
+			numVariables += sourceCandidate.getMostLikelyCandidates().size();
+
+		// for the connection of each source candidate to the delete node
+		numVariables += sourceCandidates.size();
+
+		// for the connections of the emerge node to the target candidates
+		numVariables += targetCandidates.size();
+
+		// for the connection of the emerge node to the neglect-collector node
+		// and the delete node
+		numVariables += 2;
+
+		// for the connections of the neglect node to the target candidates
+		numVariables += targetCandidates.size();
+
+		// for the connection of the negelct node to the neglect-collect node
+		numVariables += 1;
+
+		// for all other connections, the flow is known already (due to the flow
+		// requirement)
+
+		return numVariables;
 	}
 
-	protected void noMoreOpenNodes(Assignment assignment) {
+	private int computeNumConstraints() {
 
-		IJ.log("Oh no! There are no more open nodes and I didn't reach my target yet.");
-		IJ.showProgress(sourceCandidates.size(), sourceCandidates.size());
+		int numConstraints = 0;
+
+		// outgoing flow for each source candidate
+		numConstraints += sourceCandidates.size();
+
+		// incoming flow for each target candidate
+		numConstraints += targetCandidates.size();
+
+		// incoming or outgoing flow for neglect, neglect-collect, emerge, and
+		// death node
+		numConstraints += 4;
+
+		return numConstraints;
+	}
+
+	private int computeRequiredFlow() {
+
+		// the required flow is the sum of all capacities going out of the
+		// source node
+
+		int requiredFlow = 0;
+
+		// to the neglect node
+		requiredFlow += targetCandidates.size();
+
+		// to each source candidate node
+		requiredFlow += sourceCandidates.size();
+
+		// to the emerge node
+		requiredFlow += targetCandidates.size();
+
+		return requiredFlow;
+	}
+
+	/**
+	 * Each pair of source-to-target candidates represents an edge in the graph,
+	 * which in turn is modelled as a variable. This function returns the
+	 * variable number a given pair is associated to.
+	 */
+	private long getVariableNum(Candidate candidate1, Candidate candidate2) {
+
+		if (candidate1.getId() > candidate2.getId()) {
+			Candidate tmp = candidate1;
+			candidate1 = candidate2;
+			candidate2 = tmp;
+		}
+
+		HashMap<Candidate, Long> m = nodeNums.get(candidate1);
+
+		if (m == null) {
+			m = new HashMap<Candidate, Long>();
+			nodeNums.put(candidate1, m);
+		}
+
+		Long id = m.get(candidate2);
+
+		if (id != null)
+			return id;
+		else {
+			m.put(candidate2, new Long(nextNodeId));
+			nextNodeId++;
+
+			return nextNodeId - 1;
+		}
 	}
 
 	private boolean conflicts(Candidate candidate1, Candidate candidate2) {

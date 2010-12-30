@@ -38,14 +38,14 @@ public class SequenceSearch extends AStarSearch<Sequence, SequenceNode> {
 		double sumProbs = 0.0;
 
 		// enumerate the k most likely assignments
-		Assignment bestAssignment = assignmentSearch.findBestPath(new Assignment());
+		Assignment bestAssignment = assignmentSearch.findBestAssignment(new Assignment());
 		nodes.add(new SequenceNode(bestAssignment));
 
 		sumProbs += Math.exp(-bestAssignment.getNegLogP());
 
 		for (int i = 0; i < NumAssignments - 1; i++) {
 
-			Assignment nextBestAssignment = assignmentSearch.findNextBestPath();
+			Assignment nextBestAssignment = assignmentSearch.findNextBestAssignment();
 			nodes.add(new SequenceNode(nextBestAssignment));
 
 			sumProbs += Math.exp(-nextBestAssignment.getNegLogP());
