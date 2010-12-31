@@ -3,6 +3,12 @@ import Jama.Matrix;
 
 public class AssignmentModel {
 
+	static double priorNone            = 1e-100;
+	static double priorDeath           = 1e-10;
+	static double priorContinuation    = 1.0;
+	static double priorSplit           = 1e-50;
+	static double priorImpossible      = 1e-300;
+
 	static double covaPosition         = 100.0;
 	static double covaSize             = 1.0;
 	static double covaCircularity      = 0.5;
@@ -16,6 +22,12 @@ public class AssignmentModel {
 	static double[][] covaNeighOff =
 	    {{covaNeighborPosition, 0.0},
 	     {0.0, covaNeighborPosition}};
+
+	static double negLogPriorDeath           = -Math.log(priorDeath);
+	static double negLogPriorContinuation    = -Math.log(priorContinuation);
+	static double negLogPriorSplit           = -Math.log(priorSplit);
+	static double negLogPriorNone            = -Math.log(priorNone);
+	static double negLogPriorImpossible      = -Math.log(priorImpossible);
 
 	static Matrix covaAppearance             = new Matrix(covaApp);
 	static Matrix invCovaAppearance          = covaAppearance.inverse();

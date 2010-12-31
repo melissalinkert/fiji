@@ -1,0 +1,4 @@
+Sipnet
+======
+
+To use this plugin, make sure that you have glpk-java installed and accessible for Fiji. In particular, glpk-java.jar should be in the jars/ directory of your Fiji installation and the LD_LIBRARY_PATH should be set to the directory containing the glpk-java.so file.

@@ -1,15 +1,14 @@
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 
 import org.gnu.glpk.GLPK;
 import org.gnu.glpk.GLPKConstants;
-import org.gnu.glpk.GlpkException;
 import org.gnu.glpk.SWIGTYPE_p_double;
 import org.gnu.glpk.SWIGTYPE_p_int;
 import org.gnu.glpk.glp_prob;
+import org.gnu.glpk.glp_smcp;
 
 import ij.IJ;
 
@@ -53,6 +52,8 @@ public class AssignmentSearch {
 			sourceCandidate.findNeighbors(this.sourceCandidates);
 		}
 
+		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Long>>();
+
 		this.deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 		this.emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 		this.neglectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
@@ -61,20 +62,14 @@ public class AssignmentSearch {
 
 	public Assignment findBestAssignment() {
 
-		try {
 
-			setupProblem();
-
-		} catch (GlpkException e) {
-
-			e.printStackTrace();
-
-		}
+		setupProblem();
+		solveProblem();
 
 		return new Assignment();
 	}
 
-	public Assignment findNextBestPath() {
+	public Assignment findNextBestAssignment() {
 
 		return new Assignment();
 	}
@@ -84,6 +79,8 @@ public class AssignmentSearch {
 		int numVariables   = computeNumVariables();
 		int numConstraints = computeNumConstraints();
 		int requiredFlow   = computeRequiredFlow();
+
+		IJ.log("setting up problem: " + numVariables + " flow variables, " + numConstraints + " constraints, required flow " + requiredFlow);
 
 		// create problem
 		problem = GLPK.glp_create_prob();
@@ -121,7 +118,7 @@ public class AssignmentSearch {
 			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
 
 			GLPK.glp_set_row_name(problem, i, "c" + i);
-			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 1.0, 1.0);
+			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
 
 			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
 			for (int j = 1; j <= numEdges; j++)
@@ -161,7 +158,7 @@ public class AssignmentSearch {
 			index++;
 
 			GLPK.glp_set_row_name(problem, i, "c" + i);
-			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 1.0, 1.0);
+			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
 
 			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
 			for (int j = 1; j <= numEdges; j++)
@@ -194,7 +191,7 @@ public class AssignmentSearch {
 
 		// should be number of target candidates
 		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
 
 		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
 
@@ -226,7 +223,7 @@ public class AssignmentSearch {
 
 		// should be number of target candidates
 		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
 
 		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
 
@@ -254,7 +251,7 @@ public class AssignmentSearch {
 
 		// should be number of source candidates
 		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, sourceCandidates.size(), sourceCandidates.size());
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, sourceCandidates.size(), sourceCandidates.size());
 
 		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
 
@@ -279,17 +276,104 @@ public class AssignmentSearch {
 
 		// should be number of target candidates
 		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, targetCandidates.size(), targetCandidates.size());
+		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
 
 		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
 
 		i++;
 
-		IJ.log("" + i + " constraints set.");
+		// hypothesis consistency - for each path in the component tree of the
+		// target candidates, i.e., for each child
+		for (Candidate targetCandidate : targetCandidates)
+			if (targetCandidate.getChildren().size() == 0) {
+
+				// the path that leads to this child
+				Vector<Candidate> path     = new Vector<Candidate>();
+
+				Candidate pathMember = targetCandidate;
+
+				while (pathMember != null) {
+					path.add(pathMember);
+					pathMember = pathMember.getParent();
+				}
+
+				// all pairs of nodes, that are connected by an edge where the
+				// target is a member of the path and the source is not the
+				// neglect node
+				Vector<Candidate[]> pairs = new Vector<Candidate[]>();
+
+				for (Candidate member : path) {
+
+					// get all source nodes that have a connection to member
+					for (Candidate sourceCandidate : sourceCandidates)
+						if (sourceCandidate.getMostLikelyCandidates().contains(member))
+							pairs.add(new Candidate[]{sourceCandidate, member});
+
+					// add the emerge node
+					pairs.add(new Candidate[]{emergeNode, member});
+				}
+
+
+				// now we are ready to state the constraint: the sum of all incoming
+				// flows to a path has to be one (disregarding the incoming connections
+				// from the neglect node)
+
+				numEdges = pairs.size();
+				varNums  = GLPK.new_intArray(numEdges + 1);
+				varCoefs = GLPK.new_doubleArray(numEdges + 1);
+				index    = 1;
+
+				for (Candidate[] pair : pairs) {
+
+					GLPK.intArray_setitem(varNums, index, (int)getVariableNum(pair[0], pair[1]));
+					GLPK.doubleArray_setitem(varCoefs, index, 1.0);
+					index++;
+				}
+
+				// should be smaller or equal to one
+				GLPK.glp_set_row_name(problem, i, "c" + i);
+				GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, 1.0);
+
+				GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+				i++;
+			}
+
+
+		IJ.log("" + (i-1) + " constraints set.");
 
 		// setup objective function
-		GLPK.glp_set_ojb_name(problem, "min cost");
+		GLPK.glp_set_obj_name(problem, "min cost");
 		GLPK.glp_set_obj_dir(problem, GLPKConstants.GLP_MIN);
+
+		// costs for each flow in the network:
+
+		// source candidates to target candidates and death
+		for (Candidate sourceCandidate : sourceCandidates) {
+
+			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
+				GLPK.glp_set_obj_coef(problem, (int)getVariableNum(sourceCandidate, targetCandidate),
+				                      AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate));
+
+			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(sourceCandidate, deathNode),
+			                      AssignmentModel.negLogPriorDeath);
+		}
+
+		// neglect to target candidates and neglect-collect
+		for (Candidate targetCandidate : targetCandidates)
+			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(neglectNode, targetCandidate),
+			                      0.0);
+		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(neglectNode, neglectCollectNode),
+		                      0.0);
+
+		// emerge to target candidates, neglect-collect, and death
+		for (Candidate targetCandidate : targetCandidates)
+			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, targetCandidate),
+			                      AssignmentModel.negLogPriorDeath);
+		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, neglectCollectNode),
+		                      0.0);
+		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, deathNode),
+		                      AssignmentModel.negLogPriorContinuation);
 	}
 
 	private int computeNumVariables() {
@@ -338,6 +422,12 @@ public class AssignmentSearch {
 		// incoming or outgoing flow for neglect, neglect-collect, emerge, and
 		// death node
 		numConstraints += 4;
+
+		// hypothesis consistency - one constraint for each path in the
+		// component tree of the target candidates, i.e., for each child
+		for (Candidate targetCandidate : targetCandidates)
+			if (targetCandidate.getChildren().size() == 0)
+				numConstraints++;
 
 		return numConstraints;
 	}
@@ -393,9 +483,15 @@ public class AssignmentSearch {
 		}
 	}
 
-	private boolean conflicts(Candidate candidate1, Candidate candidate2) {
+	private void solveProblem() {
 
-		// two candidates are in conflict, if one is the ancestor of the other
-		return (candidate1.isAncestorOf(candidate2) || candidate2.isAncestorOf(candidate1));
+		glp_smcp parameters = new glp_smcp();
+
+		GLPK.glp_init_smcp(parameters);
+
+		int result = GLPK.glp_simplex(problem, parameters);
+
+		if (result != 0)
+			IJ.log("LP problem could not be solved.");
 	}
 }
