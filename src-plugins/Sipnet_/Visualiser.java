@@ -20,7 +20,8 @@ public class Visualiser {
 		IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
-		int slice = sequence.size();
+		int nextId = 1;
+		int slice  = sequence.size();
 
 		HashMap<Candidate, Integer>  ids             = new HashMap<Candidate, Integer>();
 		HashMap<Candidate, double[]> previousCenters = new HashMap<Candidate, double[]>();
@@ -31,19 +32,18 @@ public class Visualiser {
 
 			if (slice == sequence.size()) {
 
-				int id = 1;
 				for (SingleAssignment singleAssignment : assignment) {
 
 					Candidate target = singleAssignment.getTarget();
 
-					ids.put(target, id);
+					ids.put(target, nextId);
 					previousCenters.put(target, target.getCenter());
 
 					int x = (int)target.getCenter()[0];
 					int y = (int)target.getCenter()[1];
 
-					drawCandidate(x, y, slice + 1, id);
-					id++;
+					drawCandidate(x, y, slice + 1, nextId);
+					nextId++;
 				}
 			}
 
@@ -52,10 +52,20 @@ public class Visualiser {
 				Candidate source = singleAssignment.getSource();
 				Candidate target = singleAssignment.getTarget();
 
+				// new neuron
+				if (ids.get(target) == null) {
+					ids.put(target, nextId);
+					nextId++;
+				}
+
 				int id = ids.get(target);
 				double[] previousCenter = previousCenters.get(target);
 				ids.put(source, id);
 				previousCenters.put(source, source.getCenter());
+
+				if (previousCenter == null)
+					continue;
+
 				int px = (int)previousCenter[0];
 				int py = (int)previousCenter[1];
 				int x  = (int)source.getCenter()[0];
