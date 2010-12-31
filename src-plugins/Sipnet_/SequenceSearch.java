@@ -7,7 +7,7 @@ import ij.IJ;
 
 public class SequenceSearch extends AStarSearch<Sequence, SequenceNode> {
 
-	public static final int NumAssignments = 3;
+	public static final int NumAssignments = 1;
 
 	private Set<Candidate>         startCandidates;
 	private List<Set<Candidate>> sliceCandidates;

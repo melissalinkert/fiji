@@ -3,7 +3,6 @@ import Jama.Matrix;
 
 public class AssignmentModel {
 
-	static double priorNone            = 1e-100;
 	static double priorDeath           = 1e-10;
 	static double priorContinuation    = 1.0;
 	static double priorSplit           = 1e-50;
@@ -26,7 +25,6 @@ public class AssignmentModel {
 	static double negLogPriorDeath           = -Math.log(priorDeath);
 	static double negLogPriorContinuation    = -Math.log(priorContinuation);
 	static double negLogPriorSplit           = -Math.log(priorSplit);
-	static double negLogPriorNone            = -Math.log(priorNone);
 	static double negLogPriorImpossible      = -Math.log(priorImpossible);
 
 	static Matrix covaAppearance             = new Matrix(covaApp);

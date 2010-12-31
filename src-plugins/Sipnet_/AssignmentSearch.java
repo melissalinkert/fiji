@@ -62,16 +62,18 @@ public class AssignmentSearch {
 
 	public Assignment findBestAssignment() {
 
-
 		setupProblem();
+
 		solveProblem();
 
-		return new Assignment();
+		return readAssignment();
 	}
 
 	public Assignment findNextBestAssignment() {
 
-		return new Assignment();
+		// TODO:
+		// • find the next best assignment
+		return readAssignment();
 	}
 
 	private void setupProblem() {
@@ -493,5 +495,21 @@ public class AssignmentSearch {
 
 		if (result != 0)
 			IJ.log("LP problem could not be solved.");
+	}
+
+	private Assignment readAssignment() {
+
+		Assignment assignment = new Assignment();
+
+		// each continuation
+		for (Candidate sourceCandidate : sourceCandidates)
+			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
+				if (GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) > 0.0)
+					assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
+		// TODO:
+		// • read out emerged nodes
+		// • pass emerged nodes to next assignment search
+
+		return assignment;
 	}
 }
