@@ -504,7 +504,8 @@ public class AssignmentSearch {
 		// each continuation
 		for (Candidate sourceCandidate : sourceCandidates)
 			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
-				if (GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) > 0.0)
+				// values are either 1 or 0
+				if (GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) > 0.5)
 					assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
 		// TODO:
 		// • read out emerged nodes
