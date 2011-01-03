@@ -503,10 +503,16 @@ public class AssignmentSearch {
 
 		// each continuation
 		for (Candidate sourceCandidate : sourceCandidates)
-			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
+			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
 				// values are either 1 or 0
 				if (GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) > 0.5)
 					assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
+
+				if (GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) > 0.0001 &&
+				    GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)) < 0.9999)
+					IJ.log("Oh no! One of the flow variables is not integral: " +
+					       GLPK.glp_get_col_prim(problem, (int)getVariableNum(sourceCandidate, targetCandidate)));
+			}
 		// TODO:
 		// • read out emerged nodes
 		// • pass emerged nodes to next assignment search
