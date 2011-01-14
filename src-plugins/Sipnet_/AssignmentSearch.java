@@ -14,6 +14,10 @@ import ij.IJ;
 
 public class AssignmentSearch {
 
+	/*
+	 * parameters
+	 */
+
 	public static final int MaxTargetCandidates = 5;
 	public static final int MinTargetCandidates = 1;
 
@@ -22,6 +26,13 @@ public class AssignmentSearch {
 
 	//private static final double MinPAssignment       = 1e-20;
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
+
+	// add constraints for hypothesis consistency?
+	private final boolean hypothesisConsistency = false;
+	
+	/*
+	 * interna
+	 */
 
 	private Vector<Candidate> sourceCandidates;
 	private Vector<Candidate> targetCandidates;
@@ -286,60 +297,62 @@ public class AssignmentSearch {
 
 		// hypothesis consistency - for each path in the component tree of the
 		// target candidates, i.e., for each child
-		for (Candidate targetCandidate : targetCandidates)
-			if (targetCandidate.getChildren().size() == 0) {
+		if (hypothesisConsistency) {
+			for (Candidate targetCandidate : targetCandidates)
+				if (targetCandidate.getChildren().size() == 0) {
 
-				// the path that leads to this child
-				Vector<Candidate> path     = new Vector<Candidate>();
+					// the path that leads to this child
+					Vector<Candidate> path     = new Vector<Candidate>();
 
-				Candidate pathMember = targetCandidate;
+					Candidate pathMember = targetCandidate;
 
-				while (pathMember != null) {
-					path.add(pathMember);
-					pathMember = pathMember.getParent();
+					while (pathMember != null) {
+						path.add(pathMember);
+						pathMember = pathMember.getParent();
+					}
+
+					// all pairs of nodes, that are connected by an edge where the
+					// target is a member of the path and the source is not the
+					// neglect node
+					Vector<Candidate[]> pairs = new Vector<Candidate[]>();
+
+					for (Candidate member : path) {
+
+						// get all source nodes that have a connection to member
+						for (Candidate sourceCandidate : sourceCandidates)
+							if (sourceCandidate.getMostLikelyCandidates().contains(member))
+								pairs.add(new Candidate[]{sourceCandidate, member});
+
+						// add the emerge node
+						pairs.add(new Candidate[]{emergeNode, member});
+					}
+
+
+					// now we are ready to state the constraint: the sum of all incoming
+					// flows to a path has to be one (disregarding the incoming connections
+					// from the neglect node)
+
+					numEdges = pairs.size();
+					varNums  = GLPK.new_intArray(numEdges + 1);
+					varCoefs = GLPK.new_doubleArray(numEdges + 1);
+					index    = 1;
+
+					for (Candidate[] pair : pairs) {
+
+						GLPK.intArray_setitem(varNums, index, (int)getVariableNum(pair[0], pair[1]));
+						GLPK.doubleArray_setitem(varCoefs, index, 1.0);
+						index++;
+					}
+
+					// should be smaller or equal to one
+					GLPK.glp_set_row_name(problem, i, "c" + i);
+					GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, 1.0);
+
+					GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
+
+					i++;
 				}
-
-				// all pairs of nodes, that are connected by an edge where the
-				// target is a member of the path and the source is not the
-				// neglect node
-				Vector<Candidate[]> pairs = new Vector<Candidate[]>();
-
-				for (Candidate member : path) {
-
-					// get all source nodes that have a connection to member
-					for (Candidate sourceCandidate : sourceCandidates)
-						if (sourceCandidate.getMostLikelyCandidates().contains(member))
-							pairs.add(new Candidate[]{sourceCandidate, member});
-
-					// add the emerge node
-					pairs.add(new Candidate[]{emergeNode, member});
-				}
-
-
-				// now we are ready to state the constraint: the sum of all incoming
-				// flows to a path has to be one (disregarding the incoming connections
-				// from the neglect node)
-
-				numEdges = pairs.size();
-				varNums  = GLPK.new_intArray(numEdges + 1);
-				varCoefs = GLPK.new_doubleArray(numEdges + 1);
-				index    = 1;
-
-				for (Candidate[] pair : pairs) {
-
-					GLPK.intArray_setitem(varNums, index, (int)getVariableNum(pair[0], pair[1]));
-					GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-					index++;
-				}
-
-				// should be smaller or equal to one
-				GLPK.glp_set_row_name(problem, i, "c" + i);
-				GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, 1.0);
-
-				GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-				i++;
-			}
+		}
 
 
 		IJ.log("" + (i-1) + " constraints set.");
@@ -427,9 +440,10 @@ public class AssignmentSearch {
 
 		// hypothesis consistency - one constraint for each path in the
 		// component tree of the target candidates, i.e., for each child
-		for (Candidate targetCandidate : targetCandidates)
-			if (targetCandidate.getChildren().size() == 0)
-				numConstraints++;
+		if (hypothesisConsistency)
+			for (Candidate targetCandidate : targetCandidates)
+				if (targetCandidate.getChildren().size() == 0)
+					numConstraints++;
 
 		return numConstraints;
 	}
