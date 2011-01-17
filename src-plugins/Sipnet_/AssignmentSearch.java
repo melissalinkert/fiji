@@ -44,10 +44,10 @@ public class AssignmentSearch {
 	private long nextNodeId = 1;
 
 	// dummy candidates
-	private Candidate deathNode;
-	private Candidate emergeNode;
-	private Candidate neglectNode;
-	private Candidate neglectCollectNode;
+	static public final Candidate deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+	static public final Candidate emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+	private Candidate neglectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+	private Candidate neglectCollectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 
 	// linear program
 	glp_prob problem;
@@ -69,11 +69,6 @@ public class AssignmentSearch {
 		this.mergeNodes = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
 
 		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Long>>();
-
-		this.deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-		this.emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-		this.neglectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-		this.neglectCollectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 	}
 
 	public Assignment findBestAssignment() {
@@ -496,9 +491,9 @@ public class AssignmentSearch {
 						index++;
 					}
 
-					// should be smaller or equal to one
+					// should be exactly one
 					GLPK.glp_set_row_name(problem, i, "c" + i);
-					GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, 1.0);
+					GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
 
 					GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
 
@@ -759,15 +754,12 @@ public class AssignmentSearch {
 		// each death
 		for (Candidate sourceCandidate : sourceCandidates)
 			if (getFlow(sourceCandidate, deathNode) == 1)
-				IJ.log("candidate " + sourceCandidate.getId() + " died");
+				assignment.add(new SingleAssignment(sourceCandidate, deathNode));
 
 		// each emerge
 		for (Candidate targetCandidate : targetCandidates)
 			if (getFlow(emergeNode, targetCandidate) == 1)
-				IJ.log("candidate " + targetCandidate.getId() + " emerged");
-
-		// TODO:
-		// • pass emerged nodes to next assignment search
+				assignment.add(new SingleAssignment(emergeNode, targetCandidate));
 
 		return assignment;
 	}

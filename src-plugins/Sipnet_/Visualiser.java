@@ -27,10 +27,17 @@ public class Visualiser {
 				Candidate source = singleAssignment.getSource();
 				Candidate target = singleAssignment.getTarget();
 
-				drawConnection((int)source.getCenter()[0], (int)source.getCenter()[1],
-				               (int)target.getCenter()[0], (int)target.getCenter()[1],
-				               slice,
-				               singleAssignment.getNegLogP());
+				if (source == AssignmentSearch.emergeNode)
+					drawEmerge((int)target.getCenter()[0], (int)target.getCenter()[1],
+							   slice+1);
+				else if (target == AssignmentSearch.deathNode)
+					drawDeath((int)target.getCenter()[0], (int)target.getCenter()[1],
+							  slice);
+				else
+					drawConnection((int)source.getCenter()[0], (int)source.getCenter()[1],
+					               (int)target.getCenter()[0], (int)target.getCenter()[1],
+					               slice,
+					               singleAssignment.getNegLogP());
 			}
 			slice--;
 		}
@@ -54,6 +61,24 @@ public class Visualiser {
 		IJ.setSlice(slice);
 		IJ.setForegroundColor(red, green, 0);
 		IJ.makeLine(x1, y1, x2, y2);
+		IJ.run("Draw", "slice");
+		IJ.run("Select None", "");
+	}
+
+	private void drawEmerge(int x, int y, int slice) {
+
+		IJ.setSlice(slice);
+		IJ.setForegroundColor(255, 255, 0);
+		IJ.makeOval(x, y, 5, 5);
+		IJ.run("Draw", "slice");
+		IJ.run("Select None", "");
+	}
+
+	private void drawDeath(int x, int y, int slice) {
+
+		IJ.setSlice(slice);
+		IJ.setForegroundColor(255, 0, 0);
+		IJ.makeOval(x, y, 5, 5);
 		IJ.run("Draw", "slice");
 		IJ.run("Select None", "");
 	}

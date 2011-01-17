@@ -62,6 +62,10 @@ public class Visualiser3D {
 
 			for (SingleAssignment singleAssignment : assignment) {
 
+				if (singleAssignment.getSource() == AssignmentSearch.emergeNode ||
+				    singleAssignment.getTarget() == AssignmentSearch.deathNode)
+					continue;
+
 				double[] from = singleAssignment.getSource().getCenter();
 				double[] to   = singleAssignment.getTarget().getCenter();
 
