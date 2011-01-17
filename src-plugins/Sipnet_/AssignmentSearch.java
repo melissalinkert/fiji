@@ -38,7 +38,6 @@ public class AssignmentSearch {
 	private Vector<Candidate> sourceCandidates;
 	private Vector<Candidate> targetCandidates;
 	
-	private HashMap<Candidate, Set<Candidate>>                possibleMergers;
 	private HashMap<Candidate, HashMap<Candidate, Candidate>> mergeNodes;
 
 	private HashMap<Candidate, HashMap<Candidate, Long>> nodeNums;
@@ -126,21 +125,18 @@ public class AssignmentSearch {
 		 */
 
 		// for each possible merge of two source candidates
-		for (Candidate smaller : possibleMergers.keySet())
-			for (Candidate bigger : possibleMergers.get(smaller)) {
+		for (Candidate smaller : mergeNodes.keySet())
+			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
 
 				Set<Candidate> jointPartners = new HashSet<Candidate>();
 
 				jointPartners.addAll(smaller.getMostLikelyCandidates());
 				jointPartners.addAll(bigger.getMostLikelyCandidates());
 
-				// create dummy merge node
-				Candidate mergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+				IJ.log("creating merge node for candidates " + smaller.getId() + " and " + bigger.getId());
 
-				// store node for later reference
-				if (mergeNodes.get(smaller) == null)
-					mergeNodes.put(smaller, new HashMap<Candidate, Candidate>());
-				mergeNodes.get(smaller).put(bigger, mergeNode);
+				// get dummy merge node
+				Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
 
 				// sum of input edges to merge node...
 				int               numEdges = 3 + jointPartners.size();
@@ -225,9 +221,9 @@ public class AssignmentSearch {
 		// outgoing flow for each source candidate
 		for (Candidate sourceCandidate : sourceCandidates) {
 
-			int numMergeNodes = possibleMergers.get(sourceCandidates).size();
-			for (Candidate mergePartner : possibleMergers.keySet())
-				if (possibleMergers.get(mergePartner).contains(sourceCandidate))
+			int numMergeNodes = mergeNodes.get(sourceCandidate).keySet().size();
+			for (Candidate mergePartner : mergeNodes.keySet())
+				if (mergeNodes.get(mergePartner).keySet().contains(sourceCandidate))
 					numMergeNodes++;
 
 			int            numEdges = sourceCandidate.getMostLikelyCandidates().size() + numMergeNodes + 1;
@@ -242,16 +238,16 @@ public class AssignmentSearch {
 			}
 
 			// to the merge nodes
-			for (Candidate mergePartner : possibleMergers.get(sourceCandidate)) {
+			for (Candidate bigger : mergeNodes.get(sourceCandidate).keySet()) {
 
-				Candidate mergeNode = mergeNodes.get(sourceCandidate).get(mergePartner);
+				Candidate mergeNode = mergeNodes.get(sourceCandidate).get(bigger);
 				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, mergeNode));
 				index++;
 			}
-			for (Candidate mergePartner : possibleMergers.keySet())
-				if (possibleMergers.get(mergePartner).contains(sourceCandidate)) {
+			for (Candidate smaller : mergeNodes.keySet())
+				if (mergeNodes.get(smaller).keySet().contains(sourceCandidate)) {
 
-					Candidate mergeNode = mergeNodes.get(mergePartner).get(sourceCandidate);
+					Candidate mergeNode = mergeNodes.get(smaller).get(sourceCandidate);
 					GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, mergeNode));
 					index++;
 				}
@@ -279,10 +275,7 @@ public class AssignmentSearch {
 		for (Candidate targetCandidate : targetCandidates) {
 
 			// get all source candidates that have targetCandidate as target
-			Vector<Candidate> partners = new Vector<Candidate>();
-			for (Candidate sourceCandidate : sourceCandidates)
-				if (sourceCandidate.getMostLikelyCandidates().contains(targetCandidate))
-					partners.add(sourceCandidate);
+			Vector<Candidate> partners = targetCandidate.getMostLikelyOf();
 
 			// get all merge nodes that have target candidate as target
 			for (Candidate smaller : mergeNodes.keySet())
@@ -387,16 +380,27 @@ public class AssignmentSearch {
 		i++;
 
 		// incoming flow to the death node
-		numEdges = sourceCandidates.size() + 1;
+		int numMergeNodes = 0;
+		for (Candidate smaller : mergeNodes.keySet())
+			numMergeNodes += mergeNodes.get(smaller).keySet().size();
+
+		numEdges = sourceCandidates.size() + numMergeNodes + 1;
 		varNums  = GLPK.new_intArray(numEdges + 1);
 		index    = 1;
 
-		// from the target candidates
+		// from the source candidates
 		for (Candidate sourceCandidate: sourceCandidates) {
 
 			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
 			index++;
 		}
+
+		// from the merge nodes
+		for (Candidate smaller : mergeNodes.keySet())
+			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
+				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNodes.get(smaller).get(bigger), deathNode));
+				index++;
+			}
 
 		// from the emerge node
 		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, deathNode));
@@ -535,7 +539,7 @@ public class AssignmentSearch {
 
 				for (Candidate target : targets)
 					GLPK.glp_set_obj_coef(problem, (int)getVariableNum(mergeNodes.get(smaller).get(bigger), target),
-					                      AssignmentModel.negLogPriorSplit);
+										  AssignmentModel.negLogPriorSplit);
 			}
 
 		// neglect to target candidates and neglect-collect
@@ -557,7 +561,10 @@ public class AssignmentSearch {
 
 	private void findPossibleMergers() {
 
-		possibleMergers = new HashMap<Candidate, Set<Candidate>>();
+		mergeNodes = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
+
+		for (Candidate sourceCandidate : sourceCandidates)
+			mergeNodes.put(sourceCandidate, new HashMap<Candidate, Candidate>());
 
 		for (Candidate sourceCandidate : sourceCandidates)
 			for (Candidate neighbor : sourceCandidate.getNeighbors()) {
@@ -573,11 +580,7 @@ public class AssignmentSearch {
 					bigger  = sourceCandidate;
 				}
 
-				if (possibleMergers.get(smaller) == null) {
-					possibleMergers.put(smaller, new HashSet<Candidate>());
-				}
-
-				possibleMergers.get(smaller).add(bigger);
+				mergeNodes.get(smaller).put(bigger, new Candidate(0, 0, new double[]{0.0, 0.0}));
 			}
 	}
 
@@ -593,8 +596,8 @@ public class AssignmentSearch {
 			numVariables += sourceCandidate.getMostLikelyCandidates().size();
 
 		// for each possible merge of two source candidates
-		for (Candidate smaller : possibleMergers.keySet())
-			for (Candidate bigger : possibleMergers.get(smaller)) {
+		for (Candidate smaller : mergeNodes.keySet())
+			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
 
 				Set<Candidate> jointPartners = new HashSet<Candidate>();
 
@@ -639,8 +642,8 @@ public class AssignmentSearch {
 		numConstraints += targetCandidates.size();
 
 		// for each possible merge of two source candidates
-		for (Candidate smaller : possibleMergers.keySet())
-			for (Candidate bigger : possibleMergers.get(smaller)) {
+		for (Candidate smaller : mergeNodes.keySet())
+			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
 
 				// flow conservation, synchronisation of incoming edges with
 				// death node
@@ -736,20 +739,34 @@ public class AssignmentSearch {
 
 		// each merge
 		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.keySet()) {
+			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
 
 				Set<Candidate> targets = new HashSet<Candidate>(smaller.getMostLikelyCandidates());
 				targets.addAll(bigger.getMostLikelyCandidates());
 
-				for (Candidate target : targets)
+				for (Candidate target : targets) {
+					IJ.log("checking flow from merge node " + smaller.getId() + "+" + bigger.getId() +
+					       " to " + target.getId());
 					if (getFlow(mergeNodes.get(smaller).get(bigger), target) == 1) {
+						IJ.log("Merge detected.");
 						assignment.add(new SingleAssignment(smaller, target));
 						assignment.add(new SingleAssignment(bigger, target));
-					}
+					} else
+						IJ.log("no merge");
+				}
 			}
 
+		// each death
+		for (Candidate sourceCandidate : sourceCandidates)
+			if (getFlow(sourceCandidate, deathNode) == 1)
+				IJ.log("candidate " + sourceCandidate.getId() + " died");
+
+		// each emerge
+		for (Candidate targetCandidate : targetCandidates)
+			if (getFlow(emergeNode, targetCandidate) == 1)
+				IJ.log("candidate " + targetCandidate.getId() + " emerged");
+
 		// TODO:
-		// • read out emerged nodes
 		// • pass emerged nodes to next assignment search
 
 		return assignment;
