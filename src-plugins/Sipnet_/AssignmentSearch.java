@@ -29,7 +29,7 @@ public class AssignmentSearch {
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
 
 	// add constraints for hypothesis consistency?
-	private final boolean hypothesisConsistency = false;
+	private final boolean hypothesisConsistency = true;
 	
 	/*
 	 * interna
