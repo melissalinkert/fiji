@@ -14,6 +14,8 @@ public class Candidate extends Region<Candidate> {
 	// in the next slice and their assignment probabilities
 	private Vector<Candidate>          mostSimilarCandidates;
 	private HashMap<Candidate, Double> negLogPAppearances;
+	// all candidates of which this one is a most likely candidate
+	private Vector<Candidate>          mostSimilarOf;
 
 	// closest candidates in x-y of same slice
 	private Vector<Candidate> neighbors;
@@ -71,6 +73,7 @@ public class Candidate extends Region<Candidate> {
 
 		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
+		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
@@ -81,13 +84,16 @@ public class Candidate extends Region<Candidate> {
 		sortedCandidates.addAll(targetCandidates);
 
 		// cache most likely candidates
-		while (mostSimilarCandidates.size() < AssignmentSearch.MaxTargetCandidates) {
+		while (mostSimilarCandidates.size() < AssignmentSearch.MaxTargetCandidates &&
+		       sortedCandidates.peek() != null) {
 
 			double negLogP = AssignmentModel.negLogPAppearance(this, sortedCandidates.peek());
 
 			if (negLogP <= AssignmentSearch.MaxNegLogPAssignment) {
 
 				mostSimilarCandidates.add(sortedCandidates.peek());
+				// tell this candidate about us
+				sortedCandidates.peek().addMostLikelyOf(this);
 				negLogPAppearances.put(sortedCandidates.poll(), negLogP);
 			} else
 				break;
@@ -99,6 +105,11 @@ public class Candidate extends Region<Candidate> {
 				   AssignmentSearch.MaxNegLogPAssignment);
 			IJ.log("Closest non-selected candidate distance: " + AssignmentModel.negLogPAppearance(this, sortedCandidates.peek()));
 		}
+	}
+
+	public void addMostLikelyOf(Candidate candidate) {
+
+		mostSimilarOf.add(candidate);
 	}
 
 	public void findNeighbors(Vector<Candidate> candidates) {
@@ -169,6 +180,11 @@ public class Candidate extends Region<Candidate> {
 	public Vector<Candidate> getMostLikelyCandidates() {
 
 		return mostSimilarCandidates;
+	}
+
+	public Vector<Candidate> getMostLikelyOf() {
+
+		return mostSimilarOf;
 	}
 
 	public double getNegLogPAppearance(Candidate candidate) {
