@@ -5,7 +5,7 @@ public class AssignmentModel {
 
 	static double priorDeath           = 1e-10;
 	static double priorContinuation    = 1.0;
-	static double priorSplit           = 1e-50;
+	static double priorSplit           = 1e-10;
 	static double priorImpossible      = 1e-300;
 
 	static double covaPosition         = 100.0;
