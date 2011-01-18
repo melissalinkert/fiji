@@ -1,6 +1,4 @@
 
-import java.util.HashMap;
-
 import ij.IJ;
 import ij.ImagePlus;
 
@@ -45,13 +43,13 @@ public class Visualiser {
 		blockCopy.updateAndDraw();
 	}
 
-	private void drawCandidate(int x, int y, int slice, int id) {
+	//private void drawCandidate(int x, int y, int slice, int id) {
 
-		String annotation = "" + id;
-		IJ.setSlice(slice);
-		IJ.setForegroundColor(0, 0, 0);
-		IJ.runMacro("drawString(\"" + annotation + "\", " + x + ", " + y + ")");
-	}
+		//String annotation = "" + id;
+		//IJ.setSlice(slice);
+		//IJ.setForegroundColor(0, 0, 0);
+		//IJ.runMacro("drawString(\"" + annotation + "\", " + x + ", " + y + ")");
+	//}
 
 	private void drawConnection(int x1, int y1, int x2, int y2, int slice, double confidence) {
 
