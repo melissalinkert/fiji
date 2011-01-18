@@ -4,13 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
-import org.gnu.glpk.GLPK;
-import org.gnu.glpk.GLPKConstants;
-import org.gnu.glpk.SWIGTYPE_p_double;
-import org.gnu.glpk.SWIGTYPE_p_int;
-import org.gnu.glpk.glp_iocp;
-import org.gnu.glpk.glp_prob;
-
 import ij.IJ;
 
 public class AssignmentSearch {
@@ -38,19 +31,18 @@ public class AssignmentSearch {
 	private Vector<Candidate> sourceCandidates;
 	private Vector<Candidate> targetCandidates;
 	
+	// pairs of nodes that can potentially merge
 	private HashMap<Candidate, HashMap<Candidate, Candidate>> mergeNodes;
+	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> mergePartners;
 
-	private HashMap<Candidate, HashMap<Candidate, Long>> nodeNums;
-	private long nextNodeId = 1;
+	private HashMap<Candidate, HashMap<Candidate, Integer>> nodeNums;
+	private int nextNodeId = 1;
 
 	// dummy candidates
 	static public final Candidate deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 	static public final Candidate emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-	private Candidate neglectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-	private Candidate neglectCollectNode = new Candidate(0, 0, new double[]{0.0, 0.0});
 
-	// linear program
-	glp_prob problem;
+	private LinearProgramSolver lpSolver;
 
 	public AssignmentSearch(Set<Candidate> sourceCandidates, Set<Candidate> targetCandidates) {
 
@@ -66,12 +58,13 @@ public class AssignmentSearch {
 			sourceCandidate.findNeighbors(this.sourceCandidates);
 		}
 
-		this.mergeNodes = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
-
-		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Long>>();
+		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Integer>>();
 	}
 
 	public Assignment findBestAssignment() {
+
+		IJ.log("searching for best assignment of " + sourceCandidates.size() +
+		       " candidates to " + targetCandidates.size() + " candidates");
 
 		setupProblem();
 
@@ -93,357 +86,79 @@ public class AssignmentSearch {
 
 		int numVariables   = computeNumVariables();
 		int numConstraints = computeNumConstraints();
-		int requiredFlow   = computeRequiredFlow();
 
-		IJ.log("setting up problem: " + numVariables + " flow variables, " + numConstraints + " constraints, required flow " + requiredFlow);
+		IJ.log("setting up problem: " + numVariables + " variables, " + numConstraints + " constraints");
 
-		// create problem
-		problem = GLPK.glp_create_prob();
-		GLPK.glp_set_prob_name(problem, "assignment problem");
-
-		// setup variables
-		GLPK.glp_add_cols(problem, numVariables);
-
-		// first, set all variables to be binary
-		for (int i = 1; i <= numVariables; i++) {
-
-			GLPK.glp_set_col_name(problem, i, "x" + i);
-			GLPK.glp_set_col_kind(problem, i, GLPKConstants.GLP_BV);
-		}
-
-		// now set exceptions
-		GLPK.glp_set_col_kind(problem, (int)getVariableNum(neglectNode, neglectCollectNode), GLPKConstants.GLP_IV);
-		GLPK.glp_set_col_bnds(problem, (int)getVariableNum(neglectNode, neglectCollectNode), GLPKConstants.GLP_DB, 0.0, requiredFlow);
-
-		GLPK.glp_set_col_kind(problem, (int)getVariableNum(emergeNode, deathNode), GLPKConstants.GLP_IV);
-		GLPK.glp_set_col_bnds(problem, (int)getVariableNum(emergeNode, deathNode), GLPKConstants.GLP_DB, 0.0, requiredFlow);
-
-		// setup constraints
-		int i = 1;
-		GLPK.glp_add_rows(problem, numConstraints);
+		lpSolver = new GlpkSolver(numVariables, numConstraints);
 
 		/*
-		 * MERGES
+		 * OUTGOING EDGES
 		 */
 
-		// for each possible merge of two source candidates
-		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-
-				Set<Candidate> jointPartners = new HashSet<Candidate>();
-
-				jointPartners.addAll(smaller.getMostLikelyCandidates());
-				jointPartners.addAll(bigger.getMostLikelyCandidates());
-
-				IJ.log("creating merge node for candidates " + smaller.getId() + " and " + bigger.getId());
-
-				// get dummy merge node
-				Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
-
-				// sum of input edges to merge node...
-				int               numEdges = 3 + jointPartners.size();
-				SWIGTYPE_p_int    varNums  = GLPK.new_intArray(numEdges + 1);
-				SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
-				int               index    = 1;
-
-				// ...from smaller and bigger...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(smaller, mergeNode));
-				GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-				index++;
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(bigger, mergeNode));
-				GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-				index++;
-
-				// ...minus sum of output edges from merge node...
-
-				// ...to death...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNode, deathNode));
-				GLPK.doubleArray_setitem(varCoefs, index, -1.0);
-				index++;
-				// ...and all partners...
-				for (Candidate partner : jointPartners) {
-					GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNode, partner));
-					GLPK.doubleArray_setitem(varCoefs, index, -1.0);
-					index++;
-				}
-
-				// ...has to be zero
-				GLPK.glp_set_row_name(problem, i, "c" + i);
-				GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 0.0, 0.0);
-				GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-				i++;
-
-				numEdges = 2;
-				varNums  = GLPK.new_intArray(numEdges + 1);
-				varCoefs = GLPK.new_doubleArray(numEdges + 1);
-				index    = 1;
-
-				// flow from smaller to merge node...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(smaller, mergeNode));
-				GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-				index++;
-
-				// ...minus flow from merge node to delete node...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNode, deathNode));
-				GLPK.doubleArray_setitem(varCoefs, index, -1.0);
-				index++;
-
-				// ...has to be zero
-				GLPK.glp_set_row_name(problem, i, "c" + i);
-				GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 0.0, 0.0);
-				GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-				i++;
-
-				numEdges = 2;
-				varNums  = GLPK.new_intArray(numEdges + 1);
-				varCoefs = GLPK.new_doubleArray(numEdges + 1);
-				index    = 1;
-
-				// flow from bigger to merge node...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(bigger, mergeNode));
-				GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-				index++;
-
-				// ...minus flow from merge node to delete node...
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNode, deathNode));
-				GLPK.doubleArray_setitem(varCoefs, index, -1.0);
-				index++;
-
-				// ...has to be zero
-				GLPK.glp_set_row_name(problem, i, "c" + i);
-				GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 0.0, 0.0);
-				GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-				i++;
-			}
-
-		/*
-		 * OUTGOING FLOW
-		 */
-
-		// outgoing flow for each source candidate
+		// for each source candidate
 		for (Candidate sourceCandidate : sourceCandidates) {
 
-			int numMergeNodes = mergeNodes.get(sourceCandidate).keySet().size();
-			for (Candidate mergePartner : mergeNodes.keySet())
-				if (mergeNodes.get(mergePartner).keySet().contains(sourceCandidate))
-					numMergeNodes++;
+			Vector<Integer> variableNums = new Vector<Integer>();
+			Vector<Double>  coefficients = new Vector<Double>();
 
-			int            numEdges = sourceCandidate.getMostLikelyCandidates().size() + numMergeNodes + 1;
-			SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
-			int            index    = 1;
-
-			// to the target candidates
+			// the sum of all continuation edges...
 			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
-
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, targetCandidate));
-				index++;
+				variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
+				coefficients.add(1.0);
 			}
 
-			// to the merge nodes
-			for (Candidate bigger : mergeNodes.get(sourceCandidate).keySet()) {
-
-				Candidate mergeNode = mergeNodes.get(sourceCandidate).get(bigger);
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, mergeNode));
-				index++;
-			}
-			for (Candidate smaller : mergeNodes.keySet())
-				if (mergeNodes.get(smaller).keySet().contains(sourceCandidate)) {
-
-					Candidate mergeNode = mergeNodes.get(smaller).get(sourceCandidate);
-					GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, mergeNode));
-					index++;
+			// ...and all merge edges this source candidate is involved in...
+			for (Candidate bigger : mergePartners.get(sourceCandidate).keySet())
+				for (Candidate partner : mergePartners.get(sourceCandidate).get(bigger)) {
+					variableNums.add(getVariableNum(mergeNodes.get(sourceCandidate).get(bigger), partner));
+					coefficients.add(1.0);
 				}
+			for (Candidate smaller : sourceCandidates)
+				if (mergePartners.get(smaller).keySet().contains(sourceCandidate))
+					for (Candidate partner : mergePartners.get(smaller).get(sourceCandidate)) {
+						variableNums.add(getVariableNum(mergeNodes.get(smaller).get(sourceCandidate), partner));
+						coefficients.add(1.0);
+					}
 
-			// to the delete node
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
+			// ...and the edge to the delete node...
+			variableNums.add(getVariableNum(sourceCandidate, deathNode));
+			coefficients.add(1.0);
 
-			GLPK.glp_set_row_name(problem, i, "c" + i);
-			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
-
-			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
-			for (int j = 1; j <= numEdges; j++)
-				GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-			GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-			i++;
+			// ...has to be exactly one
+			lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
 		}
 
 		/*
-		 * INCOMING FLOW
+		 * INCOMING EDGES
 		 */
 
-		// incoming flow for each target candidate
+		// for each target candidate
 		for (Candidate targetCandidate : targetCandidates) {
 
-			// get all source candidates that have targetCandidate as target
-			Vector<Candidate> partners = targetCandidate.getMostLikelyOf();
+			Vector<Integer> variableNums = new Vector<Integer>();
+			Vector<Double>  coefficients = new Vector<Double>();
 
-			// get all merge nodes that have target candidate as target
-			for (Candidate smaller : mergeNodes.keySet())
-				for (Candidate bigger : mergeNodes.get(smaller).keySet())
-					if (smaller.getMostLikelyCandidates().contains(targetCandidate) ||
-					    bigger.getMostLikelyCandidates().contains(targetCandidate))
-						partners.add(mergeNodes.get(smaller).get(bigger));
-
-			int numEdges = partners.size() + 2;
-			SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
-			int            index    = 1;
-
-			// from the source candidates
-			for (Candidate sourceCandidate : partners) {
-
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, targetCandidate));
-				index++;
+			// the sum of all continuation edges
+			for (Candidate sourceCandidate : targetCandidate.getMostLikelyOf()) {
+				variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
+				coefficients.add(1.0);
 			}
 
-			// from the neglect node
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, neglectNode));
-			index++;
+			// ...and all merge edges this target candidate is involved in...
+			for (Candidate smaller : sourceCandidates)
+				for (Candidate bigger : mergePartners.get(smaller).keySet())
+					if (mergePartners.get(smaller).get(bigger).contains(targetCandidate)) {
+						variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), targetCandidate));
+						coefficients.add(1.0);
+					}
 
-			// from the emerge node
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, emergeNode));
-			index++;
+			// ...and the edge from the emerge node...
+			variableNums.add(getVariableNum(emergeNode, targetCandidate));
+			coefficients.add(1.0);
 
-			GLPK.glp_set_row_name(problem, i, "c" + i);
-			GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
-
-			SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
-			for (int j = 1; j <= numEdges; j++)
-				GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-			GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-			i++;
+			// ...has to be exactly one
+			lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
 		}
-
-		/*
-		 * NEGLECTION
-		 */
-
-		// outgoing flow from the neglect node
-		int            numEdges = targetCandidates.size() + 1;
-		SWIGTYPE_p_int varNums  = GLPK.new_intArray(numEdges + 1);
-		int            index    = 1;
-
-		// to the target candidates
-		for (Candidate targetCandidate : targetCandidates) {
-
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, neglectNode));
-			index++;
-		}
-
-		// to the neglect-collect node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(neglectNode, neglectCollectNode));
-		index++;
-
-		SWIGTYPE_p_double varCoefs = GLPK.new_doubleArray(numEdges + 1);
-		for (int j = 1; j <= numEdges; j++)
-			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-		// should be number of target candidates
-		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
-
-		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-		i++;
-
-		// outgoing flow from the emerge node
-		numEdges = targetCandidates.size() + 2;
-		varNums  = GLPK.new_intArray(numEdges + 1);
-		index    = 1;
-
-		// to the target candidates
-		for (Candidate targetCandidate : targetCandidates) {
-
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(targetCandidate, emergeNode));
-			index++;
-		}
-
-		// to the neglect-collect node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, neglectCollectNode));
-		index++;
-
-		// to the death node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, deathNode));
-		index++;
-
-		varCoefs = GLPK.new_doubleArray(numEdges + 1);
-		for (int j = 1; j <= numEdges; j++)
-			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-		// should be number of target candidates
-		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
-
-		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-		i++;
-
-		// incoming flow to the death node
-		int numMergeNodes = 0;
-		for (Candidate smaller : mergeNodes.keySet())
-			numMergeNodes += mergeNodes.get(smaller).keySet().size();
-
-		numEdges = sourceCandidates.size() + numMergeNodes + 1;
-		varNums  = GLPK.new_intArray(numEdges + 1);
-		index    = 1;
-
-		// from the source candidates
-		for (Candidate sourceCandidate: sourceCandidates) {
-
-			GLPK.intArray_setitem(varNums, index, (int)getVariableNum(sourceCandidate, deathNode));
-			index++;
-		}
-
-		// from the merge nodes
-		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-				GLPK.intArray_setitem(varNums, index, (int)getVariableNum(mergeNodes.get(smaller).get(bigger), deathNode));
-				index++;
-			}
-
-		// from the emerge node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, deathNode));
-		index++;
-
-		varCoefs = GLPK.new_doubleArray(numEdges + 1);
-		for (int j = 1; j <= numEdges; j++)
-			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-		// should be number of source candidates
-		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, sourceCandidates.size(), sourceCandidates.size());
-
-		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-		i++;
-
-		// incoming flow to the neglect-collect node
-		numEdges = 2;
-		varNums  = GLPK.new_intArray(numEdges + 1);
-		index    = 1;
-
-		// from the emerge node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(emergeNode, neglectCollectNode));
-		index++;
-
-		// from the neglect node
-		GLPK.intArray_setitem(varNums, index, (int)getVariableNum(neglectNode, neglectCollectNode));
-		index++;
-
-		varCoefs = GLPK.new_doubleArray(numEdges + 1);
-		for (int j = 1; j <= numEdges; j++)
-			GLPK.doubleArray_setitem(varCoefs, j, 1.0);
-
-		// should be number of target candidates
-		GLPK.glp_set_row_name(problem, i, "c" + i);
-		GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, targetCandidates.size(), targetCandidates.size());
-
-		GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-		i++;
 
 		/*
 		 * HYPOTHESISES
@@ -452,121 +167,56 @@ public class AssignmentSearch {
 		// hypothesis consistency - for each path in the component tree of the
 		// target candidates, i.e., for each child
 		if (hypothesisConsistency) {
-			for (Candidate targetCandidate : targetCandidates)
-				if (targetCandidate.getChildren().size() == 0) {
 
-					// the path that leads to this child
-					Vector<Candidate> path     = new Vector<Candidate>();
-
-					Candidate pathMember = targetCandidate;
-
-					while (pathMember != null) {
-						path.add(pathMember);
-						pathMember = pathMember.getParent();
-					}
-
-					// all pairs of nodes, that are connected by an edge where the
-					// target is a member of the path and the source is not the
-					// neglect node
-					Vector<Candidate[]> pairs = new Vector<Candidate[]>();
-
-					for (Candidate member : path) {
-
-						// get all source nodes that have a connection to member
-						for (Candidate sourceCandidate : sourceCandidates)
-							if (sourceCandidate.getMostLikelyCandidates().contains(member))
-								pairs.add(new Candidate[]{sourceCandidate, member});
-
-						// add the emerge node
-						pairs.add(new Candidate[]{emergeNode, member});
-					}
-
-
-					// now we are ready to state the constraint: the sum of all incoming
-					// flows to a path has to be one (disregarding the incoming connections
-					// from the neglect node)
-
-					numEdges = pairs.size();
-					varNums  = GLPK.new_intArray(numEdges + 1);
-					varCoefs = GLPK.new_doubleArray(numEdges + 1);
-					index    = 1;
-
-					for (Candidate[] pair : pairs) {
-
-						GLPK.intArray_setitem(varNums, index, (int)getVariableNum(pair[0], pair[1]));
-						GLPK.doubleArray_setitem(varCoefs, index, 1.0);
-						index++;
-					}
-
-					// should be exactly one
-					GLPK.glp_set_row_name(problem, i, "c" + i);
-					GLPK.glp_set_row_bnds(problem, i, GLPKConstants.GLP_FX, 1.0, 1.0);
-
-					GLPK.glp_set_mat_row(problem, i, numEdges, varNums, varCoefs);
-
-					i++;
-				}
+			IJ.log("HYPOTHESIS CONSISTENCY NOT IMPLEMENTED YET");
 		}
-
-
-		IJ.log("" + (i-1) + " constraints set.");
 
 		/*
 		 * OBJECTIVE FUNCTION
 		 */
 
-		// setup objective function
-		GLPK.glp_set_obj_name(problem, "min cost");
-		GLPK.glp_set_obj_dir(problem, GLPKConstants.GLP_MIN);
+		Vector<Integer> variableNums = new Vector<Integer>();
+		Vector<Double>  coefficients = new Vector<Double>();
 
-		// costs for each flow in the network:
-
-		// source candidates to target candidates and death
-		for (Candidate sourceCandidate : sourceCandidates) {
-
-			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
-				GLPK.glp_set_obj_coef(problem, (int)getVariableNum(sourceCandidate, targetCandidate),
-				                      AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate));
-
-			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(sourceCandidate, deathNode),
-			                      AssignmentModel.negLogPriorDeath);
-		}
-
-		// merge nodes to target candidates
-		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-
-				Set<Candidate> targets = new HashSet<Candidate>(smaller.getMostLikelyCandidates());
-				targets.addAll(bigger.getMostLikelyCandidates());
-
-				for (Candidate target : targets)
-					GLPK.glp_set_obj_coef(problem, (int)getVariableNum(mergeNodes.get(smaller).get(bigger), target),
-										  AssignmentModel.negLogPriorSplit);
+		// for each continuation
+		for (Candidate sourceCandidate : sourceCandidates)
+			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
+				variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
+				coefficients.add(AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate));
 			}
 
-		// neglect to target candidates and neglect-collect
-		for (Candidate targetCandidate : targetCandidates)
-			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(neglectNode, targetCandidate),
-			                      0.0);
-		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(neglectNode, neglectCollectNode),
-		                      0.0);
+		// for each merge
+		for (Candidate smaller : mergePartners.keySet())
+			for (Candidate bigger : mergePartners.get(smaller).keySet())
+				for (Candidate partner : mergePartners.get(smaller).get(bigger)) {
+					variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), partner));
+					coefficients.add(AssignmentModel.negLogPriorSplit);
+				}
 
-		// emerge to target candidates, neglect-collect, and death
-		for (Candidate targetCandidate : targetCandidates)
-			GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, targetCandidate),
-			                      AssignmentModel.negLogPriorDeath);
-		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, neglectCollectNode),
-		                      0.0);
-		GLPK.glp_set_obj_coef(problem, (int)getVariableNum(emergeNode, deathNode),
-		                      AssignmentModel.negLogPriorContinuation);
+		// for each emerge
+		for (Candidate targetCandidate : targetCandidates) {
+			variableNums.add(getVariableNum(emergeNode, targetCandidate));
+			coefficients.add(AssignmentModel.negLogPriorDeath);
+		}
+
+		// for each death
+		for (Candidate sourceCandidate : sourceCandidates) {
+			variableNums.add(getVariableNum(sourceCandidate, deathNode));
+			coefficients.add(AssignmentModel.negLogPriorDeath);
+		}
+
+		lpSolver.setObjective(variableNums, coefficients);
 	}
 
 	private void findPossibleMergers() {
 
-		mergeNodes = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
+		mergeNodes    = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
+		mergePartners = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
 
-		for (Candidate sourceCandidate : sourceCandidates)
+		for (Candidate sourceCandidate : sourceCandidates) {
 			mergeNodes.put(sourceCandidate, new HashMap<Candidate, Candidate>());
+			mergePartners.put(sourceCandidate, new HashMap<Candidate, Set<Candidate>>());
+		}
 
 		for (Candidate sourceCandidate : sourceCandidates)
 			for (Candidate neighbor : sourceCandidate.getNeighbors()) {
@@ -582,34 +232,32 @@ public class AssignmentSearch {
 					bigger  = sourceCandidate;
 				}
 
+				Set<Candidate> partners = new HashSet<Candidate>();
+
+				for (Candidate mergePartner : smaller.getMostLikelyCandidates())
+					if (bigger.getMostLikelyCandidates().contains(mergePartner))
+						partners.add(mergePartner);
+
 				mergeNodes.get(smaller).put(bigger, new Candidate(0, 0, new double[]{0.0, 0.0}));
+				mergePartners.get(smaller).put(bigger, partners);
 			}
 	}
 
 	private int computeNumVariables() {
 
-		// the number of variables is the number of edges for which we would
-		// like to calculate the flow
+		// the number of variables is the number of possible connection cases
 		
 		int numVariables = 0;
 
-		// for the connections between the source and target candidates
+		// for the continue-connections between the source and target candidates
 		for (Candidate sourceCandidate : sourceCandidates)
 			numVariables += sourceCandidate.getMostLikelyCandidates().size();
 
-		// for each possible merge of two source candidates
+		// for each possible merge of two source candidates to a target
+		// candidate
 		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-
-				Set<Candidate> jointPartners = new HashSet<Candidate>();
-
-				jointPartners.addAll(smaller.getMostLikelyCandidates());
-				jointPartners.addAll(bigger.getMostLikelyCandidates());
-
-				// two incoming edges, one to delete, and n to the possible
-				// merge target
-				numVariables += 3 + jointPartners.size();
-			}
+			for (Candidate bigger : mergeNodes.get(smaller).keySet())
+				numVariables += mergePartners.get(smaller).get(bigger).size();
 
 		// for the connection of each source candidate to the delete node
 		numVariables += sourceCandidates.size();
@@ -617,18 +265,11 @@ public class AssignmentSearch {
 		// for the connections of the emerge node to the target candidates
 		numVariables += targetCandidates.size();
 
-		// for the connection of the emerge node to the neglect-collector node
-		// and the delete node
-		numVariables += 2;
+		if (hypothesisConsistency) {
 
-		// for the connections of the neglect node to the target candidates
-		numVariables += targetCandidates.size();
-
-		// for the connection of the negelct node to the neglect-collect node
-		numVariables += 1;
-
-		// for all other connections, the flow is known already (due to the flow
-		// requirement)
+			// for the connections of the neglect node to the target candidates
+			numVariables += targetCandidates.size();
+		}
 
 		return numVariables;
 	}
@@ -637,24 +278,11 @@ public class AssignmentSearch {
 
 		int numConstraints = 0;
 
-		// outgoing flow for each source candidate
+		// outgoing edges for each source candidate
 		numConstraints += sourceCandidates.size();
 
-		// incoming flow for each target candidate
+		// incoming edges for each target candidate
 		numConstraints += targetCandidates.size();
-
-		// for each possible merge of two source candidates
-		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-
-				// flow conservation, synchronisation of incoming edges with
-				// death node
-				numConstraints += 3;
-			}
-
-		// incoming or outgoing flow for neglect, neglect-collect, emerge, and
-		// death node
-		numConstraints += 4;
 
 		// hypothesis consistency - one constraint for each path in the
 		// component tree of the target candidates, i.e., for each child
@@ -666,31 +294,12 @@ public class AssignmentSearch {
 		return numConstraints;
 	}
 
-	private int computeRequiredFlow() {
-
-		// the required flow is the sum of all capacities going out of the
-		// source node
-
-		int requiredFlow = 0;
-
-		// to the neglect node
-		requiredFlow += targetCandidates.size();
-
-		// to each source candidate node
-		requiredFlow += sourceCandidates.size();
-
-		// to the emerge node
-		requiredFlow += targetCandidates.size();
-
-		return requiredFlow;
-	}
-
 	/**
 	 * Each pair of source-to-target candidates represents an edge in the graph,
 	 * which in turn is modelled as a variable. This function returns the
 	 * variable number a given pair is associated to.
 	 */
-	private long getVariableNum(Candidate candidate1, Candidate candidate2) {
+	private int getVariableNum(Candidate candidate1, Candidate candidate2) {
 
 		if (candidate1.getId() > candidate2.getId()) {
 			Candidate tmp = candidate1;
@@ -698,19 +307,19 @@ public class AssignmentSearch {
 			candidate2 = tmp;
 		}
 
-		HashMap<Candidate, Long> m = nodeNums.get(candidate1);
+		HashMap<Candidate, Integer> m = nodeNums.get(candidate1);
 
 		if (m == null) {
-			m = new HashMap<Candidate, Long>();
+			m = new HashMap<Candidate, Integer>();
 			nodeNums.put(candidate1, m);
 		}
 
-		Long id = m.get(candidate2);
+		Integer id = m.get(candidate2);
 
 		if (id != null)
 			return id;
 		else {
-			m.put(candidate2, new Long(nextNodeId));
+			m.put(candidate2, new Integer(nextNodeId));
 			nextNodeId++;
 
 			return nextNodeId - 1;
@@ -719,12 +328,7 @@ public class AssignmentSearch {
 
 	private void solveProblem() {
 
-		glp_iocp parameters = new glp_iocp();
-
-		GLPK.glp_init_iocp(parameters);
-		parameters.setPresolve(GLPKConstants.GLP_ON);
-
-		int result = GLPK.glp_intopt(problem, parameters);
+		int result = lpSolver.solve(2);
 
 		if (result != 0)
 			IJ.log("LP problem could not be solved.");
@@ -737,49 +341,36 @@ public class AssignmentSearch {
 		// each continuation
 		for (Candidate sourceCandidate : sourceCandidates)
 			for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
-				if (getFlow(sourceCandidate, targetCandidate) == 1)
+				if (getVariableValue(sourceCandidate, targetCandidate) == 1)
 					assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
 
 		// each merge
 		for (Candidate smaller : mergeNodes.keySet())
-			for (Candidate bigger : mergeNodes.get(smaller).keySet()) {
-
-				Set<Candidate> targets = new HashSet<Candidate>(smaller.getMostLikelyCandidates());
-				targets.addAll(bigger.getMostLikelyCandidates());
-
-				for (Candidate target : targets) {
-					IJ.log("checking flow from merge node " + smaller.getId() + "+" + bigger.getId() +
-					       " to " + target.getId());
-					if (getFlow(mergeNodes.get(smaller).get(bigger), target) == 1) {
-						IJ.log("Merge detected.");
-						assignment.add(new SingleAssignment(smaller, target));
-						assignment.add(new SingleAssignment(bigger, target));
-					} else
-						IJ.log("no merge");
-				}
-			}
+			for (Candidate bigger : mergeNodes.get(smaller).keySet())
+				for (Candidate partner : mergePartners.get(smaller).get(bigger))
+					if (getVariableValue(mergeNodes.get(smaller).get(bigger), partner) == 1) {
+						assignment.add(new SingleAssignment(smaller, partner));
+						assignment.add(new SingleAssignment(bigger, partner));
+					}
 
 		// each death
 		for (Candidate sourceCandidate : sourceCandidates)
-			if (getFlow(sourceCandidate, deathNode) == 1)
+			if (getVariableValue(sourceCandidate, deathNode) == 1)
 				assignment.add(new SingleAssignment(sourceCandidate, deathNode));
 
 		// each emerge
 		for (Candidate targetCandidate : targetCandidates)
-			if (getFlow(emergeNode, targetCandidate) == 1)
+			if (getVariableValue(emergeNode, targetCandidate) == 1)
 				assignment.add(new SingleAssignment(emergeNode, targetCandidate));
 
 		return assignment;
 	}
 
-	private int getFlow(Candidate from, Candidate to) {
+	private int getVariableValue(Candidate from, Candidate to) {
 
-		double flow = GLPK.glp_mip_col_val(problem, (int)getVariableNum(from, to));
+		double value = lpSolver.getValue((int)getVariableNum(from, to));
 		
-		if (flow > 0.0001 && flow < 0.9999)
-			IJ.log("Oh no! One of the flow variables is not integral: " + flow);
-
-		if (flow > 0.5)
+		if (value > 0.5)
 			return 1;
 		return 0;
 	}
