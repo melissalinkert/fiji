@@ -8,8 +8,8 @@ import org.gnu.glpk.GLPK;
 import org.gnu.glpk.GLPKConstants;
 import org.gnu.glpk.SWIGTYPE_p_double;
 import org.gnu.glpk.SWIGTYPE_p_int;
+import org.gnu.glpk.glp_iocp;
 import org.gnu.glpk.glp_prob;
-import org.gnu.glpk.glp_smcp;
 
 import ij.IJ;
 
@@ -29,7 +29,7 @@ public class AssignmentSearch {
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
 
 	// add constraints for hypothesis consistency?
-	private final boolean hypothesisConsistency = true;
+	private final boolean hypothesisConsistency = false;
 	
 	/*
 	 * interna
@@ -104,12 +104,19 @@ public class AssignmentSearch {
 		// setup variables
 		GLPK.glp_add_cols(problem, numVariables);
 
+		// first, set all variables to be binary
 		for (int i = 1; i <= numVariables; i++) {
 
 			GLPK.glp_set_col_name(problem, i, "x" + i);
-			GLPK.glp_set_col_kind(problem, i, GLPKConstants.GLP_CV);
-			GLPK.glp_set_col_bnds(problem, i, GLPKConstants.GLP_DB, 0.0, requiredFlow);
+			GLPK.glp_set_col_kind(problem, i, GLPKConstants.GLP_BV);
 		}
+
+		// now set exceptions
+		GLPK.glp_set_col_kind(problem, (int)getVariableNum(neglectNode, neglectCollectNode), GLPKConstants.GLP_IV);
+		GLPK.glp_set_col_bnds(problem, (int)getVariableNum(neglectNode, neglectCollectNode), GLPKConstants.GLP_DB, 0.0, requiredFlow);
+
+		GLPK.glp_set_col_kind(problem, (int)getVariableNum(emergeNode, deathNode), GLPKConstants.GLP_IV);
+		GLPK.glp_set_col_bnds(problem, (int)getVariableNum(emergeNode, deathNode), GLPKConstants.GLP_DB, 0.0, requiredFlow);
 
 		// setup constraints
 		int i = 1;
@@ -712,11 +719,12 @@ public class AssignmentSearch {
 
 	private void solveProblem() {
 
-		glp_smcp parameters = new glp_smcp();
+		glp_iocp parameters = new glp_iocp();
 
-		GLPK.glp_init_smcp(parameters);
+		GLPK.glp_init_iocp(parameters);
+		parameters.setPresolve(GLPKConstants.GLP_ON);
 
-		int result = GLPK.glp_simplex(problem, parameters);
+		int result = GLPK.glp_intopt(problem, parameters);
 
 		if (result != 0)
 			IJ.log("LP problem could not be solved.");
@@ -766,7 +774,7 @@ public class AssignmentSearch {
 
 	private int getFlow(Candidate from, Candidate to) {
 
-		double flow = GLPK.glp_get_col_prim(problem, (int)getVariableNum(from, to));
+		double flow = GLPK.glp_mip_col_val(problem, (int)getVariableNum(from, to));
 		
 		if (flow > 0.0001 && flow < 0.9999)
 			IJ.log("Oh no! One of the flow variables is not integral: " + flow);
