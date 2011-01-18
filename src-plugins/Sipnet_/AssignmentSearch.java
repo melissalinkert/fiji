@@ -36,7 +36,7 @@ public class AssignmentSearch {
 	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> mergePartners;
 
 	private HashMap<Candidate, HashMap<Candidate, Integer>> nodeNums;
-	private int nextNodeId = 1;
+	private int nextNodeId = 0;
 
 	// dummy candidates
 	static public final Candidate deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
@@ -89,7 +89,7 @@ public class AssignmentSearch {
 
 		IJ.log("setting up problem: " + numVariables + " variables, " + numConstraints + " constraints");
 
-		lpSolver = new GlpkSolver(numVariables, numConstraints);
+		lpSolver = new CplexSolver(numVariables, numConstraints);
 
 		/*
 		 * OUTGOING EDGES

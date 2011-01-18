@@ -48,7 +48,7 @@ class GlpkSolver implements LinearProgramSolver {
 
 		for (int i = 0; i < numVars; i++) {
 
-			GLPK.intArray_setitem(varNums, i + 1, variableNums.get(i));
+			GLPK.intArray_setitem(varNums, i + 1, variableNums.get(i) + 1);
 			GLPK.doubleArray_setitem(varCoefs, i + 1, coefficients.get(i));
 		}
 
@@ -70,7 +70,7 @@ class GlpkSolver implements LinearProgramSolver {
 		GLPK.glp_set_obj_dir(problem, GLPKConstants.GLP_MIN);
 
 		for (int i = 0; i < variableNums.size(); i++)
-			GLPK.glp_set_obj_coef(problem, variableNums.get(i), coefficients.get(i));
+			GLPK.glp_set_obj_coef(problem, variableNums.get(i) + 1, coefficients.get(i));
 	}
 
 	public int solve(int numThreads) {
