@@ -195,7 +195,6 @@ public class SequenceSearch {
 						Candidate smaller = (neighbor.getId() < member.getId() ? neighbor : member);
 						Candidate bigger  = (neighbor.getId() < member.getId() ? member   : neighbor);
 
-						System.out.println("considering merge node of " + smaller.getId() + " + " + bigger.getId());
 						for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
 							variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergePartner));
 							coefficients.add(1.0);
@@ -203,8 +202,8 @@ public class SequenceSearch {
 					}
 				}
 
-				// ...has to be exactly one
-				lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
+				// ...has to be at most one
+				lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
 
 				numConsUsed++;
 				for (Integer n : variableNums)
@@ -247,15 +246,19 @@ public class SequenceSearch {
 						}
 
 						// not for last slice
-						if (s != sliceCandidates.size() - 1) {
+						if (s < sliceCandidates.size() - 1) {
 							// ...and all incoming emerge edges...
 							variableNums.add(getVariableNum(emergeNode, member));
 							coefficients.add(1.0);
 						}
 					}
 
-					// ...has to be exactly one
-					lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
+					if (s < sliceCandidates.size() - 1)
+						// ...has to be exactly one for intermediate slices
+						lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
+					else
+						// ...has to be at most one for the last slice
+						lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
 
 					numConsUsed++;
 					for (Integer n : variableNums)
@@ -364,8 +367,6 @@ public class SequenceSearch {
 
 					mergeNodes.get(smaller).put(bigger, mergeNode);
 					mergePartners.get(smaller).put(bigger, partners);
-
-					System.out.println("possible merge: " + smaller.getId() + " + " + bigger.getId());
 				}
 		}
 	}
