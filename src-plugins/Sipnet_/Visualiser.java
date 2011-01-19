@@ -25,10 +25,10 @@ public class Visualiser {
 				Candidate source = singleAssignment.getSource();
 				Candidate target = singleAssignment.getTarget();
 
-				if (source == AssignmentSearch.emergeNode)
+				if (source == SequenceSearch.emergeNode)
 					drawEmerge((int)target.getCenter()[0], (int)target.getCenter()[1],
 							   slice+1);
-				else if (target == AssignmentSearch.deathNode)
+				else if (target == SequenceSearch.deathNode)
 					drawDeath((int)target.getCenter()[0], (int)target.getCenter()[1],
 							  slice);
 				else
