@@ -49,7 +49,12 @@ class CplexSolver implements LinearProgramSolver {
 
 		try {
 
-			matrix.addRow(b, b, varNums, coeffs);
+			if (relation < 0)
+				matrix.addRow(Double.MIN_VALUE, b, varNums, coeffs);
+			else if (relation > 0)
+				matrix.addRow(b, Double.MAX_VALUE, varNums, coeffs);
+			else
+				matrix.addRow(b, b, varNums, coeffs);
 
 		} catch (IloException e) {
 

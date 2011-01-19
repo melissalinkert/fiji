@@ -22,8 +22,8 @@ public class AssignmentSearch {
 	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
 
 	// add constraints for hypothesis consistency?
-	private final boolean hypothesisConsistency = false;
-	
+	private final boolean hypothesisConsistency = true;
+
 	/*
 	 * interna
 	 */
@@ -68,9 +68,10 @@ public class AssignmentSearch {
 
 		setupProblem();
 
-		solveProblem();
+		if (solveProblem())
+			return readAssignment();
 
-		return readAssignment();
+		return new Assignment();
 	}
 
 	public Assignment findNextBestAssignment() {
@@ -156,19 +157,57 @@ public class AssignmentSearch {
 			variableNums.add(getVariableNum(emergeNode, targetCandidate));
 			coefficients.add(1.0);
 
-			// ...has to be exactly one
-			lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
+			// ...has to be at most one
+			lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
 		}
 
 		/*
 		 * HYPOTHESISES
 		 */
 
-		// hypothesis consistency - for each path in the component tree of the
-		// target candidates, i.e., for each child
 		if (hypothesisConsistency) {
 
-			IJ.log("HYPOTHESIS CONSISTENCY NOT IMPLEMENTED YET");
+			for (Candidate targetCandidate : targetCandidates)
+				if (targetCandidate.getChildren().size() == 0) {
+
+					// for each path in the component tree
+					Vector<Candidate> path = new Vector<Candidate>();
+					Candidate tmp = targetCandidate;
+
+					while (tmp != null) {
+
+						path.add(tmp);
+						tmp = tmp.getParent();
+					}
+
+					Vector<Integer> variableNums = new Vector<Integer>();
+					Vector<Double>  coefficients = new Vector<Double>();
+
+					for (Candidate member : path) {
+
+						// the sum of all incoming continuation edges...
+						for (Candidate sourceCandidate : member.getMostLikelyOf()) {
+							variableNums.add(getVariableNum(sourceCandidate, member));
+							coefficients.add(1.0);
+						}
+
+						// ...and all incoming merge edges...
+						for (Candidate smaller : mergePartners.keySet())
+							for (Candidate bigger : mergePartners.get(smaller).keySet())
+								if (mergePartners.get(smaller).get(bigger).contains(member)) {
+									variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), member));
+									coefficients.add(1.0);
+								}
+
+						// ...and all incoming emerge edges...
+						variableNums.add(getVariableNum(emergeNode, member));
+						coefficients.add(1.0);
+
+					}
+
+					// ...has to be exactly one
+					lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
+				}
 		}
 
 		/*
@@ -265,12 +304,6 @@ public class AssignmentSearch {
 		// for the connections of the emerge node to the target candidates
 		numVariables += targetCandidates.size();
 
-		if (hypothesisConsistency) {
-
-			// for the connections of the neglect node to the target candidates
-			numVariables += targetCandidates.size();
-		}
-
 		return numVariables;
 	}
 
@@ -326,12 +359,16 @@ public class AssignmentSearch {
 		}
 	}
 
-	private void solveProblem() {
+	private boolean solveProblem() {
 
 		int result = lpSolver.solve(2);
 
-		if (result != 0)
+		if (result != 0) {
 			IJ.log("LP problem could not be solved.");
+			return false;
+		}
+
+		return true;
 	}
 
 	private Assignment readAssignment() {
