@@ -11,10 +11,10 @@ public class Sipnet {
 		this.texifyer = texifyer;
 	}
 
-	public Sequence bestSearch(Set<Candidate> startCandidates, List<Set<Candidate>> sliceCandidates) {
+	public Sequence bestSearch(List<Set<Candidate>> sliceCandidates) {
 
-		SequenceSearch sequenceSearch = new SequenceSearch(startCandidates, sliceCandidates, texifyer);
+		SequenceSearch sequenceSearch = new SequenceSearch(sliceCandidates, texifyer);
 
-		return sequenceSearch.findBestPath(new Sequence());
+		return sequenceSearch.getBestAssignmentSequence();
 	}
 }

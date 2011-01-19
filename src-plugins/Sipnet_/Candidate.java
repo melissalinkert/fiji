@@ -17,6 +17,9 @@ public class Candidate extends Region<Candidate> {
 	// all candidates of which this one is a most likely candidate
 	private Vector<Candidate>          mostSimilarOf;
 
+	// vector of merge nodes that point to this candidate
+	private Vector<Candidate>          mergePartnerOf;
+
 	// closest candidates in x-y of same slice
 	private Vector<Candidate> neighbors;
 	private Vector<Double>    neighborDistances;
@@ -74,6 +77,7 @@ public class Candidate extends Region<Candidate> {
 		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
 		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+		this.mergePartnerOf        = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
@@ -110,6 +114,16 @@ public class Candidate extends Region<Candidate> {
 	public void addMostLikelyOf(Candidate candidate) {
 
 		mostSimilarOf.add(candidate);
+	}
+
+	public void addMergeParnerOf(Candidate candidate) {
+
+		mergePartnerOf.add(candidate);
+	}
+
+	public Vector<Candidate> mergePartnerOf() {
+
+		return mergePartnerOf;
 	}
 
 	public void findNeighbors(Vector<Candidate> candidates) {

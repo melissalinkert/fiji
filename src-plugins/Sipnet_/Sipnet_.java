@@ -168,17 +168,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				resultCacher.writeMsers(sliceTopMsers, imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
 			}
 
-			// select start candidates
-			CandidateSelector candidateSelector = new CandidateSelector(msersImp, sliceCandidates.get(0));
-			Set<Candidate>    startCandidates   = candidateSelector.getUserSelection();
-			if (startCandidates == null)
-				return;
-
 			// perform search
 			IJ.log("Searching for the best path");
 			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
 			sipnet   = new Sipnet(texifyer);
-			Sequence bestSequence = sipnet.bestSearch(startCandidates, sliceCandidates.subList(1, sliceCandidates.size()));
+			Sequence bestSequence = sipnet.bestSearch(sliceCandidates);
 	
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");
@@ -188,6 +182,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			visualiser.drawSequence(imp, bestSequence, false);
 			visualiser.drawSequence(msersImp, bestSequence, false);
 			visualiser3d.showAssignments(bestSequence);
+			visualiser3d.showSlices(msersImp);
 		}
 	}
 
