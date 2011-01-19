@@ -87,7 +87,7 @@ class GlpkSolver implements LinearProgramSolver {
 
 	public double getValue(int variableNum) {
 
-		double value = GLPK.glp_mip_col_val(problem, variableNum);
+		double value = GLPK.glp_mip_col_val(problem, variableNum + 1);
 		return value;
 	}
 }
