@@ -1,6 +1,8 @@
 
 import java.awt.Color;
 
+import java.util.HashMap;
+
 import ij.IJ;
 import ij.ImagePlus;
 
@@ -14,13 +16,72 @@ public class Visualiser {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
-		blockCopy.show();
 
-		IJ.setForegroundColor(255, 255, 255);
+		blockCopy.show();
 		IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
+		HashMap<Candidate, Color> candidateColors = new HashMap<Candidate, Color>();
+
+		/*
+		 * DRAW CANDIDATES
+		 */
 		int slice = sequence.size();
+		for (SequenceNode sequenceNode : sequence) {
+
+			// previous slice
+			ImageProcessor pip = blockCopy.getStack().getProcessor(slice);
+
+			// next slice
+			ImageProcessor nip = blockCopy.getStack().getProcessor(slice + 1);
+
+			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+
+				// last assignment
+				if (slice == sequence.size()) {
+
+					int r = (int)(Math.random()*255.0);
+					int g = (int)(Math.random()*255.0);
+					int b = (int)(Math.random()*255.0);
+
+					Candidate candidate = singleAssignment.getTarget();
+
+					if (candidate != SequenceSearch.deathNode) {
+
+						Color color = new Color(r, g, b);
+						candidateColors.put(candidate, color);
+						drawCandidate(candidate, nip, color);
+					}
+				}
+
+				Candidate candidate = singleAssignment.getSource();
+
+				if (candidate != SequenceSearch.deathNode &&
+				    candidate != SequenceSearch.emergeNode) {
+
+					Color color = candidateColors.get(singleAssignment.getTarget());
+
+					if (color == null) {
+
+						int r = (int)(Math.random()*255.0);
+						int g = (int)(Math.random()*255.0);
+						int b = (int)(Math.random()*255.0);
+
+						color = new Color(r, g, b);
+
+						candidateColors.put(candidate, color);
+					}
+
+					drawCandidate(candidate, pip, color);
+				}
+			}
+			slice--;
+		}
+
+		/*
+		 * DRAW CONNECTIONS
+		 */
+		slice = sequence.size();
 		for (SequenceNode sequenceNode : sequence) {
 
 			// previous slice
@@ -34,15 +95,15 @@ public class Visualiser {
 				Candidate source = singleAssignment.getSource();
 				Candidate target = singleAssignment.getTarget();
 
-				if (source == SequenceSearch.emergeNode)
+				if (source == SequenceSearch.emergeNode) {
 
 					drawEmerge((int)target.getCenter()[0], (int)target.getCenter()[1], nip);
 
-				else if (target == SequenceSearch.deathNode)
+				} else if (target == SequenceSearch.deathNode) {
 
 					drawDeath((int)source.getCenter()[0], (int)source.getCenter()[1], pip);
 
-				else {
+				} else {
 
 					drawConnectionTo(
 							(int)source.getCenter()[0], (int)source.getCenter()[1],
@@ -89,6 +150,14 @@ public class Visualiser {
 	private void drawDeath(int x, int y, ImageProcessor ip) {
 
 		ip.setColor(new Color(255, 0, 0));
-		ip.drawOval(x-2, y-2, 5, 5);
+		ip.drawOval(x-3, y-3, 6, 6);
+	}
+
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color) {
+
+		ip.setColor(color);
+
+		for (int[] pixel : candidate.getPixels())
+			ip.drawPixel(pixel[0], pixel[1]);
 	}
 }
