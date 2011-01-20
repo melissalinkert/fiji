@@ -8,7 +8,7 @@ public class AssignmentModel {
 	static double priorSplit           = 1e-10;
 	static double priorImpossible      = 1e-300;
 
-	static double covaPosition         = 100.0;
+	static double covaPosition         = 10.0;
 	static double covaSize             = 1.0;
 	static double covaCircularity      = 0.5;
 	static double covaNeighborPosition = 5.0;
