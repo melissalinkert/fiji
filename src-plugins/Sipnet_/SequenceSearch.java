@@ -456,17 +456,18 @@ public class SequenceSearch {
 					}
 
 			// not the first slice
-			if (s > 0) {
+			if (s > 0)
 				// each death
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
 					if (getVariableValue(sourceCandidate, deathNode) == 1)
 						assignment.add(new SingleAssignment(sourceCandidate, deathNode));
 
+			// not the last but one slice
+			if (s < sliceCandidates.size() - 2)
 				// each emerge
-				for (Candidate targetCandidate : sliceCandidates.get(s))
+				for (Candidate targetCandidate : sliceCandidates.get(s+1))
 					if (getVariableValue(emergeNode, targetCandidate) == 1)
 						assignment.add(new SingleAssignment(emergeNode, targetCandidate));
-			}
 
 			sequence.add(new SequenceNode(assignment));
 		}
