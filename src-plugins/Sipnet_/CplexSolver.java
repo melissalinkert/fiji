@@ -12,7 +12,8 @@ class CplexSolver implements LinearProgramSolver {
 	private IloIntVar[] vars;
 	private IloLPMatrix matrix;
 
-	private int numVariables;
+	private int      numVariables;
+	private double[] values;
 
 	public CplexSolver(int numVariables, int numConstraints) {
 
@@ -96,18 +97,14 @@ class CplexSolver implements LinearProgramSolver {
 
 	public double getValue(int variableNum) {
 
-		double value = 0;
+		if (values == null)
+			try {
+				values = cplex.getValues(vars);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
-		try {
-
-			value = cplex.getValues(vars)[variableNum];
-
-		} catch (Exception e) {
-
-			e.printStackTrace();
-		}
-
-		return value;
+		return values[variableNum];
 	}
 
 }
