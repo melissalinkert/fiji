@@ -81,7 +81,7 @@ public class IO {
 				IJ.log("Trying to read " + numMsers + " top msers");
 
 				for (int i = 0; i < numMsers; i++) {
-					Candidate region = new Candidate(0, 0, new double[0]);
+					Candidate region = new Candidate();
 					region.readExternal(oin);
 					topMsers.add(region);
 				}

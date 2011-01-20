@@ -39,8 +39,8 @@ public class AssignmentSearch {
 	private int nextNodeId = 0;
 
 	// dummy candidates
-	static public final Candidate deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-	static public final Candidate emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+	static public final Candidate deathNode = new Candidate();
+	static public final Candidate emergeNode = new Candidate();
 
 	private LinearProgramSolver lpSolver;
 
@@ -277,7 +277,7 @@ public class AssignmentSearch {
 					if (bigger.getMostLikelyCandidates().contains(mergePartner))
 						partners.add(mergePartner);
 
-				mergeNodes.get(smaller).put(bigger, new Candidate(0, 0, new double[]{0.0, 0.0}));
+				mergeNodes.get(smaller).put(bigger, new Candidate());
 				mergePartners.get(smaller).put(bigger, partners);
 			}
 	}

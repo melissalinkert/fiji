@@ -1,4 +1,8 @@
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.PriorityQueue;
@@ -25,6 +29,9 @@ public class Candidate extends Region<Candidate> {
 	private Vector<Double>    neighborDistances;
 	private Vector<double[]>  neighborOffsets;
 	private Vector<Integer>   neighborIndices;
+
+	// the pixels belonging to this candidate
+	private int[][] pixels;
 
 	private class LikelihoodComparator implements Comparator<Candidate> {
 
@@ -69,8 +76,20 @@ public class Candidate extends Region<Candidate> {
 				return 0;
 		}
 	}
+
+	public Candidate() {
 	
-	public Candidate(int size, int perimeter, double[] center) {
+		super(0, 0, new double[]{0.0, 0.0}, candidateFactory);
+
+		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
+		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+		this.mergePartnerOf        = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+
+		this.pixels = new int[0][0];
+	}
+
+	public Candidate(int size, int perimeter, double[] center, int[][] pixels) {
 
 		super(size, perimeter, center, candidateFactory);
 
@@ -78,6 +97,8 @@ public class Candidate extends Region<Candidate> {
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
 		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
 		this.mergePartnerOf        = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+
+		this.pixels = pixels;
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
@@ -222,6 +243,42 @@ public class Candidate extends Region<Candidate> {
 		offset[1] = candidate.getCenter()[1] - getCenter()[1];
 
 		return offset;
+	}
+
+	public int[][] getPixels() {
+
+		return pixels;
+	}
+
+	public void writeExternal(ObjectOutput out) throws IOException {
+
+		out.writeInt(pixels.length);
+		if (pixels.length > 0)
+			out.writeInt(pixels[0].length);
+
+		for (int i = 0; i < pixels.length; i++)
+			for (int d = 0; d < pixels[i].length; d++)
+				out.writeInt(pixels[i][d]);
+
+		super.writeExternal(out);
+	}
+
+	public void readExternal(ObjectInput in) throws IOException {
+
+		int numPixels = in.readInt();
+
+		if (numPixels > 0) {
+			int numDimensions = in.readInt();
+
+			pixels = new int[numPixels][numDimensions];
+
+			for (int i = 0; i < numPixels; i++)
+				for (int d = 0; d < numDimensions; d++)
+					pixels[i][d] = in.readInt();
+		} else 
+			pixels = new int[0][0];
+
+		super.readExternal(in);
 	}
 
 	public String toString() {

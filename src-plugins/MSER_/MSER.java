@@ -336,6 +336,22 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			return numCracks;
 		}
 
+		public int[][] getPixels() {
+
+			int index      = head;
+			int[][] pixels = new int[size][numDimensions];
+
+			int i = 0;
+			while (next[index] != index && next[index] != NONE) {
+
+				indexToPosition(index, pixels[i]);
+				index = next[index];
+				i++;
+			}
+
+			return pixels;
+		}
+
 	}
 
 	/**

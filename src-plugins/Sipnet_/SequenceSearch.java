@@ -38,8 +38,8 @@ public class SequenceSearch {
 	private int nextNodeId = 0;
 
 	// dummy candidates
-	static public final Candidate deathNode = new Candidate(0, 0, new double[]{0.0, 0.0});
-	static public final Candidate emergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+	static public final Candidate deathNode = new Candidate();
+	static public final Candidate emergeNode = new Candidate();
 
 	private LinearProgramSolver lpSolver;
 
@@ -357,7 +357,7 @@ public class SequenceSearch {
 						continue;
 
 					Set<Candidate> partners  = new HashSet<Candidate>();
-					Candidate      mergeNode = new Candidate(0, 0, new double[]{0.0, 0.0});
+					Candidate      mergeNode = new Candidate();
 
 					for (Candidate mergePartner : smaller.getMostLikelyCandidates())
 						if (bigger.getMostLikelyCandidates().contains(mergePartner)) {
