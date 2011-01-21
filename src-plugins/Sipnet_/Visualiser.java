@@ -12,7 +12,7 @@ import ij.process.ImageProcessor;
 
 public class Visualiser {
 
-	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence) {
+	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
@@ -50,7 +50,7 @@ public class Visualiser {
 
 						Color color = new Color(r, g, b);
 						candidateColors.put(candidate, color);
-						drawCandidate(candidate, nip, color);
+						drawCandidate(candidate, nip, color, drawCandidateId);
 					}
 				}
 
@@ -72,7 +72,7 @@ public class Visualiser {
 						candidateColors.put(candidate, color);
 					}
 
-					drawCandidate(candidate, pip, color);
+					drawCandidate(candidate, pip, color, drawCandidateId);
 				}
 			}
 			slice--;
@@ -153,11 +153,22 @@ public class Visualiser {
 		ip.drawOval(x-3, y-3, 6, 6);
 	}
 
-	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color) {
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, boolean drawCandidateId) {
 
 		ip.setColor(color);
-
 		for (int[] pixel : candidate.getPixels())
 			ip.drawPixel(pixel[0], pixel[1]);
+
+		if (drawCandidateId) {
+			ip.setColor(
+					new Color(
+							255 - color.getRed(),
+							255 - color.getGreen(),
+							255 - color.getBlue()));
+			ip.drawString(
+					"" + candidate.getId(),
+					(int)candidate.getCenter()[0],
+					(int)candidate.getCenter()[1]);
+		}
 	}
 }
