@@ -11,6 +11,7 @@ public class CandidateFactory implements RegionFactory<Candidate> {
 				component.size,
 				component.getPerimeter(),
 				component.center,
-				component.getPixels());
+				component.getPixels(),
+				component.meanValue);
 	}
 }

@@ -5,7 +5,9 @@ import java.io.ObjectOutput;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.Vector;
 
 import ij.IJ;
@@ -22,7 +24,7 @@ public class Candidate extends Region<Candidate> {
 	private Vector<Candidate>          mostSimilarOf;
 
 	// vector of merge nodes that point to this candidate
-	private Vector<Candidate>          mergePartnerOf;
+	private Vector<Candidate>          mergeTargetOf;
 
 	// closest candidates in x-y of same slice
 	private Vector<Candidate> neighbors;
@@ -30,8 +32,13 @@ public class Candidate extends Region<Candidate> {
 	private Vector<double[]>  neighborOffsets;
 	private Vector<Integer>   neighborIndices;
 
+	// all potential merge partners of this candidate
+	private Set<Candidate>    mergePartners;
+
 	// the pixels belonging to this candidate
 	private int[][] pixels;
+	// the mean gray value of the pixels belonging to this candidate
+	private double  meanGrayValue;
 
 	private class LikelihoodComparator implements Comparator<Candidate> {
 
@@ -81,40 +88,43 @@ public class Candidate extends Region<Candidate> {
 	
 		super(0, 0, new double[]{0.0, 0.0}, candidateFactory);
 
-		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
-		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.mergePartnerOf        = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+		this.mostSimilarCandidates = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
+		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.mergePartners         = new HashSet<Candidate>();
 
 		this.pixels = new int[0][0];
 	}
 
-	public Candidate(int size, int perimeter, double[] center, int[][] pixels) {
+	public Candidate(int size, int perimeter, double[] center, int[][] pixels, double meanGrayValue) {
 
 		super(size, perimeter, center, candidateFactory);
 
-		this.mostSimilarCandidates = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.negLogPAppearances    = new HashMap<Candidate, Double>(AssignmentSearch.MaxTargetCandidates);
-		this.mostSimilarOf         = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
-		this.mergePartnerOf        = new Vector<Candidate>(AssignmentSearch.MaxTargetCandidates);
+		this.mostSimilarCandidates = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
+		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.mergePartners         = new HashSet<Candidate>();
 
-		this.pixels = pixels;
+		this.pixels        = pixels;
+		this.meanGrayValue = meanGrayValue;
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
 
 		// sort all candidates according to appearance likelihood
 		PriorityQueue<Candidate> sortedCandidates =
-			new PriorityQueue<Candidate>(AssignmentSearch.MaxTargetCandidates, new LikelihoodComparator(this));
+			new PriorityQueue<Candidate>(SequenceSearch.MaxTargetCandidates, new LikelihoodComparator(this));
 		sortedCandidates.addAll(targetCandidates);
 
 		// cache most likely candidates
-		while (mostSimilarCandidates.size() < AssignmentSearch.MaxTargetCandidates &&
+		while (mostSimilarCandidates.size() < SequenceSearch.MaxTargetCandidates &&
 		       sortedCandidates.peek() != null) {
 
 			double negLogP = AssignmentModel.negLogPAppearance(this, sortedCandidates.peek());
 
-			if (negLogP <= AssignmentSearch.MaxNegLogPAssignment) {
+			if (negLogP <= SequenceSearch.MaxNegLogPAssignment) {
 
 				mostSimilarCandidates.add(sortedCandidates.peek());
 				// tell this candidate about us
@@ -124,10 +134,10 @@ public class Candidate extends Region<Candidate> {
 				break;
 		}
 
-		if (mostSimilarCandidates.size() < AssignmentSearch.MinTargetCandidates) {
+		if (mostSimilarCandidates.size() < SequenceSearch.MinTargetCandidates) {
 			IJ.log("Oh no! For region " + this + " there are less than " +
-				   AssignmentSearch.MinTargetCandidates + " within the threshold of " +
-				   AssignmentSearch.MaxNegLogPAssignment);
+				   SequenceSearch.MinTargetCandidates + " within the threshold of " +
+				   SequenceSearch.MaxNegLogPAssignment);
 			IJ.log("Closest non-selected candidate distance: " + AssignmentModel.negLogPAppearance(this, sortedCandidates.peek()));
 		}
 	}
@@ -137,33 +147,56 @@ public class Candidate extends Region<Candidate> {
 		mostSimilarOf.add(candidate);
 	}
 
-	public void addMergeParnerOf(Candidate candidate) {
+	public void addMergePartner(Candidate candidate) {
 
-		mergePartnerOf.add(candidate);
+		mergePartners.add(candidate);
 	}
 
-	public Vector<Candidate> mergePartnerOf() {
+	public Set<Candidate> mergePartners() {
 
-		return mergePartnerOf;
+		return mergePartners;
+	}
+
+	public void addMergeTargetOf(Candidate candidate) {
+
+		mergeTargetOf.add(candidate);
+	}
+
+	public Vector<Candidate> mergeTargetOf() {
+
+		return mergeTargetOf;
 	}
 
 	public void findNeighbors(Vector<Candidate> candidates) {
 
-		neighbors         = new Vector<Candidate>(AssignmentSearch.NumNeighbors);
-		neighborDistances = new Vector<Double>(AssignmentSearch.NumNeighbors);
-		neighborOffsets   = new Vector<double[]>(AssignmentSearch.NumNeighbors);
-		neighborIndices   = new Vector<Integer>(AssignmentSearch.NumNeighbors);
+		neighbors         = new Vector<Candidate>(SequenceSearch.NumNeighbors);
+		neighborDistances = new Vector<Double>(SequenceSearch.NumNeighbors);
+		neighborOffsets   = new Vector<double[]>(SequenceSearch.NumNeighbors);
+		neighborIndices   = new Vector<Integer>(SequenceSearch.NumNeighbors);
 
 		PriorityQueue<Candidate> sortedNeighbors =
-			new PriorityQueue<Candidate>(AssignmentSearch.NumNeighbors, new DistanceComparator(this));
+			new PriorityQueue<Candidate>(SequenceSearch.NumNeighbors, new DistanceComparator(this));
 		sortedNeighbors.addAll(candidates);
 
-		while (neighbors.size() < AssignmentSearch.NumNeighbors && sortedNeighbors.peek() != null) {
+		while (neighbors.size() < SequenceSearch.NumNeighbors && sortedNeighbors.peek() != null) {
 
 			Candidate neighbor = sortedNeighbors.poll();
 
-			// don't consider yourself as a neighbor
-			if (neighbor == this)
+			// don't consider neighbors that represent a concurring hypothesis
+			boolean validNeighbor = true;
+			for (Candidate tmp = neighbor; tmp != null; tmp = tmp.getParent())
+				if (tmp == this) {
+					validNeighbor = false;
+					break;
+				}
+			if (!validNeighbor)
+				continue;
+			for (Candidate tmp = this; tmp != null; tmp = tmp.getParent())
+				if (tmp == neighbor) {
+					validNeighbor = false;
+					break;
+				}
+			if (!validNeighbor)
 				continue;
 
 			double   distance = distanceTo(neighbor);
@@ -250,6 +283,11 @@ public class Candidate extends Region<Candidate> {
 		return pixels;
 	}
 
+	public double getMeanGrayValue() {
+
+		return meanGrayValue;
+	}
+
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		out.writeInt(pixels.length);
@@ -259,6 +297,8 @@ public class Candidate extends Region<Candidate> {
 		for (int i = 0; i < pixels.length; i++)
 			for (int d = 0; d < pixels[i].length; d++)
 				out.writeInt(pixels[i][d]);
+
+		out.writeDouble(meanGrayValue);
 
 		super.writeExternal(out);
 	}
@@ -277,6 +317,8 @@ public class Candidate extends Region<Candidate> {
 					pixels[i][d] = in.readInt();
 		} else 
 			pixels = new int[0][0];
+
+		meanGrayValue = in.readDouble();
 
 		super.readExternal(in);
 	}
