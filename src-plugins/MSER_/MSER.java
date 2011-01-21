@@ -110,6 +110,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		public int      value;
 		public int      size;
 		public double[] center;
+		public double   meanValue;
 		public boolean  varChanged;
 		public double   variation;
 
@@ -120,6 +121,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			this.value   = value;
 			size         = 0;
 			center       = new double[numDimensions];
+			meanValue    = 0.0;
 			variation    = 0.0;
 			varChanged   = true;
 			history      = null;
@@ -197,11 +199,12 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			int newHead = (bigger.size  > 0) ? bigger.head  : smaller.head;
 			int newTail = (smaller.size > 0) ? smaller.tail : bigger.tail;
 
-			// update center position
-			double thisCenterWeight = (double)(this.size)/(this.size + other.size);
+			// update center position and mean gray value
+			double thisWeight = (double)(this.size)/(this.size + other.size);
 
 			for (int d = 0; d < numDimensions; d++)
-				this.center[d] = thisCenterWeight*this.center[d] + (1.0 - thisCenterWeight)*other.center[d];
+				this.center[d] = thisWeight*this.center[d] + (1.0 - thisWeight)*other.center[d];
+			this.meanValue = thisWeight*meanValue + (1.0 - thisWeight)*other.meanValue;
 
 			this.head = newHead;
 			this.tail = newTail;
@@ -278,13 +281,14 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			tail = index;
 			size++;
 
-			// update center
+			// update center and gray level
 			// TODO: find less expensive calculation
 			int[] position = new int[numDimensions];
 			indexToPosition(index, position);
 			double weight = 1.0/(double)(size);
 			for (int d = 0; d < numDimensions; d++)
 				center[d] = (1.0 - weight)*center[d] + weight*position[d];
+			meanValue = (1.0 - weight)*meanValue + weight*values[index];
 		}
 
 		public Vector<R> getChildRegions() {
