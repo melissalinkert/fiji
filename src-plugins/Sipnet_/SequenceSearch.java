@@ -115,7 +115,7 @@ public class SequenceSearch {
 				}
 
 				// ...and all merge edges pointing to this candidate...
-				for (Candidate mergeNode : candidate.mergePartnerOf()) {
+				for (Candidate mergeNode : candidate.mergeTargetOf()) {
 					variableNums.add(getVariableNum(mergeNode, candidate));
 					coefficients.add(1.0);
 				}
@@ -133,17 +133,18 @@ public class SequenceSearch {
 				}
 
 				// ...and all merge edges this source candidate is involved in...
-				for (Candidate neighbor : candidate.getNeighbors()) {
+				for (Candidate neighbor : candidate.mergePartners()) {
 
 					Candidate smaller = (neighbor.getId() < candidate.getId() ? neighbor  : candidate);
 					Candidate bigger  = (neighbor.getId() < candidate.getId() ? candidate : neighbor);
 
 					Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
 
-					for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
-						variableNums.add(getVariableNum(mergeNode, mergePartner));
-						coefficients.add(-1.0);
-					}
+					if (mergeNode != null)
+						for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
+							variableNums.add(getVariableNum(mergeNode, mergePartner));
+							coefficients.add(-1.0);
+						}
 				}
 
 				// ...and the edge to the death node...
@@ -190,15 +191,16 @@ public class SequenceSearch {
 					}
 
 					// ...and all outgoing merge edges...
-					for (Candidate neighbor : member.getNeighbors()) {
+					for (Candidate neighbor : member.mergePartners()) {
 
 						Candidate smaller = (neighbor.getId() < member.getId() ? neighbor : member);
 						Candidate bigger  = (neighbor.getId() < member.getId() ? member   : neighbor);
 
-						for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
-							variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergePartner));
-							coefficients.add(1.0);
-						}
+						if (mergeNodes.get(smaller).get(bigger) != null)
+							for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
+								variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergePartner));
+								coefficients.add(1.0);
+							}
 					}
 				}
 
@@ -240,7 +242,7 @@ public class SequenceSearch {
 						}
 
 						// ...and all incoming merge edges...
-						for (Candidate mergeNode : member.mergePartnerOf()) {
+						for (Candidate mergeNode : member.mergeTargetOf()) {
 							variableNums.add(getVariableNum(mergeNode, member));
 							coefficients.add(1.0);
 						}
@@ -284,21 +286,22 @@ public class SequenceSearch {
 			for (Candidate sourceCandidate : sliceCandidates.get(s))
 				for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
 					variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
-					coefficients.add(AssignmentModel.negLogPAppearance(sourceCandidate, targetCandidate));
+					coefficients.add(AssignmentModel.negLogPAssignment(sourceCandidate, targetCandidate));
 				}
 
 			// for each merge
 			for (Candidate candidate : sliceCandidates.get(s))
-				for (Candidate neighbor : candidate.getNeighbors()) {
+				for (Candidate neighbor : candidate.mergePartners()) {
 
-					Candidate smaller = (candidate.getId() < neighbor.getId() ? candidate : neighbor);
-					Candidate bigger  = (candidate.getId() < neighbor.getId() ? neighbor  : candidate);
+					if (candidate.getId() > neighbor.getId())
+						continue;
 
-					for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
-						
-						variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergePartner));
-						coefficients.add(AssignmentModel.negLogPriorSplit);
-					}
+					if (mergeNodes.get(candidate).get(neighbor) != null)
+						for (Candidate mergePartner : mergePartners.get(candidate).get(neighbor)) {
+
+							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergePartner));
+							coefficients.add(AssignmentModel.negLogPSplit(mergePartner, candidate, neighbor));
+						}
 				}
 		}
 
@@ -307,12 +310,12 @@ public class SequenceSearch {
 			// for each emerge
 			for (Candidate targetCandidate : sliceCandidates.get(s)) {
 				variableNums.add(getVariableNum(emergeNode, targetCandidate));
-				coefficients.add(AssignmentModel.negLogPriorDeath);
+				coefficients.add(AssignmentModel.negLogPDeath(targetCandidate));
 			}
 			// for each death
 			for (Candidate sourceCandidate : sliceCandidates.get(s)) {
 				variableNums.add(getVariableNum(sourceCandidate, deathNode));
-				coefficients.add(AssignmentModel.negLogPriorDeath);
+				coefficients.add(AssignmentModel.negLogPDeath(sourceCandidate));
 			}
 		}
 
@@ -362,11 +365,16 @@ public class SequenceSearch {
 					for (Candidate mergePartner : smaller.getMostLikelyCandidates())
 						if (bigger.getMostLikelyCandidates().contains(mergePartner)) {
 							partners.add(mergePartner);
-							mergePartner.addMergeParnerOf(mergeNode);
+							mergePartner.addMergeTargetOf(mergeNode);
 						}
 
-					mergeNodes.get(smaller).put(bigger, mergeNode);
-					mergePartners.get(smaller).put(bigger, partners);
+					if (partners.size() > 0) {
+						mergeNodes.get(smaller).put(bigger, mergeNode);
+						mergePartners.get(smaller).put(bigger, partners);
+
+						smaller.addMergePartner(bigger);
+						bigger.addMergePartner(smaller);
+					}
 				}
 		}
 	}
@@ -433,22 +441,16 @@ public class SequenceSearch {
 
 				// each merge
 				for (Candidate candidate : sliceCandidates.get(s))
-					for (Candidate neighbor : candidate.getNeighbors()) {
+					for (Candidate neighbor : candidate.mergePartners()) {
 
-						Candidate smaller = (candidate.getId() < neighbor.getId() ? candidate : neighbor);
-						Candidate bigger  = (candidate.getId() < neighbor.getId() ? neighbor  : candidate);
-
-						// was that pair handled already?
-						if (mergeNodes.get(smaller).get(bigger) == null)
+						if (candidate.getId() > neighbor.getId())
 							continue;
 
-						for (Candidate mergePartner : mergePartners.get(smaller).get(bigger))
-							if (getVariableValue(mergeNodes.get(smaller).get(bigger), mergePartner) == 1) {
-								assignment.add(new SingleAssignment(smaller, mergePartner));
-								assignment.add(new SingleAssignment(bigger, mergePartner));
+						for (Candidate mergePartner : mergePartners.get(candidate).get(neighbor))
+							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergePartner) == 1) {
 
-								// remember that this pair was handled already
-								mergeNodes.get(smaller).put(bigger, null);
+								assignment.add(new SingleAssignment(candidate, mergePartner));
+								assignment.add(new SingleAssignment(neighbor, mergePartner));
 
 								// there can only be one merge partner
 								break;
