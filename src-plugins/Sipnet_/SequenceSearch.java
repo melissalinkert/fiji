@@ -32,7 +32,7 @@ public class SequenceSearch {
 
 	// pairs of nodes that can potentially merge
 	private HashMap<Candidate, HashMap<Candidate, Candidate>>      mergeNodes;
-	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> mergePartners;
+	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> mergeTargets;
 
 	private HashMap<Candidate, HashMap<Candidate, Integer>> nodeNums;
 	private int nextNodeId = 0;
@@ -141,8 +141,8 @@ public class SequenceSearch {
 					Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
 
 					if (mergeNode != null)
-						for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
-							variableNums.add(getVariableNum(mergeNode, mergePartner));
+						for (Candidate mergeTarget : mergeTargets.get(smaller).get(bigger)) {
+							variableNums.add(getVariableNum(mergeNode, mergeTarget));
 							coefficients.add(-1.0);
 						}
 				}
@@ -197,8 +197,8 @@ public class SequenceSearch {
 						Candidate bigger  = (neighbor.getId() < member.getId() ? member   : neighbor);
 
 						if (mergeNodes.get(smaller).get(bigger) != null)
-							for (Candidate mergePartner : mergePartners.get(smaller).get(bigger)) {
-								variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergePartner));
+							for (Candidate mergeTarget : mergeTargets.get(smaller).get(bigger)) {
+								variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergeTarget));
 								coefficients.add(1.0);
 							}
 					}
@@ -297,10 +297,10 @@ public class SequenceSearch {
 						continue;
 
 					if (mergeNodes.get(candidate).get(neighbor) != null)
-						for (Candidate mergePartner : mergePartners.get(candidate).get(neighbor)) {
+						for (Candidate mergeTarget : mergeTargets.get(candidate).get(neighbor)) {
 
-							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergePartner));
-							coefficients.add(AssignmentModel.negLogPSplit(mergePartner, candidate, neighbor));
+							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergeTarget));
+							coefficients.add(AssignmentModel.negLogPSplit(mergeTarget, candidate, neighbor));
 						}
 				}
 		}
@@ -338,7 +338,7 @@ public class SequenceSearch {
 	private void findPossibleMergers() {
 
 		mergeNodes    = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
-		mergePartners = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
+		mergeTargets = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
 
 		// all but the last slice
 		for (int s = 0; s < sliceCandidates.size() - 1; s++) {
@@ -346,7 +346,7 @@ public class SequenceSearch {
 			for (Candidate sourceCandidate : sliceCandidates.get(s)) {
 
 				mergeNodes.put(sourceCandidate, new HashMap<Candidate, Candidate>());
-				mergePartners.put(sourceCandidate, new HashMap<Candidate, Set<Candidate>>());
+				mergeTargets.put(sourceCandidate, new HashMap<Candidate, Set<Candidate>>());
 			}
 
 			for (Candidate candidate : sliceCandidates.get(s))
@@ -359,18 +359,18 @@ public class SequenceSearch {
 					if (mergeNodes.get(smaller).get(bigger) != null)
 						continue;
 
-					Set<Candidate> partners  = new HashSet<Candidate>();
+					Set<Candidate> targets   = new HashSet<Candidate>();
 					Candidate      mergeNode = new Candidate();
 
-					for (Candidate mergePartner : smaller.getMostLikelyCandidates())
-						if (bigger.getMostLikelyCandidates().contains(mergePartner)) {
-							partners.add(mergePartner);
-							mergePartner.addMergeTargetOf(mergeNode);
+					for (Candidate mergeTarget : smaller.getMostLikelyCandidates())
+						if (bigger.getMostLikelyCandidates().contains(mergeTarget)) {
+							targets.add(mergeTarget);
+							mergeTarget.addMergeTargetOf(mergeNode);
 						}
 
-					if (partners.size() > 0) {
+					if (targets.size() > 0) {
 						mergeNodes.get(smaller).put(bigger, mergeNode);
-						mergePartners.get(smaller).put(bigger, partners);
+						mergeTargets.get(smaller).put(bigger, targets);
 
 						smaller.addMergePartner(bigger);
 						bigger.addMergePartner(smaller);
@@ -389,7 +389,7 @@ public class SequenceSearch {
 		// candidate
 		for (Candidate smaller : mergeNodes.keySet())
 			for (Candidate bigger : mergeNodes.get(smaller).keySet())
-				numVariables += mergePartners.get(smaller).get(bigger).size();
+				numVariables += mergeTargets.get(smaller).get(bigger).size();
 
 		// all but the last slice
 		for (int s = 0; s < sliceCandidates.size() - 1; s++)
@@ -446,13 +446,13 @@ public class SequenceSearch {
 						if (candidate.getId() > neighbor.getId())
 							continue;
 
-						for (Candidate mergePartner : mergePartners.get(candidate).get(neighbor))
-							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergePartner) == 1) {
+						for (Candidate mergeTarget : mergeTargets.get(candidate).get(neighbor))
+							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergeTarget) == 1) {
 
-								assignment.add(new SingleAssignment(candidate, mergePartner));
-								assignment.add(new SingleAssignment(neighbor, mergePartner));
+								assignment.add(new SingleAssignment(candidate, mergeTarget));
+								assignment.add(new SingleAssignment(neighbor, mergeTarget));
 
-								// there can only be one merge partner
+								// there can only be one merge target
 								break;
 							}
 					}
