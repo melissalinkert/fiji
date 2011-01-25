@@ -3,10 +3,9 @@ import Jama.Matrix;
 
 public class AssignmentModel {
 
-	private static double priorDeath           = 1e-10;
+	private static double priorDeath           = 1e-100;
 	private static double priorContinuation    = 1.0;
-	private static double priorSplit           = 1e-10;
-	private static double priorImpossible      = 1e-300;
+	private static double priorSplit           = 1e-100;
 
 	private static double covaPosition         = 10.0;
 	private static double covaSize             = 1.0;
@@ -25,7 +24,6 @@ public class AssignmentModel {
 	private static double negLogPriorDeath           = -Math.log(priorDeath);
 	private static double negLogPriorContinuation    = -Math.log(priorContinuation);
 	private static double negLogPriorSplit           = -Math.log(priorSplit);
-	private static double negLogPriorImpossible      = -Math.log(priorImpossible);
 
 	private static Matrix covaAppearance             = new Matrix(covaApp);
 	private static Matrix invCovaAppearance          = covaAppearance.inverse();
