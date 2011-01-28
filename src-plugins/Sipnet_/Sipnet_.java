@@ -1,5 +1,6 @@
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
@@ -27,6 +28,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private ImagePlus    imp;
 	private ImagePlus    msersImp;
 	private int          numSlices;
+
+	private int          firstSlice;
+	private int          lastSlice;
 
 	private Texifyer     texifyer;
 	private Visualiser   visualiser;
@@ -172,7 +176,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			IJ.log("Searching for the best path");
 			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
 			sipnet   = new Sipnet(texifyer);
-			Sequence bestSequence = sipnet.bestSearch(sliceCandidates);
+
+			List<Set<Candidate>> selectedSliceCandidates =
+					sliceCandidates.subList(firstSlice - 1, lastSlice - 1);
+
+			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates);
 	
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");
@@ -197,6 +205,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("max area:", maxArea, 0);
 		gd.addNumericField("max variation:", maxVariation, 2);
 		gd.addNumericField("min diversity:", minDiversity, 2);
+		gd.addNumericField("first slice:", 1, 0);
+		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -206,6 +216,17 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		maxArea = (int)gd.getNextNumber();
 		maxVariation = gd.getNextNumber();
 		minDiversity = gd.getNextNumber();
+
+		firstSlice = (int)gd.getNextNumber();
+		lastSlice  = (int)gd.getNextNumber();
+
+		if (firstSlice < 1 ||
+		    lastSlice > WindowManager.getCurrentImage().getNSlices() ||
+		    lastSlice < firstSlice) {
+
+			IJ.error("Please make sure that 1 ≤ first slice < last slice ≤ number of slices!");
+			return;
+		}
 
 		// start processing thread and return
 		ProcessingThread procThread = new ProcessingThread();
