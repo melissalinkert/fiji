@@ -183,7 +183,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			sipnet   = new Sipnet(texifyer);
 
 			List<Set<Candidate>> selectedSliceCandidates =
-					sliceCandidates.subList(firstSlice - 1, lastSlice - 1);
+					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
 			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates);
 	
