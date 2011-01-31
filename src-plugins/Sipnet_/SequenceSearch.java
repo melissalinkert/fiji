@@ -14,7 +14,7 @@ public class SequenceSearch {
 	 * parameters of the sequence search
 	 */
 
-	public static final int MaxTargetCandidates = 5;
+	public static final int MaxTargetCandidates = 25;
 	public static final int MinTargetCandidates = 1;
 
 	// number of neighbors to consider for neighbor offset
