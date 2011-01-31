@@ -353,8 +353,10 @@ public class Candidate extends Region<Candidate> {
 	private void computePixelCovariance() {
 
 		covariance = new Matrix(2, 2);
+		covariance.set(0, 0, 1.0e-10);
+		covariance.set(1, 1, 1.0e-10);
 
-		if (pixels.length == 0)
+		if (pixels.length <= 1)
 			return;
 
 		for (int[] pixel : pixels) {
