@@ -93,7 +93,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			// read candidate msers
 			msersImp = resultCacher.readMserImages(imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
 			Vector<Set<Candidate>> sliceCandidates =
-				resultCacher.readMsers(imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.readMsers(
+						imp.getOriginalFileInfo().fileName,
+						classifierFile,
+						mser.getParameters(),
+						firstSlice,
+						lastSlice);
 
 			if (msersImp == null || sliceCandidates == null) {
 

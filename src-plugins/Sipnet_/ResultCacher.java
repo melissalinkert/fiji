@@ -45,12 +45,17 @@ public class ResultCacher {
 	 * Reads MSER forests (one for each slice) from a file and returns a
 	 * flattened set of MSERs for each slice.
 	 */
-	public Vector<Set<Candidate>> readMsers(String stackFile, String classifierFile, MSER<?,?>.Parameters mserParameters) {
+	public Vector<Set<Candidate>> readMsers(
+			String stackFile,
+			String classifierFile,
+			MSER<?,?>.Parameters mserParameters,
+			int firstSlice,
+			int lastSlice) {
 
 		String msersFile = cacheDir + "/" + createFilename(stackFile, classifierFile, mserParameters) + "-msers.sip";
 
 		IJ.log("Reading Msers from " + msersFile);
-		Vector<Set<Candidate>> sliceTopMsers = io.readMsers(msersFile);
+		Vector<Set<Candidate>> sliceTopMsers = io.readMsers(msersFile, firstSlice, lastSlice);
 
 		if (sliceTopMsers == null)
 			return null;

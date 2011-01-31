@@ -14,14 +14,14 @@ public class SequenceSearch {
 	 * parameters of the sequence search
 	 */
 
-	public static final int MaxTargetCandidates = 5;
+	public static final int MaxTargetCandidates = 25;
 	public static final int MinTargetCandidates = 1;
 
 	// number of neighbors to consider for neighbor offset
 	public static final int NumNeighbors = 3;
 
 	//private static final double MinPAssignment       = 1e-20;
-	public static final double MaxNegLogPAssignment = 1e25; //-Math.log(MinPAssignment);
+	public static final double MaxNegLogPAppearance = 1e25; //-Math.log(MinPAssignment);
 
 	/*
 	 * nodes of the assignment graph
