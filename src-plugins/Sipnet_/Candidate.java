@@ -327,13 +327,14 @@ public class Candidate extends Region<Candidate> {
 				for (int d = 0; d < numDimensions; d++)
 					pixels[i][d] = in.readInt();
 
-			computePixelCovariance();
 		} else 
 			pixels = new int[0][0];
 
 		meanGrayValue = in.readDouble();
 
 		super.readExternal(in);
+
+		computePixelCovariance();
 	}
 
 	public String toString() {
