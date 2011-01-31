@@ -60,7 +60,7 @@ public class IO {
 		}
 	}
 
-	public Vector<Set<Candidate>> readMsers(String filename) {
+	public Vector<Set<Candidate>> readMsers(String filename, int firstSlice, int lastSlice) {
 
 		Vector<Set<Candidate>> sliceTopMsers = new Vector<Set<Candidate>>();
 
@@ -73,7 +73,10 @@ public class IO {
 
 			int numSlices = oin.readInt();
 
-			for (int s = 0; s < numSlices; s++) {
+			if (numSlices < lastSlice)
+				throw new RuntimeException("not enough slices in mser file " + filename);
+
+			for (int s = 0; s < lastSlice; s++) {
 	
 				Set<Candidate> topMsers = new HashSet<Candidate>();
 
