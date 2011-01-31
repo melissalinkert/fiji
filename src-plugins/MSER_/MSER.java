@@ -30,7 +30,12 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		private double minDiversity;
 
 		public String toString() {
-			return String.format("%n %n %n %d %d", delta, minArea, maxArea, maxVariation, minDiversity);
+			return
+					"" + delta + " " +
+					minArea + " " +
+					maxArea + " " +
+					maxVariation + " " +
+					minDiversity;
 		}
 	}
 
