@@ -6,7 +6,7 @@ public class AssignmentModel {
 	private static double priorDeath           = 1e-100;
 	private static double priorSplit           = 1e-100;
 
-	private static double covaPosition         = 1000.0;
+	private static double covaPosition         = 10.0;
 	private static double covaKLDivergence     = 0.5;
 	private static double covaNeighborPosition = 5.0;
 
