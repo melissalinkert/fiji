@@ -25,17 +25,17 @@ public class ResultCacher {
 		this.io       = io;
 	}
 
-	public ImagePlus readMembraneProbabilities(String stackFile, String classifierFile) {
+	public ImagePlus readMembraneProbabilities(String stackFile) {
 
-		String membraneFile = cacheDir + "/" + createFilename(stackFile, classifierFile) + "-membrane.tif";
+		String membraneFile = cacheDir + "/" + createFilename(stackFile) + "-membrane.tif";
 
 		IJ.log("Reading membrane images from " + membraneFile);
 		return IJ.openImage(membraneFile);
 	}
 
-	public ImagePlus readMserImages(String stackFile, String classifierFile, MSER<?,?>.Parameters mserParameters) {
+	public ImagePlus readMserImages(String stackFile, MSER<?,?>.Parameters mserParameters) {
 
-		String msersFile = cacheDir + "/" + createFilename(stackFile, classifierFile, mserParameters) + "-msers.tif";
+		String msersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.tif";
 
 		IJ.log("Reading MSER images from " + msersFile);
 		return IJ.openImage(msersFile);
@@ -47,12 +47,11 @@ public class ResultCacher {
 	 */
 	public Vector<Set<Candidate>> readMsers(
 			String stackFile,
-			String classifierFile,
 			MSER<?,?>.Parameters mserParameters,
 			int firstSlice,
 			int lastSlice) {
 
-		String msersFile = cacheDir + "/" + createFilename(stackFile, classifierFile, mserParameters) + "-msers.sip";
+		String msersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.sip";
 
 		IJ.log("Reading Msers from " + msersFile);
 		Vector<Set<Candidate>> sliceTopMsers = io.readMsers(msersFile, firstSlice, lastSlice);
@@ -68,16 +67,16 @@ public class ResultCacher {
 		return sliceMsers;
 	}
 
-	public void writeMembraneProbabilities(ImagePlus membraneImp, String stackFile, String classifierFile) {
+	public void writeMembraneProbabilities(ImagePlus membraneImp, String stackFile) {
 
-		String msersFile = cacheDir + "/" + createFilename(stackFile, classifierFile) + "-membrane.tif";
+		String msersFile = cacheDir + "/" + createFilename(stackFile) + "-membrane.tif";
 
 		IJ.save(membraneImp, msersFile);
 	}
 
-	public void writeMserImages(ImagePlus msersImp, String stackFile, String classifierFile, MSER<?,?>.Parameters mserParameters) {
+	public void writeMserImages(ImagePlus msersImp, String stackFile, MSER<?,?>.Parameters mserParameters) {
 
-		String msersFile = cacheDir + "/" + createFilename(stackFile, classifierFile, mserParameters) + "-msers.tif";
+		String msersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.tif";
 
 		IJ.save(msersImp, msersFile);
 	}
@@ -85,23 +84,23 @@ public class ResultCacher {
 	/**
 	 * Writes MSER forests (one for each slice) to a file.
 	 */
-	public void writeMsers(Vector<Set<Candidate>> topMsers, String stackFile, String classifierFile, MSER<?,?>.Parameters mserParameters) {
+	public void writeMsers(Vector<Set<Candidate>> topMsers, String stackFile, MSER<?,?>.Parameters mserParameters) {
 
-		String topMsersFile = cacheDir + "/" + createFilename(stackFile, classifierFile, mserParameters) + "-msers.sip";
+		String topMsersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.sip";
 
 		io.writeMsers(topMsers, topMsersFile);
 	}
 
-	private String createFilename(String stackFile, String classifierFile) {
+	private String createFilename(String stackFile) {
 
-		String configuration = stackFile + classifierFile;
+		String configuration = stackFile;
 
 		return hash(configuration);
 	}
 
-	private String createFilename(String stackFile, String classifierFile, MSER<?,?>.Parameters mserParameters) {
+	private String createFilename(String stackFile, MSER<?,?>.Parameters mserParameters) {
 
-		String configuration = stackFile + classifierFile + mserParameters.toString();
+		String configuration = stackFile + mserParameters.toString();
 
 		return hash(configuration);
 	}

@@ -25,7 +25,7 @@ import mpicbg.imglib.type.numeric.RealType;
 public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	// the stack to process
-	private ImagePlus    imp;
+	private ImagePlus    membraneImp;
 	private ImagePlus    msersImp;
 	private int          numSlices;
 
@@ -51,12 +51,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		public void run() {
 
 			// read image
-			imp = WindowManager.getCurrentImage();
-			if (imp == null) {
+			membraneImp = WindowManager.getCurrentImage();
+			if (membraneImp == null) {
 				IJ.showMessage("Please open an image first.");
 				return;
 			}
-			numSlices = imp.getStack().getSize();
+			numSlices = membraneImp.getStack().getSize();
 	
 			// setup visualisation and file IO
 			visualiser   = new Visualiser();
@@ -66,23 +66,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			// create result cacher
 			ResultCacher resultCacher = new ResultCacher("./.cache", io);
 
-			// create membrance probability image
-			String classifierFile = "membrane_classifier.arff";
-			ImagePlus membraneImp = resultCacher.readMembraneProbabilities(imp.getOriginalFileInfo().fileName, classifierFile);
-
-			if (membraneImp == null) {
-
-				// TODO:
-				// create membrane image...
-				IJ.log("Could not read membrane image and automatic creation is not implemented yet!");
-				return;
-
-				//resultCacher.writeMembraneProbabilities(membraneImp, imp.getOriginalFileInfo().fileName, classifierFile);
-			}
-
 			// setup mser algorithm
 			MSER<T, Candidate> mser =
-				new MSER<T, Candidate>(new int[]{imp.getWidth(), imp.getHeight()},
+				new MSER<T, Candidate>(new int[]{membraneImp.getWidth(), membraneImp.getHeight()},
 				                       delta,
 				                       minArea,
 				                       maxArea,
@@ -91,11 +77,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				                       new CandidateFactory());
 
 			// read candidate msers
-			msersImp = resultCacher.readMserImages(imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
+			msersImp = resultCacher.readMserImages(membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
 			Vector<Set<Candidate>> sliceCandidates =
 				resultCacher.readMsers(
-						imp.getOriginalFileInfo().fileName,
-						classifierFile,
+						membraneImp.getOriginalFileInfo().fileName,
 						mser.getParameters(),
 						firstSlice,
 						lastSlice);
@@ -103,10 +88,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			if (msersImp == null || sliceCandidates == null) {
 
 				// prepare segmentation image
-				msersImp = imp.createImagePlus();
-				ImageStack regStack = new ImageStack(imp.getWidth(), imp.getHeight());
+				msersImp = membraneImp.createImagePlus();
+				ImageStack regStack = new ImageStack(membraneImp.getWidth(), membraneImp.getHeight());
 				for (int s = 1; s <= numSlices; s++) {
-					ImageProcessor duplProcessor = imp.getStack().getProcessor(s).duplicate();
+					ImageProcessor duplProcessor = membraneImp.getStack().getProcessor(s).duplicate();
 					regStack.addSlice("", duplProcessor);
 				}
 				msersImp.setStack(regStack);
@@ -115,7 +100,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					msersImp.setOpenAsHyperStack(true);
 				IJ.run(msersImp, "Fire", "");
 
-				msersImp.setTitle("msers of " + imp.getTitle());
+				msersImp.setTitle("msers of " + membraneImp.getTitle());
 
 				texifyer = new Texifyer(msersImp, "./sipnet-tex/");
 
@@ -173,8 +158,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					texifyer.texifyMserTree(mser, s);
 				}
 
-				resultCacher.writeMserImages(msersImp, imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
-				resultCacher.writeMsers(sliceTopMsers, imp.getOriginalFileInfo().fileName, classifierFile, mser.getParameters());
+				resultCacher.writeMserImages(msersImp, membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
+				resultCacher.writeMsers(sliceTopMsers, membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
 			}
 
 			// perform search
@@ -192,7 +177,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 	
-			visualiser.drawSequence(imp, bestSequence, false, false);
+			visualiser.drawSequence(membraneImp, bestSequence, false, false);
 			visualiser.drawSequence(msersImp, bestSequence, false, true);
 			visualiser3d.showAssignments(bestSequence);
 			//visualiser3d.showSlices(msersImp);
