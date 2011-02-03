@@ -10,6 +10,8 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
 
+import Jama.Matrix;
+
 import ij.IJ;
 
 public class Candidate extends Region<Candidate> {
@@ -37,6 +39,8 @@ public class Candidate extends Region<Candidate> {
 
 	// the pixels belonging to this candidate
 	private int[][] pixels;
+	// the covariance of the pixel positions
+	private Matrix  covariance;
 	// the mean gray value of the pixels belonging to this candidate
 	private double  meanGrayValue;
 
@@ -109,6 +113,8 @@ public class Candidate extends Region<Candidate> {
 
 		this.pixels        = pixels;
 		this.meanGrayValue = meanGrayValue;
+
+		computePixelCovariance();
 	}
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates) {
@@ -283,6 +289,11 @@ public class Candidate extends Region<Candidate> {
 		return pixels;
 	}
 
+	public Matrix getCovariance() {
+
+		return covariance;
+	}
+
 	public double getMeanGrayValue() {
 
 		return meanGrayValue;
@@ -315,12 +326,15 @@ public class Candidate extends Region<Candidate> {
 			for (int i = 0; i < numPixels; i++)
 				for (int d = 0; d < numDimensions; d++)
 					pixels[i][d] = in.readInt();
+
 		} else 
 			pixels = new int[0][0];
 
 		meanGrayValue = in.readDouble();
 
 		super.readExternal(in);
+
+		computePixelCovariance();
 	}
 
 	public String toString() {
@@ -334,5 +348,28 @@ public class Candidate extends Region<Candidate> {
 		ret += ", perimeter: " + getPerimeter();
 
 		return ret;
+	}
+
+	private void computePixelCovariance() {
+
+		covariance = new Matrix(2, 2);
+		covariance.set(0, 0, 1.0e-10);
+		covariance.set(1, 1, 1.0e-10);
+
+		if (pixels.length <= 1)
+			return;
+
+		for (int[] pixel : pixels) {
+
+			double[] p = {
+					(double)pixel[0] - getCenter()[0],
+					(double)pixel[1] - getCenter()[1]};
+
+			Matrix  mp = new Matrix(p, 1);
+
+			covariance = covariance.plus(mp.transpose().times(mp));
+		}
+
+		covariance = covariance.times(1.0/pixels.length);
 	}
 }

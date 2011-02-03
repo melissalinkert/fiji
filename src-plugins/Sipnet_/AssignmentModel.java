@@ -4,25 +4,21 @@ import Jama.Matrix;
 public class AssignmentModel {
 
 	private static double priorDeath           = 1e-100;
-	private static double priorContinuation    = 1.0;
 	private static double priorSplit           = 1e-100;
 
 	private static double covaPosition         = 10.0;
-	private static double covaSize             = 1.0;
-	private static double covaCircularity      = 0.5;
+	private static double covaKLDivergence     = 0.5;
 	private static double covaNeighborPosition = 5.0;
 
 	private static double[][] covaApp =
-	    {{covaPosition, 0.0, 0.0, 0.0},
-	     {0.0, covaPosition, 0.0, 0.0},
-	     {0.0, 0.0, covaSize, 0.0},
-		 {0.0, 0.0, 0.0, covaCircularity}};
+	    {{covaPosition, 0.0, 0.0},
+	     {0.0, covaPosition, 0.0},
+	     {0.0, 0.0, covaKLDivergence}};
 	private static double[][] covaNeighOff =
 	    {{covaNeighborPosition, 0.0},
 	     {0.0, covaNeighborPosition}};
 
 	private static double negLogPriorDeath           = -Math.log(priorDeath);
-	private static double negLogPriorContinuation    = -Math.log(priorContinuation);
 	private static double negLogPriorSplit           = -Math.log(priorSplit);
 
 	private static Matrix covaAppearance             = new Matrix(covaApp);
@@ -50,15 +46,11 @@ public class AssignmentModel {
 
 	static final double negLogPAppearance(Candidate source, Candidate target) {
 
-		double ciruclaritySource = 4*Math.PI*source.getSize()/(source.getPerimeter()*source.getPerimeter());
-		double ciruclarityTarget = 4*Math.PI*target.getSize()/(target.getPerimeter()*target.getPerimeter());
-
-		Matrix diff = new Matrix(4, 1);
+		Matrix diff = new Matrix(3, 1);
 
 		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
 		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
-		diff.set(2, 0, (Math.sqrt(target.getSize()) - Math.sqrt(source.getSize()))/Math.sqrt(source.getSize()));
-		diff.set(3, 0, ciruclaritySource - ciruclarityTarget);
+		diff.set(2, 0, getKLDivergence(source.getCovariance(), target.getCovariance()));
 
 		return
 			negLogNormAppearance +
@@ -101,5 +93,13 @@ public class AssignmentModel {
 		diff.set(1, 0, originalOffset[1] - offset[1]);
 
 		return negLogNormNeighborOffset + 0.5*(diff.transpose().times(invCovaNeighborOffset).times(diff)).get(0, 0);
+	}
+
+	static final private double getKLDivergence(Matrix c1, Matrix c2) {
+
+		final double logDet = Math.log(c1.det()/c2.det());
+		final double trace  = c1.inverse().times(c2).trace();
+
+		return 0.5*(logDet + trace + 2);
 	}
 }
