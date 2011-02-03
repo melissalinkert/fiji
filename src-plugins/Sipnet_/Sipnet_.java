@@ -135,7 +135,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					mser.process(sliceMembrane, true, false, sliceMsers);
 					topMsers = mser.getTopMsers();
 					msers    = mser.getMsers();
-					IJ.log("Found " + topMsers.size() + " parent candidates in slice " + s);
+					IJ.log("Found " + msers.size() + " candidates in slice " + s);
 
 					// store slice candidates
 					sliceCandidates.set(s, new HashSet<Candidate>(msers));
