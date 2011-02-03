@@ -1,7 +1,19 @@
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import java.util.Properties;
+
 import Jama.Matrix;
 
+import ij.IJ;
+
 public class AssignmentModel {
+
+	/*
+	 * MODEL PARAMTETERS
+	 */
 
 	private static double priorDeath           = 1e-100;
 	private static double priorSplit           = 1e-100;
@@ -9,6 +21,10 @@ public class AssignmentModel {
 	private static double covaPosition         = 10.0;
 	private static double covaKLDivergence     = 0.5;
 	private static double covaNeighborPosition = 5.0;
+
+	/*
+	 * IMPLEMENTATION
+	 */
 
 	private static double[][] covaApp =
 	    {{covaPosition, 0.0, 0.0},
@@ -93,6 +109,30 @@ public class AssignmentModel {
 		diff.set(1, 0, originalOffset[1] - offset[1]);
 
 		return negLogNormNeighborOffset + 0.5*(diff.transpose().times(invCovaNeighborOffset).times(diff)).get(0, 0);
+	}
+
+	static final void readParameters(String filename) {
+
+		Properties parameterFile = new Properties();
+
+		try {
+			parameterFile.load(new FileInputStream(new File(filename)));
+
+			priorDeath           = Double.valueOf(parameterFile.getProperty("prior_death"));
+			priorSplit           = Double.valueOf(parameterFile.getProperty("prior_split"));
+
+			covaPosition         = Double.valueOf(parameterFile.getProperty("cova_position"));
+			covaKLDivergence     = Double.valueOf(parameterFile.getProperty("cova_kl_divergence"));
+
+			IJ.log("Assignment model read parameters:");
+			IJ.log("  prior death/emerge: " + priorDeath);
+			IJ.log("  prior split: " + priorSplit);
+			IJ.log("  cova position: " + covaPosition);
+			IJ.log("  cova shape dissimilarity: " + covaKLDivergence);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	static final private double getKLDivergence(Matrix c1, Matrix c2) {
