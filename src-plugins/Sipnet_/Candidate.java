@@ -329,7 +329,7 @@ public class Candidate extends Region<Candidate> {
 			pixels = new ArrayList<int[]>(numPixels);
 
 			for (int i = 0; i < numPixels; i++) {
-				pixels.set(i, new int[numDimensions]);
+				pixels.add(new int[numDimensions]);
 				for (int d = 0; d < numDimensions; d++)
 					pixels.get(i)[d] = in.readInt();
 			}
