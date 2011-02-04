@@ -36,11 +36,12 @@ public class SetDifference implements ShapeDissimilarity {
 
 		while (iterator1.hasNext()) {
 
+			int[] pixel1 = iterator1.next();
+
 			Iterator<int[]> iterator2 = pixels2.iterator();
 
 			while (iterator2.hasNext()) {
 
-				int[] pixel1 = iterator1.next();
 				int[] pixel2 = iterator2.next();
 
 				if (pixel1[0] - offset1[0] == pixel2[0] - offset2[0] &&
