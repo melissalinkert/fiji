@@ -22,6 +22,8 @@ public class AssignmentModel {
 	private double covaKLDivergence     = 0.5;
 	private double covaNeighborPosition = 5.0;
 
+	private ShapeDissimilarity shapeDissimilarity;
+
 	/*
 	 * IMPLEMENTATION
 	 */
@@ -47,6 +49,11 @@ public class AssignmentModel {
 	private double normNeighborOffset         = 1.0/(Math.sqrt(covaNeighborOffset.times(2.0*Math.PI).det()));
 	private double negLogNormNeighborOffset   = -Math.log(normNeighborOffset);
 
+	public AssignmentModel(ShapeDissimilarity shapeDissimilarity) {
+
+		this.shapeDissimilarity = shapeDissimilarity;
+	}
+
 	final double negLogPAssignment(SingleAssignment assignment) {
 
 		return negLogPAssignment(assignment.getSource(), assignment.getTarget());
@@ -66,7 +73,7 @@ public class AssignmentModel {
 
 		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
 		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
-		diff.set(2, 0, getKLDivergence(source.getCovariance(), target.getCovariance()));
+		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target));
 
 		return
 			negLogNormAppearance +
@@ -137,18 +144,29 @@ public class AssignmentModel {
 
 	final public static AssignmentModel readFromFile(String filename) {
 
-		AssignmentModel assignmentModel = new AssignmentModel();
+		AssignmentModel assignmentModel = null;
 
-		assignmentModel.readParameters(filename);
+		Properties parameterFile = new Properties();
+
+		try {
+
+			parameterFile.load(new FileInputStream(new File(filename)));
+
+			if (parameterFile.getProperty("shape_dissimilarity").equals("set_difference"))
+				assignmentModel = new AssignmentModel(new SetDifference());
+			else if (parameterFile.getProperty("shape_dissimilarity").equals("kl_divergence"))
+				assignmentModel = new AssignmentModel(new KLDivergence());
+			else {
+				IJ.log("No shape dissimilarity defined in " + filename + ", taking set_difference");
+				assignmentModel = new AssignmentModel(new SetDifference());
+			}
+
+			assignmentModel.readParameters(filename);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		return assignmentModel;
 	}
 
-	final private double getKLDivergence(Matrix c1, Matrix c2) {
-
-		final double logDet = Math.log(c1.det()/c2.det());
-		final double trace  = c1.inverse().times(c2).trace();
-
-		return 0.5*(logDet + trace + 2);
-	}
 }
