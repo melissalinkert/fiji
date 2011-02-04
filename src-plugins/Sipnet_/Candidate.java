@@ -3,9 +3,11 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
@@ -38,7 +40,7 @@ public class Candidate extends Region<Candidate> {
 	private Set<Candidate>    mergePartners;
 
 	// the pixels belonging to this candidate
-	private int[][] pixels;
+	private List<int[]> pixels;
 	// the covariance of the pixel positions
 	private Matrix  covariance;
 	// the mean gray value of the pixels belonging to this candidate
@@ -101,10 +103,10 @@ public class Candidate extends Region<Candidate> {
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergePartners         = new HashSet<Candidate>();
 
-		this.pixels = new int[0][0];
+		this.pixels = new ArrayList<int[]>();
 	}
 
-	public Candidate(int size, int perimeter, double[] center, int[][] pixels, double meanGrayValue) {
+	public Candidate(int size, int perimeter, double[] center, List<int[]> pixels, double meanGrayValue) {
 
 		super(size, perimeter, center, candidateFactory);
 
@@ -287,7 +289,7 @@ public class Candidate extends Region<Candidate> {
 		return offset;
 	}
 
-	public int[][] getPixels() {
+	public List<int[]> getPixels() {
 
 		return pixels;
 	}
@@ -304,13 +306,13 @@ public class Candidate extends Region<Candidate> {
 
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		out.writeInt(pixels.length);
-		if (pixels.length > 0)
-			out.writeInt(pixels[0].length);
+		out.writeInt(pixels.size());
+		if (pixels.size() > 0)
+			out.writeInt(pixels.get(0).length);
 
-		for (int i = 0; i < pixels.length; i++)
-			for (int d = 0; d < pixels[i].length; d++)
-				out.writeInt(pixels[i][d]);
+		for (int i = 0; i < pixels.size(); i++)
+			for (int d = 0; d < pixels.get(i).length; d++)
+				out.writeInt(pixels.get(i)[d]);
 
 		out.writeDouble(meanGrayValue);
 
@@ -324,14 +326,16 @@ public class Candidate extends Region<Candidate> {
 		if (numPixels > 0) {
 			int numDimensions = in.readInt();
 
-			pixels = new int[numPixels][numDimensions];
+			pixels = new ArrayList<int[]>(numPixels);
 
-			for (int i = 0; i < numPixels; i++)
+			for (int i = 0; i < numPixels; i++) {
+				pixels.set(i, new int[numDimensions]);
 				for (int d = 0; d < numDimensions; d++)
-					pixels[i][d] = in.readInt();
+					pixels.get(i)[d] = in.readInt();
+			}
 
 		} else 
-			pixels = new int[0][0];
+			pixels = new ArrayList<int[]>();
 
 		meanGrayValue = in.readDouble();
 
@@ -359,7 +363,7 @@ public class Candidate extends Region<Candidate> {
 		covariance.set(0, 0, 1.0e-10);
 		covariance.set(1, 1, 1.0e-10);
 
-		if (pixels.length <= 1)
+		if (pixels.size() <= 1)
 			return;
 
 		for (int[] pixel : pixels) {
@@ -373,6 +377,6 @@ public class Candidate extends Region<Candidate> {
 			covariance = covariance.plus(mp.transpose().times(mp));
 		}
 
-		covariance = covariance.times(1.0/pixels.length);
+		covariance = covariance.times(1.0/pixels.size());
 	}
 }
