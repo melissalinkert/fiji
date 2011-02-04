@@ -272,6 +272,8 @@ public class SequenceSearch {
 					else
 						// ...has to be at most one for the last slice
 						lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
+
+					numConsUsed++;
 				}
 
 		IJ.log("" + numConsUsed + " constraints set, " + nextNodeId + " variables used");
