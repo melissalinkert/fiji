@@ -62,9 +62,19 @@ public class SequenceSearch {
 
 		// build cache for candidates
 		IJ.log("Precaching most likely candidates...");
-		for (int s = 0; s < this.sliceCandidates.size() - 1; s++)
-			for (Candidate candidate : this.sliceCandidates.get(s))
+		for (int s = 0; s < this.sliceCandidates.size() - 1; s++) {
+
+			IJ.log("Slice " + (s+1) + "...");
+			int numCandidates = this.sliceCandidates.get(s).size();
+			int numCached     = 0;
+
+			for (Candidate candidate : this.sliceCandidates.get(s)) {
+
 				candidate.cacheMostSimilarCandidates(this.sliceCandidates.get(s+1), assignmentModel);
+				numCached++;
+				IJ.showProgress(numCached, numCandidates);
+			}
+		}
 
 		IJ.log("Precaching neighbors...");
 		for (int s = 0; s < this.sliceCandidates.size(); s++)
