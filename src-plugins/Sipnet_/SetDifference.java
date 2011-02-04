@@ -30,26 +30,36 @@ public class SetDifference implements ShapeDissimilarity {
 
 	private double setDifferenceRatio(List<int[]> pixels1, int[] offset1, List<int[]> pixels2, int[] offset2) {
 
-		Iterator<int[]> iterator1 = pixels1.iterator();
+		PixelComparator pixelComparator = new PixelComparator(offset1, offset2);
 
 		int numMatches = 0;
 
-		while (iterator1.hasNext()) {
+		// we can assume that the pixels are sorted
 
-			int[] pixel1 = iterator1.next();
+		Iterator<int[]> i1 = pixels1.iterator();
+		Iterator<int[]> i2 = pixels2.iterator();
 
-			Iterator<int[]> iterator2 = pixels2.iterator();
+		int[] pixel2 = null;
 
-			while (iterator2.hasNext()) {
+		// initialise pixel2 to first one
+		if (i2.hasNext())
+			pixel2 = i2.next();
 
-				int[] pixel2 = iterator2.next();
+		while (i1.hasNext() && i2.hasNext()) {
 
-				if (pixel1[0] - offset1[0] == pixel2[0] - offset2[0] &&
-				    pixel1[1] - offset1[1] == pixel2[1] - offset2[1]) {
-					numMatches++;
-					break;
-				}
-			}
+			// get the next pixel1
+			int[] pixel1 = i1.next();
+
+			// iterate through all pixels2 that are smaller than the current
+			// pixel1
+			while (i2.hasNext() && pixelComparator.compare(pixel1, pixel2) == 1)
+				pixel2 = i2.next();
+
+			// if there is a pixel2 equal to pixel1, increase number of matches
+			if (pixelComparator.compare(pixel1, pixel2) == 0)
+				numMatches++;
+
+			// continue with next pixel1
 		}
 
 		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;

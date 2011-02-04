@@ -4,6 +4,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,7 +107,7 @@ public class Candidate extends Region<Candidate> {
 		this.pixels = new ArrayList<int[]>();
 	}
 
-	public Candidate(int size, int perimeter, double[] center, List<int[]> pixels, double meanGrayValue) {
+	public Candidate(int size, int perimeter, double[] center, int[][] pixels, double meanGrayValue) {
 
 		super(size, perimeter, center, candidateFactory);
 
@@ -116,7 +117,8 @@ public class Candidate extends Region<Candidate> {
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergePartners         = new HashSet<Candidate>();
 
-		this.pixels        = pixels;
+		Arrays.sort(pixels, new PixelComparator());
+		this.pixels        = Arrays.asList(pixels);
 		this.meanGrayValue = meanGrayValue;
 
 		computePixelCovariance();
