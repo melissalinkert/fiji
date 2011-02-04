@@ -124,10 +124,17 @@ public class Candidate extends Region<Candidate> {
 
 	public void cacheMostSimilarCandidates(Vector<Candidate> targetCandidates, AssignmentModel assignmentModel) {
 
+		// get closest candidates in next slice
+		PriorityQueue<Candidate> closestCandidates =
+			new PriorityQueue<Candidate>(SequenceSearch.MaxTargetCandidates, new DistanceComparator(this));
+		closestCandidates.addAll(targetCandidates);
+
 		// sort all candidates according to appearance likelihood
 		PriorityQueue<Candidate> sortedCandidates =
 			new PriorityQueue<Candidate>(SequenceSearch.MaxTargetCandidates, new LikelihoodComparator(this, assignmentModel));
-		sortedCandidates.addAll(targetCandidates);
+
+		for (int i = 0; i < SequenceSearch.NumDistanceCandidates && closestCandidates.peek() != null; i++)
+			sortedCandidates.add(closestCandidates.poll());
 
 		// cache most likely candidates
 		while (mostSimilarCandidates.size() < SequenceSearch.MaxTargetCandidates &&
