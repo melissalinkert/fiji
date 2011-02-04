@@ -15,44 +15,44 @@ public class AssignmentModel {
 	 * MODEL PARAMTETERS
 	 */
 
-	private static double priorDeath           = 1e-100;
-	private static double priorSplit           = 1e-100;
+	private double priorDeath           = 1e-100;
+	private double priorSplit           = 1e-100;
 
-	private static double covaPosition         = 10.0;
-	private static double covaKLDivergence     = 0.5;
-	private static double covaNeighborPosition = 5.0;
+	private double covaPosition         = 10.0;
+	private double covaKLDivergence     = 0.5;
+	private double covaNeighborPosition = 5.0;
 
 	/*
 	 * IMPLEMENTATION
 	 */
 
-	private static double[][] covaApp =
+	private double[][] covaApp =
 	    {{covaPosition, 0.0, 0.0},
 	     {0.0, covaPosition, 0.0},
 	     {0.0, 0.0, covaKLDivergence}};
-	private static double[][] covaNeighOff =
+	private double[][] covaNeighOff =
 	    {{covaNeighborPosition, 0.0},
 	     {0.0, covaNeighborPosition}};
 
-	private static double negLogPriorDeath           = -Math.log(priorDeath);
-	private static double negLogPriorSplit           = -Math.log(priorSplit);
+	private double negLogPriorDeath           = -Math.log(priorDeath);
+	private double negLogPriorSplit           = -Math.log(priorSplit);
 
-	private static Matrix covaAppearance             = new Matrix(covaApp);
-	private static Matrix invCovaAppearance          = covaAppearance.inverse();
-	private static double normAppearance             = 1.0/(Math.sqrt(covaAppearance.times(2.0*Math.PI).det()));
-	private static double negLogNormAppearance       = -Math.log(normAppearance);
+	private Matrix covaAppearance             = new Matrix(covaApp);
+	private Matrix invCovaAppearance          = covaAppearance.inverse();
+	private double normAppearance             = 1.0/(Math.sqrt(covaAppearance.times(2.0*Math.PI).det()));
+	private double negLogNormAppearance       = -Math.log(normAppearance);
 
-	private static Matrix covaNeighborOffset         = new Matrix(covaNeighOff);
-	private static Matrix invCovaNeighborOffset      = covaNeighborOffset.inverse();
-	private static double normNeighborOffset         = 1.0/(Math.sqrt(covaNeighborOffset.times(2.0*Math.PI).det()));
-	private static double negLogNormNeighborOffset   = -Math.log(normNeighborOffset);
+	private Matrix covaNeighborOffset         = new Matrix(covaNeighOff);
+	private Matrix invCovaNeighborOffset      = covaNeighborOffset.inverse();
+	private double normNeighborOffset         = 1.0/(Math.sqrt(covaNeighborOffset.times(2.0*Math.PI).det()));
+	private double negLogNormNeighborOffset   = -Math.log(normNeighborOffset);
 
-	static final double negLogPAssignment(SingleAssignment assignment) {
+	final double negLogPAssignment(SingleAssignment assignment) {
 
 		return negLogPAssignment(assignment.getSource(), assignment.getTarget());
 	}
 
-	static final double negLogPAssignment(Candidate source, Candidate target) {
+	final double negLogPAssignment(Candidate source, Candidate target) {
 
 
 		return
@@ -60,7 +60,7 @@ public class AssignmentModel {
 			0.5*(negLogPSegmentation(source) + negLogPSegmentation(target));
 	}
 
-	static final double negLogPAppearance(Candidate source, Candidate target) {
+	final double negLogPAppearance(Candidate source, Candidate target) {
 
 		Matrix diff = new Matrix(3, 1);
 
@@ -73,21 +73,21 @@ public class AssignmentModel {
 			0.5*(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}
 
-	static final double negLogPDeath(Candidate candidate) {
+	final double negLogPDeath(Candidate candidate) {
 
 		return
 			negLogPriorDeath +
 			0.5*negLogPSegmentation(candidate);
 	}
 
-	static final double negLogPSplit(Candidate source, Candidate target1, Candidate target2) {
+	final double negLogPSplit(Candidate source, Candidate target1, Candidate target2) {
 
 		return
 			negLogPriorSplit +
 			0.5*(negLogPSegmentation(source) + negLogPSegmentation(target1) + negLogPSegmentation(target2));
 	}
 
-	static final double negLogPSegmentation(Candidate candidate) {
+	final double negLogPSegmentation(Candidate candidate) {
 
 		double probMembrane = (double)candidate.getMeanGrayValue()/255.0;
 
@@ -101,7 +101,7 @@ public class AssignmentModel {
 		return candidate.getSize()*(negLogPPixelNeuron - negLogPPixelMembrane);
 	}
 
-	static final double negLogPNeighbor(double[] originalOffset, double[] offset) {
+	final double negLogPNeighbor(double[] originalOffset, double[] offset) {
 
 		Matrix diff = new Matrix(2, 1);
 		
@@ -111,7 +111,7 @@ public class AssignmentModel {
 		return negLogNormNeighborOffset + 0.5*(diff.transpose().times(invCovaNeighborOffset).times(diff)).get(0, 0);
 	}
 
-	static final void readParameters(String filename) {
+	final void readParameters(String filename) {
 
 		Properties parameterFile = new Properties();
 
@@ -135,7 +135,16 @@ public class AssignmentModel {
 
 	}
 
-	static final private double getKLDivergence(Matrix c1, Matrix c2) {
+	final public static AssignmentModel readFromFile(String filename) {
+
+		AssignmentModel assignmentModel = new AssignmentModel();
+
+		assignmentModel.readParameters(filename);
+
+		return assignmentModel;
+	}
+
+	final private double getKLDivergence(Matrix c1, Matrix c2) {
 
 		final double logDet = Math.log(c1.det()/c2.det());
 		final double trace  = c1.inverse().times(c2).trace();

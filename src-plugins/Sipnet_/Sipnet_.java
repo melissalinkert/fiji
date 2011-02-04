@@ -67,7 +67,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			ResultCacher resultCacher = new ResultCacher("./.cache", io);
 
 			// read assignment model paramters
-			AssignmentModel.readParameters("./assignment_model.conf");
+			AssignmentModel assignmentModel = AssignmentModel.readFromFile("./assignment_model.conf");
 
 			// setup mser algorithm
 			MSER<T, Candidate> mser =
@@ -105,7 +105,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 				msersImp.setTitle("msers of " + membraneImp.getTitle());
 
-				texifyer = new Texifyer(msersImp, "./sipnet-tex/");
+				texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 
 				// prepare slice candidates
 				sliceCandidates = new Vector<Set<Candidate>>();
@@ -167,13 +167,13 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// perform search
 			IJ.log("Searching for the best path");
-			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
+			texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 			sipnet   = new Sipnet(texifyer);
 
 			List<Set<Candidate>> selectedSliceCandidates =
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
-			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates);
+			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates, assignmentModel);
 	
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");

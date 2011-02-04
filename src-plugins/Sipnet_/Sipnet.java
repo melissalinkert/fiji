@@ -11,9 +11,9 @@ public class Sipnet {
 		this.texifyer = texifyer;
 	}
 
-	public Sequence bestSearch(List<Set<Candidate>> sliceCandidates) {
+	public Sequence bestSearch(List<Set<Candidate>> sliceCandidates, AssignmentModel assignmentModel) {
 
-		SequenceSearch sequenceSearch = new SequenceSearch(sliceCandidates, texifyer);
+		SequenceSearch sequenceSearch = new SequenceSearch(sliceCandidates, assignmentModel, texifyer);
 
 		return sequenceSearch.getBestAssignmentSequence();
 	}

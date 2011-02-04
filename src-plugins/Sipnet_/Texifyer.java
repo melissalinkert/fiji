@@ -16,13 +16,15 @@ public class Texifyer {
 
 	final double texWidth = 13.0;
 
-	private ImagePlus regionImp;
-	private String    outputDir;
+	private ImagePlus       regionImp;
+	private AssignmentModel assignmentModel;
+	private String          outputDir;
 
-	public Texifyer(ImagePlus regionImp, String outputDir) {
+	public Texifyer(ImagePlus regionImp, AssignmentModel assignmentModel, String outputDir) {
 
-		this.regionImp = regionImp;
-		this.outputDir = outputDir;
+		this.regionImp       = regionImp;
+		this.assignmentModel = assignmentModel;
+		this.outputDir       = outputDir;
 	}
 
 	public <T extends RealType<T>> void texifyMserTree(MSER<T, Candidate> mser, int slice) {
@@ -92,7 +94,7 @@ public class Texifyer {
 			for (Candidate closest : region.getMostLikelyCandidates()) {
 
 				texifyRegion(closest, Math.sqrt(closest.getSize()), scale, width, height, out);
-				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)AssignmentModel.negLogPAssignment(region, closest) + "} (node" + closest.getId() + ");\n");
+				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)assignmentModel.negLogPAssignment(region, closest) + "} (node" + closest.getId() + ");\n");
 			}
 		}
 	}
