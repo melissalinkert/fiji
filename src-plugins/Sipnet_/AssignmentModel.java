@@ -15,12 +15,15 @@ public class AssignmentModel {
 	 * MODEL PARAMTETERS
 	 */
 
-	private double priorDeath           = 1e-100;
-	private double priorSplit           = 1e-100;
+	// factor weights
+	private double weightData;
+	private double weightContinuation;
+	private double weightBisection;
+	private double weightEnd;
 
-	private double covaPosition         = 10.0;
-	private double covaKLDivergence     = 0.5;
-	private double covaNeighborPosition = 5.0;
+	// default values for factor functions
+	private double covaPosition  = 10.0;
+	private double covaShape     = 0.5;
 
 	private ShapeDissimilarity shapeDissimilarity;
 
@@ -31,43 +34,38 @@ public class AssignmentModel {
 	private double[][] covaApp =
 	    {{covaPosition, 0.0, 0.0},
 	     {0.0, covaPosition, 0.0},
-	     {0.0, 0.0, covaKLDivergence}};
-	private double[][] covaNeighOff =
-	    {{covaNeighborPosition, 0.0},
-	     {0.0, covaNeighborPosition}};
-
-	private double negLogPriorDeath           = -Math.log(priorDeath);
-	private double negLogPriorSplit           = -Math.log(priorSplit);
+	     {0.0, 0.0, covaShape}};
 
 	private Matrix covaAppearance             = new Matrix(covaApp);
 	private Matrix invCovaAppearance          = covaAppearance.inverse();
-	private double normAppearance             = 1.0/(Math.sqrt(covaAppearance.times(2.0*Math.PI).det()));
-	private double negLogNormAppearance       = -Math.log(normAppearance);
-
-	private Matrix covaNeighborOffset         = new Matrix(covaNeighOff);
-	private Matrix invCovaNeighborOffset      = covaNeighborOffset.inverse();
-	private double normNeighborOffset         = 1.0/(Math.sqrt(covaNeighborOffset.times(2.0*Math.PI).det()));
-	private double negLogNormNeighborOffset   = -Math.log(normNeighborOffset);
 
 	public AssignmentModel(ShapeDissimilarity shapeDissimilarity) {
 
 		this.shapeDissimilarity = shapeDissimilarity;
 	}
 
-	final double negLogPAssignment(SingleAssignment assignment) {
-
-		return negLogPAssignment(assignment.getSource(), assignment.getTarget());
-	}
-
-	final double negLogPAssignment(Candidate source, Candidate target) {
-
+	public final double costContinuation(Candidate source, Candidate target) {
 
 		return
-			negLogPAppearance(source, target) +
-			0.5*(negLogPSegmentation(source) + negLogPSegmentation(target));
+				weightContinuation*continuationPrior(source, target) +
+				weightData*(dataTerm(source) + dataTerm(target));
 	}
 
-	final double negLogPAppearance(Candidate source, Candidate target) {
+	public final double costBisect(Candidate source, Candidate target1, Candidate target2) {
+
+		return
+			weightBisection*bisectionPrior(source, target1, target2) +
+			weightData*(dataTerm(source) + dataTerm(target1) + dataTerm(target2));
+	}
+
+	public final double costEnd(Candidate candidate) {
+
+		return
+			weightEnd*endPrior(candidate) +
+			weightData*dataTerm(candidate);
+	}
+
+	private final double continuationPrior(Candidate source, Candidate target) {
 
 		Matrix diff = new Matrix(3, 1);
 
@@ -76,25 +74,37 @@ public class AssignmentModel {
 		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target));
 
 		return
-			negLogNormAppearance +
-			0.5*(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
+				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}
 
-	final double negLogPDeath(Candidate candidate) {
+	private final double bisectionPrior(Candidate source, Candidate target1, Candidate target2) {
+
+		Matrix diff = new Matrix(3, 1);
+
+		double[] mergedCenter = target1.getCenter();
+		mergedCenter[0] =
+				(target1.getSize()*mergedCenter[0] +
+				 target2.getSize()*target2.getCenter()[0])/
+				(target1.getSize() + target2.getSize());
+		mergedCenter[1] =
+				(target1.getSize()*mergedCenter[1] +
+				 target2.getSize()*target2.getCenter()[1])/
+				(target1.getSize() + target2.getSize());
+
+		diff.set(0, 0, mergedCenter[0] - source.getCenter()[0]);
+		diff.set(1, 0, mergedCenter[1] - source.getCenter()[1]);
+		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target1, target2));
 
 		return
-			negLogPriorDeath +
-			0.5*negLogPSegmentation(candidate);
+				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}
 
-	final double negLogPSplit(Candidate source, Candidate target1, Candidate target2) {
+	private final double endPrior(Candidate candidate) {
 
-		return
-			negLogPriorSplit +
-			0.5*(negLogPSegmentation(source) + negLogPSegmentation(target1) + negLogPSegmentation(target2));
+		return candidate.getSize();
 	}
 
-	final double negLogPSegmentation(Candidate candidate) {
+	private final double dataTerm(Candidate candidate) {
 
 		double probMembrane = (double)candidate.getMeanGrayValue()/255.0;
 
@@ -108,16 +118,6 @@ public class AssignmentModel {
 		return candidate.getSize()*(negLogPPixelNeuron - negLogPPixelMembrane);
 	}
 
-	final double negLogPNeighbor(double[] originalOffset, double[] offset) {
-
-		Matrix diff = new Matrix(2, 1);
-		
-		diff.set(0, 0, originalOffset[0] - offset[0]);
-		diff.set(1, 0, originalOffset[1] - offset[1]);
-
-		return negLogNormNeighborOffset + 0.5*(diff.transpose().times(invCovaNeighborOffset).times(diff)).get(0, 0);
-	}
-
 	final void readParameters(String filename) {
 
 		Properties parameterFile = new Properties();
@@ -125,17 +125,21 @@ public class AssignmentModel {
 		try {
 			parameterFile.load(new FileInputStream(new File(filename)));
 
-			priorDeath           = Double.valueOf(parameterFile.getProperty("prior_death"));
-			priorSplit           = Double.valueOf(parameterFile.getProperty("prior_split"));
+			weightData         = Double.valueOf(parameterFile.getProperty("weight_data"));
+			weightContinuation = Double.valueOf(parameterFile.getProperty("weight_continuation"));
+			weightBisection    = Double.valueOf(parameterFile.getProperty("weight_bisection"));
+			weightEnd          = Double.valueOf(parameterFile.getProperty("weight_end"));
 
 			covaPosition         = Double.valueOf(parameterFile.getProperty("cova_position"));
-			covaKLDivergence     = Double.valueOf(parameterFile.getProperty("cova_kl_divergence"));
+			covaShape            = Double.valueOf(parameterFile.getProperty("cova_shape"));
 
 			IJ.log("Assignment model read parameters:");
-			IJ.log("  prior death/emerge: " + priorDeath);
-			IJ.log("  prior split: " + priorSplit);
-			IJ.log("  cova position: " + covaPosition);
-			IJ.log("  cova shape dissimilarity: " + covaKLDivergence);
+			IJ.log("  weight data term: "         + weightData);
+			IJ.log("  weight continuation term: " + weightContinuation);
+			IJ.log("  weight bisection term: "    + weightBisection);
+			IJ.log("  weight end term: "          + weightEnd);
+			IJ.log("  cova position: "            + covaPosition);
+			IJ.log("  cova shape dissimilarity: " + covaShape);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

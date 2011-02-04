@@ -293,7 +293,7 @@ public class SequenceSearch {
 			for (Candidate sourceCandidate : sliceCandidates.get(s))
 				for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
 					variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
-					coefficients.add(assignmentModel.negLogPAssignment(sourceCandidate, targetCandidate));
+					coefficients.add(assignmentModel.costContinuation(sourceCandidate, targetCandidate));
 				}
 
 			// for each merge
@@ -307,7 +307,7 @@ public class SequenceSearch {
 						for (Candidate mergeTarget : mergeTargets.get(candidate).get(neighbor)) {
 
 							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergeTarget));
-							coefficients.add(assignmentModel.negLogPSplit(mergeTarget, candidate, neighbor));
+							coefficients.add(assignmentModel.costBisect(mergeTarget, candidate, neighbor));
 						}
 				}
 		}
@@ -317,12 +317,12 @@ public class SequenceSearch {
 			// for each emerge
 			for (Candidate targetCandidate : sliceCandidates.get(s)) {
 				variableNums.add(getVariableNum(emergeNode, targetCandidate));
-				coefficients.add(assignmentModel.negLogPDeath(targetCandidate));
+				coefficients.add(assignmentModel.costEnd(targetCandidate));
 			}
 			// for each death
 			for (Candidate sourceCandidate : sliceCandidates.get(s)) {
 				variableNums.add(getVariableNum(sourceCandidate, deathNode));
-				coefficients.add(assignmentModel.negLogPDeath(sourceCandidate));
+				coefficients.add(assignmentModel.costEnd(sourceCandidate));
 			}
 		}
 

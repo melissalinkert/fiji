@@ -59,8 +59,8 @@ public class Candidate extends Region<Candidate> {
 
 		public int compare(Candidate region1, Candidate region2) {
 
-			double p1 = assignmentModel.negLogPAppearance(sourceCandidate, region1);
-			double p2 = assignmentModel.negLogPAppearance(sourceCandidate, region2);
+			double p1 = assignmentModel.costContinuation(sourceCandidate, region1);
+			double p2 = assignmentModel.costContinuation(sourceCandidate, region2);
 
 			if (p1 < p2)
 				return -1;
@@ -133,7 +133,7 @@ public class Candidate extends Region<Candidate> {
 		while (mostSimilarCandidates.size() < SequenceSearch.MaxTargetCandidates &&
 		       sortedCandidates.peek() != null) {
 
-			double negLogP = assignmentModel.negLogPAppearance(this, sortedCandidates.peek());
+			double negLogP = assignmentModel.costContinuation(this, sortedCandidates.peek());
 
 			if (negLogP <= SequenceSearch.MaxNegLogPAppearance) {
 
@@ -149,7 +149,7 @@ public class Candidate extends Region<Candidate> {
 			IJ.log("Oh no! For region " + this + " there are less than " +
 				   SequenceSearch.MinTargetCandidates + " within the threshold of " +
 				   SequenceSearch.MaxNegLogPAppearance);
-			IJ.log("Closest non-selected candidate distance: " + assignmentModel.negLogPAppearance(this, sortedCandidates.peek()));
+			IJ.log("Closest non-selected candidate distance: " + assignmentModel.costContinuation(this, sortedCandidates.peek()));
 		}
 	}
 

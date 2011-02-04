@@ -94,7 +94,7 @@ public class Texifyer {
 			for (Candidate closest : region.getMostLikelyCandidates()) {
 
 				texifyRegion(closest, Math.sqrt(closest.getSize()), scale, width, height, out);
-				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)assignmentModel.negLogPAssignment(region, closest) + "} (node" + closest.getId() + ");\n");
+				out.write("\\draw[->, green!50!red] (node" + region.getId() + ") -- node[color=white] {\\tiny " + (int)assignmentModel.costContinuation(region, closest) + "} (node" + closest.getId() + ");\n");
 			}
 		}
 	}
