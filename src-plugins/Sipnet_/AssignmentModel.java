@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import java.util.HashMap;
 import java.util.Properties;
 
 import Jama.Matrix;
@@ -39,16 +40,44 @@ public class AssignmentModel {
 	private Matrix covaAppearance             = new Matrix(covaApp);
 	private Matrix invCovaAppearance          = covaAppearance.inverse();
 
+	// this is needed very oftern - therefor, cache the results
+	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
+
 	public AssignmentModel(ShapeDissimilarity shapeDissimilarity) {
 
 		this.shapeDissimilarity = shapeDissimilarity;
+		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 	}
 
 	public final double costContinuation(Candidate source, Candidate target) {
 
-		return
-				weightContinuation*continuationPrior(source, target) +
-				weightData*(dataTerm(source) + dataTerm(target));
+		final Candidate smaller = (source.getId() > target.getId() ? target : source);
+		final Candidate bigger  = (source.getId() > target.getId() ? source : target);
+
+		HashMap<Candidate, Double> shm = continuationCache.get(smaller);
+
+		if (shm == null) {
+			shm = new HashMap<Candidate, Double>();
+			continuationCache.put(smaller, shm);
+		}
+
+		final Double costs = shm.get(bigger);
+
+		if (costs == null) {
+
+			System.out.print("-");
+
+			double dcosts =
+					weightContinuation*continuationPrior(source, target) +
+					weightData*(dataTerm(source) + dataTerm(target));
+
+			shm.put(bigger, dcosts);
+
+			return dcosts;
+		}
+
+		System.out.print("+");
+		return costs;
 	}
 
 	public final double costBisect(Candidate source, Candidate target1, Candidate target2) {
