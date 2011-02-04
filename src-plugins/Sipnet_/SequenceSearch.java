@@ -107,7 +107,6 @@ public class SequenceSearch {
 		int numConstraints = computeNumConstraints();
 
 		int numConsUsed = 0;
-		int numVarsUsed = 0;
 
 		IJ.log("setting up problem: " + numVariables + " variables, " + numConstraints + " constraints");
 
@@ -173,9 +172,6 @@ public class SequenceSearch {
 				lpSolver.addConstraint(variableNums, coefficients, 0, 0.0);
 
 				numConsUsed++;
-				for (Integer n : variableNums)
-					if (n > numVarsUsed)
-						numVarsUsed = n;
 			}
 
 		/*
@@ -226,9 +222,6 @@ public class SequenceSearch {
 				lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
 
 				numConsUsed++;
-				for (Integer n : variableNums)
-					if (n > numVarsUsed)
-						numVarsUsed = n;
 			}
 
 		// intermediate and last slices
@@ -279,14 +272,10 @@ public class SequenceSearch {
 					else
 						// ...has to be at most one for the last slice
 						lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
-
-					numConsUsed++;
-					for (Integer n : variableNums)
-						if (n > numVarsUsed)
-							numVarsUsed = n;
 				}
 
-		IJ.log("" + numConsUsed + " constraints set, up to " + (numVarsUsed+1) + " variables used");
+		IJ.log("" + numConsUsed + " constraints set, " + nextNodeId + " variables used");
+		IJ.log("setting objective function...");
 
 		/*
 		 * OBJECTIVE FUNCTION

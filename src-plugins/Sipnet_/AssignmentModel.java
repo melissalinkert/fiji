@@ -65,8 +65,6 @@ public class AssignmentModel {
 
 		if (costs == null) {
 
-			System.out.print("-");
-
 			double dcosts =
 					weightContinuation*continuationPrior(source, target) +
 					weightData*(dataTerm(source) + dataTerm(target));
@@ -76,7 +74,6 @@ public class AssignmentModel {
 			return dcosts;
 		}
 
-		System.out.print("+");
 		return costs;
 	}
 
