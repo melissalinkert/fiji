@@ -100,7 +100,7 @@ public class AssignmentModel {
 		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target));
 
 		return
-				-(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
+				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}
 
 	private final double bisectionPrior(Candidate source, Candidate target1, Candidate target2) {
@@ -122,7 +122,7 @@ public class AssignmentModel {
 		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target1, target2));
 
 		return
-				-(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
+				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
 	}
 
 	private final double endPrior(Candidate candidate) {
