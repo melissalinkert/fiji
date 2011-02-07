@@ -6,17 +6,17 @@ import java.util.List;
 
 public class SetDifference implements ShapeDissimilarity {
 
-	public double dissimilarity(Candidate candidate1, Candidate candidate2) {
+	final public double dissimilarity(final Candidate candidate1, final Candidate candidate2) {
 
-		List<int[]> pixels1 = candidate1.getPixels();
-		List<int[]> pixels2 = candidate2.getPixels();
-		int[]       offset1 = new int[]{(int)candidate1.getCenter()[0], (int)candidate1.getCenter()[1]};
-		int[]       offset2 = new int[]{(int)candidate2.getCenter()[0], (int)candidate2.getCenter()[1]};
+		final List<int[]> pixels1 = candidate1.getPixels();
+		final List<int[]> pixels2 = candidate2.getPixels();
+		final int[]       offset1 = new int[]{(int)candidate1.getCenter()[0], (int)candidate1.getCenter()[1]};
+		final int[]       offset2 = new int[]{(int)candidate2.getCenter()[0], (int)candidate2.getCenter()[1]};
 
 		return setDifferenceRatio(pixels1, offset1, pixels2, offset2);
 	}
 
-	public double dissimilarity(final Candidate candidate1, final Candidate candidate2a, final Candidate candidate2b) {
+	final public double dissimilarity(final Candidate candidate1, final Candidate candidate2a, final Candidate candidate2b) {
 
 		final List<int[]> pixels1 = candidate1.getPixels();
 		final List<int[]> pixels2 = new ArrayList<int[]>(candidate2a.getSize() + candidate2b.getSize());
@@ -27,13 +27,17 @@ public class SetDifference implements ShapeDissimilarity {
 		pixels2.addAll(candidate2b.getPixels());
 		Collections.sort(pixels2, new PixelComparator());
 
-		offset2[0] = (candidate2a.getSize()*offset2[0] + candidate2b.getSize()*(int)candidate2b.getCenter()[0])/(candidate2a.getSize() + candidate2b.getSize());
-		offset2[1] = (candidate2a.getSize()*offset2[1] + candidate2b.getSize()*(int)candidate2b.getCenter()[1])/(candidate2a.getSize() + candidate2b.getSize());
+		offset2[0] =
+				(candidate2a.getSize()*offset2[0] + candidate2b.getSize()*(int)candidate2b.getCenter()[0])/
+				(candidate2a.getSize() + candidate2b.getSize());
+		offset2[1] =
+				(candidate2a.getSize()*offset2[1] + candidate2b.getSize()*(int)candidate2b.getCenter()[1])/
+				(candidate2a.getSize() + candidate2b.getSize());
 
 		return setDifferenceRatio(pixels1, offset1, pixels2, offset2);
 	}
 
-	private double setDifferenceRatio(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
+	final public double setDifferenceRatio(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
 
 		PixelComparator pixelComparator = new PixelComparator(offset1, offset2);
 
@@ -55,20 +59,28 @@ public class SetDifference implements ShapeDissimilarity {
 			// get the next pixel1
 			int[] pixel1 = i1.next();
 
+			//System.out.println("pixel1: " + pixel1[0] + ", " + pixel1[1]);
+			//System.out.println("pixel2: " + pixel2[0] + ", " + pixel2[1]);
+
 			// iterate through all pixels2 that are smaller than the current
 			// pixel1
-			while (i2.hasNext() && pixelComparator.compare(pixel1, pixel2) == 1)
+			while (i2.hasNext() && pixelComparator.compare(pixel1, pixel2) == 1) {
 				pixel2 = i2.next();
+				//System.out.println("pixel2: " + pixel2[0] + ", " + pixel2[1]);
+			}
 
 			// if there is a pixel2 equal to pixel1, increase number of matches
-			if (pixelComparator.compare(pixel1, pixel2) == 0)
+			if (pixelComparator.compare(pixel1, pixel2) == 0) {
 				numMatches++;
+				//System.out.println("match");
+			}
+			//System.out.println("continue");
 
 			// continue with next pixel1
 		}
 
 		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;
 
-		return (double)numDifferent/Math.max(pixels1.size(), pixels2.size());
+		return (double)numDifferent/Math.min(pixels1.size(), pixels2.size());
 	}
 }
