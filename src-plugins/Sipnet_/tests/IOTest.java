@@ -38,6 +38,8 @@ public class IOTest {
 
 			Vector<Candidate> msers = new Vector<Candidate>();
 
+			Candidate lastCandidate = null;
+
 			for (int c = 0; c < numRegions; c++) {
 
 				int size        = 10;
@@ -52,6 +54,13 @@ public class IOTest {
 				}
 
 				Candidate candidate = new Candidate(size, perimeter, center, pixels, meanGray);
+
+				if (lastCandidate != null) {
+					Vector<Candidate> children = new Vector<Candidate>();
+					children.add(lastCandidate);
+					candidate.addChildren(children);
+				}
+				lastCandidate = candidate;
 
 				if (lastId != -1)
 					assertEquals(candidate.getId(), lastId+1);
@@ -81,6 +90,8 @@ public class IOTest {
 		for (int s = 0; s < numSlices; s++) {
 
 			List<Vector<Candidate>> candidates = io.readMsers("test-msers.sip", s, s);
+
+			Candidate lastCandidate = null;
 
 			for (int c = 0; c < numRegions; c++) {
 
@@ -117,6 +128,15 @@ public class IOTest {
 
 				// gray level the same?
 				assertEquals(read.getMeanGrayValue(), write.getMeanGrayValue(), 1.0e-20);
+
+				// children are the same?
+				if (lastCandidate != null) {
+
+					assertEquals(read.getChildren().size(), 1);
+					assertEquals(read.getChildren().get(0).getId(), lastCandidate.getId());
+				} else
+					assertEquals(read.getChildren().size(), 0);
+				lastCandidate = read;
 			}
 		}
 
