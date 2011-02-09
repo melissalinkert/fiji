@@ -1,6 +1,3 @@
-package sipnet;
-
-import mser.MSER;
 
 import mser.MSER;
 
@@ -29,8 +26,6 @@ import sipnet.Sipnet;
 import sipnet.Texifyer;
 import sipnet.Visualiser;
 import sipnet.Visualiser3D;
-import sipnet.io.IO;
-import sipnet.io.ResultCacher;
 
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
