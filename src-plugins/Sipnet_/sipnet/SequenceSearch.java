@@ -1,5 +1,5 @@
+package sipnet;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,11 +51,9 @@ public class SequenceSearch {
 
 	private boolean noMoreNewVariables = false;
 
-	public SequenceSearch(List<Set<Candidate>> sliceCandidates, AssignmentModel assignmentModel, Texifyer texifyer) {
+	public SequenceSearch(List<Vector<Candidate>> sliceCandidates, AssignmentModel assignmentModel, Texifyer texifyer) {
 
-		this.sliceCandidates = new ArrayList<Vector<Candidate>>();
-		for (Set<Candidate> candidates : sliceCandidates)
-			this.sliceCandidates.add(new Vector<Candidate>(candidates));
+		this.sliceCandidates = sliceCandidates;
 
 		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Integer>>();
 
@@ -210,11 +208,10 @@ public class SequenceSearch {
 						Candidate smaller = (neighbor.getId() < member.getId() ? neighbor : member);
 						Candidate bigger  = (neighbor.getId() < member.getId() ? member   : neighbor);
 
-						if (mergeNodes.get(smaller).get(bigger) != null)
-							for (Candidate mergeTarget : mergeTargets.get(smaller).get(bigger)) {
-								variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergeTarget));
-								coefficients.add(1.0);
-							}
+						for (Candidate mergeTarget : mergeTargets.get(smaller).get(bigger)) {
+							variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergeTarget));
+							coefficients.add(1.0);
+						}
 					}
 				}
 
@@ -346,7 +343,7 @@ public class SequenceSearch {
 
 	private void findPossibleMergers() {
 
-		mergeNodes    = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
+		mergeNodes   = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
 		mergeTargets = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
 
 		// all but the last slice
@@ -444,19 +441,29 @@ public class SequenceSearch {
 
 				// each continuation
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
-					for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
-						if (getVariableValue(sourceCandidate, targetCandidate) == 1)
+					for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
+						if (getVariableValue(sourceCandidate, targetCandidate) == 1) {
+							if (targetCandidate.getId() == 238)
+								IJ.log("continuation from " + sourceCandidate.getId() + " to 238");
 							assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
+						}
+					}
 
 				// each merge
 				for (Candidate candidate : sliceCandidates.get(s))
 					for (Candidate neighbor : candidate.mergePartners()) {
 
+						// TODO:
+						// neighborhood relation is not mutual - this does not
+						// get all merges!
 						if (candidate.getId() > neighbor.getId())
 							continue;
 
 						for (Candidate mergeTarget : mergeTargets.get(candidate).get(neighbor))
 							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergeTarget) == 1) {
+
+								if (mergeTarget.getId() == 238)
+									IJ.log("merge from " + candidate.getId() + " and " + neighbor.getId() + " to 238");
 
 								assignment.add(new SingleAssignment(candidate, mergeTarget));
 								assignment.add(new SingleAssignment(neighbor, mergeTarget));

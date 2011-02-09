@@ -1,3 +1,4 @@
+package sipnet;
 
 public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 

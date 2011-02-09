@@ -1,6 +1,7 @@
+package sipnet;
 
-import java.util.Set;
 import java.util.List;
+import java.util.Vector;
 
 public class Sipnet {
 
@@ -11,7 +12,7 @@ public class Sipnet {
 		this.texifyer = texifyer;
 	}
 
-	public Sequence bestSearch(List<Set<Candidate>> sliceCandidates, AssignmentModel assignmentModel) {
+	public Sequence bestSearch(List<Vector<Candidate>> sliceCandidates, AssignmentModel assignmentModel) {
 
 		SequenceSearch sequenceSearch = new SequenceSearch(sliceCandidates, assignmentModel, texifyer);
 

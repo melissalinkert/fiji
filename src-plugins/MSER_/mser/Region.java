@@ -1,3 +1,4 @@
+package mser;
 
 import java.io.Externalizable;
 import java.io.IOException;

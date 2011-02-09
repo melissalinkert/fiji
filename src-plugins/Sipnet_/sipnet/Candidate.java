@@ -1,3 +1,4 @@
+package sipnet;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
+
+import mser.Region;
 
 import Jama.Matrix;
 

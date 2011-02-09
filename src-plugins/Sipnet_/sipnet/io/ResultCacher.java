@@ -1,3 +1,4 @@
+package sipnet.io;
 
 import java.lang.String;
 
@@ -7,9 +8,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.Vector;
+
+import sipnet.Candidate;
+
+import mser.MSER;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -45,7 +49,7 @@ public class ResultCacher {
 	 * Reads MSER forests (one for each slice) from a file and returns a
 	 * flattened set of MSERs for each slice.
 	 */
-	public Vector<Set<Candidate>> readMsers(
+	public Vector<Vector<Candidate>> readMsers(
 			String stackFile,
 			MSER<?,?>.Parameters mserParameters,
 			int firstSlice,
@@ -54,14 +58,14 @@ public class ResultCacher {
 		String msersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.sip";
 
 		IJ.log("Reading Msers from " + msersFile);
-		Vector<Set<Candidate>> sliceTopMsers = io.readMsers(msersFile, firstSlice, lastSlice);
+		List<Vector<Candidate>> sliceTopMsers = io.readMsers(msersFile, firstSlice, lastSlice);
 
 		if (sliceTopMsers == null)
 			return null;
 
-		Vector<Set<Candidate>> sliceMsers = new Vector<Set<Candidate>>();
+		Vector<Vector<Candidate>> sliceMsers = new Vector<Vector<Candidate>>();
 
-		for (Set<Candidate> topMsers : sliceTopMsers)
+		for (Vector<Candidate> topMsers : sliceTopMsers)
 			sliceMsers.add(flatten(topMsers));
 
 		return sliceMsers;
@@ -84,7 +88,7 @@ public class ResultCacher {
 	/**
 	 * Writes MSER forests (one for each slice) to a file.
 	 */
-	public void writeMsers(Vector<Set<Candidate>> topMsers, String stackFile, MSER<?,?>.Parameters mserParameters) {
+	public void writeMsers(Vector<Vector<Candidate>> topMsers, String stackFile, MSER<?,?>.Parameters mserParameters) {
 
 		String topMsersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.sip";
 
@@ -122,9 +126,9 @@ public class ResultCacher {
 		return text;
 	}
 
-	private HashSet<Candidate> flatten(Collection<Candidate> parents) {
+	private Vector<Candidate> flatten(Collection<Candidate> parents) {
 
-		HashSet<Candidate> allRegions = new HashSet<Candidate>();
+		Vector<Candidate> allRegions = new Vector<Candidate>();
 
 		allRegions.addAll(parents);
 		for (Candidate parent : parents)

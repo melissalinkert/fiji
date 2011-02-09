@@ -1,3 +1,4 @@
+package sipnet.io;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,9 +11,10 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.Vector;
+
+import sipnet.Candidate;
 
 import ij.IJ;
 
@@ -28,7 +30,7 @@ public class IO {
 		return ((new File(filename1)).lastModified() > (new File(filename2)).lastModified());
 	}
 
-	public void writeMsers(Vector<Set<Candidate>> sliceTopMsers, String filename) {
+	public void writeMsers(Vector<Vector<Candidate>> sliceTopMsers, String filename) {
 
 		File outfile = new File(filename);
 
@@ -60,9 +62,9 @@ public class IO {
 		}
 	}
 
-	public Vector<Set<Candidate>> readMsers(String filename, int firstSlice, int lastSlice) {
+	public List<Vector<Candidate>> readMsers(String filename, int firstSlice, int lastSlice) {
 
-		Vector<Set<Candidate>> sliceTopMsers = new Vector<Set<Candidate>>();
+		Vector<Vector<Candidate>> sliceTopMsers = new Vector<Vector<Candidate>>();
 
 		File infile = new File(filename);
 
@@ -76,12 +78,12 @@ public class IO {
 			if (numSlices < lastSlice)
 				throw new RuntimeException("not enough slices in mser file " + filename);
 
-			for (int s = 0; s < lastSlice; s++) {
+			for (int s = 0; s <= lastSlice; s++) {
 	
-				Set<Candidate> topMsers = new HashSet<Candidate>();
+				Vector<Candidate> topMsers = new Vector<Candidate>();
 
 				int numMsers = oin.readInt();
-				IJ.log("Trying to read " + numMsers + " top msers");
+				IJ.log("Reading " + numMsers + " top msers");
 
 				for (int i = 0; i < numMsers; i++) {
 					Candidate region = new Candidate();
@@ -106,6 +108,6 @@ public class IO {
 			return null;
 		}
 
-		return sliceTopMsers;
+		return sliceTopMsers.subList(firstSlice, sliceTopMsers.size());
 	}
 }

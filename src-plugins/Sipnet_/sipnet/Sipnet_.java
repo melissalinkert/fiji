@@ -1,9 +1,9 @@
+package sipnet;
 
 import mser.MSER;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import ij.IJ;
@@ -16,15 +16,6 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
 import ij.process.ImageProcessor;
-
-import sipnet.AssignmentModel;
-import sipnet.Candidate;
-import sipnet.CandidateFactory;
-import sipnet.Sequence;
-import sipnet.Sipnet;
-import sipnet.Texifyer;
-import sipnet.Visualiser;
-import sipnet.Visualiser3D;
 import sipnet.io.IO;
 import sipnet.io.ResultCacher;
 
@@ -94,12 +85,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// read candidate msers
 			msersImp = resultCacher.readMserImages(membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
-			Vector<Set<Candidate>> sliceCandidates =
+			Vector<Vector<Candidate>> sliceCandidates =
 				resultCacher.readMsers(
 						membraneImp.getOriginalFileInfo().fileName,
 						mser.getParameters(),
-						firstSlice,
-						lastSlice);
+						firstSlice - 1,
+						lastSlice  - 1);
 
 			if (msersImp == null || sliceCandidates == null) {
 
@@ -121,9 +112,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 
 				// prepare slice candidates
-				sliceCandidates = new Vector<Set<Candidate>>();
+				sliceCandidates = new Vector<Vector<Candidate>>();
 				sliceCandidates.setSize(numSlices);
-				Vector<Set<Candidate>> sliceTopMsers = new Vector<Set<Candidate>>();
+				Vector<Vector<Candidate>> sliceTopMsers = new Vector<Vector<Candidate>>();
 				sliceTopMsers.setSize(numSlices);
 
 				// extract msers from membrane image
@@ -154,8 +145,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					IJ.log("Found " + msers.size() + " candidates in slice " + s);
 
 					// store slice candidates
-					sliceCandidates.set(s, new HashSet<Candidate>(msers));
-					sliceTopMsers.set(s, new HashSet<Candidate>(topMsers));
+					sliceCandidates.set(s, new Vector<Candidate>(msers));
+					sliceTopMsers.set(s, new Vector<Candidate>(topMsers));
 
 					// visualise result
 					msersCursor.reset();
@@ -183,7 +174,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 			sipnet   = new Sipnet(texifyer);
 
-			List<Set<Candidate>> selectedSliceCandidates =
+			List<Vector<Candidate>> selectedSliceCandidates =
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
 			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates, assignmentModel);

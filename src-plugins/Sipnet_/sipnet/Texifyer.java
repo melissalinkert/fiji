@@ -1,3 +1,6 @@
+package sipnet;
+
+import mser.MSER;
 
 import java.io.File;
 import java.io.FileWriter;

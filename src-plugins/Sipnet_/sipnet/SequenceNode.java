@@ -1,3 +1,4 @@
+package sipnet;
 public class SequenceNode extends SearchNode<Sequence, SequenceNode> {
 
 	private Assignment assignment;

@@ -1,3 +1,4 @@
+package mser;
 
 import java.util.HashSet;
 import java.util.Stack;
@@ -105,7 +106,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		public int size;
 	}
 
-	class ConnectedComponent {
+	public class ConnectedComponent {
 
 		public int head;
 		public int tail;

@@ -1,3 +1,4 @@
+package sipnet;
 
 public interface ShapeDissimilarity {
 

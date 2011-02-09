@@ -1,3 +1,4 @@
+package sipnet;
 
 public abstract class SearchNode<P, N> implements Comparable<SearchNode<P, N>> {
 

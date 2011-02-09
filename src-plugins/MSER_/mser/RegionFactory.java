@@ -1,3 +1,4 @@
+package mser;
 
 public interface RegionFactory<R extends Region<R>> {
 

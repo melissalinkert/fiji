@@ -1,3 +1,7 @@
+package sipnet;
+
+import mser.MSER;
+import mser.RegionFactory;
 
 public class CandidateFactory implements RegionFactory<Candidate> {
 

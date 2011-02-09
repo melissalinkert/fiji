@@ -1,3 +1,4 @@
+package sipnet;
 
 import java.awt.Color;
 
@@ -137,7 +138,7 @@ public class Visualiser {
 		ip.setColor(new Color(100, 100, 100));
 		ip.drawLine(x1, y1, (x1 + x2)/2, (y1 + y2)/2);
 
-		ip.setColor(new Color(100, 255, 100));
+		ip.setColor(new Color(0, 0, 255));
 		ip.drawLine((x1 + x2)/2, (y1 + y2)/2, x2, y2);
 	}
 
