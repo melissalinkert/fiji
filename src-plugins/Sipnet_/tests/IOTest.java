@@ -19,8 +19,9 @@ public class IOTest {
 
 	private Vector<Vector<Candidate>> sliceMsers;
 
-	private int numSlices  = 10;
-	private int numRegions = 100;
+	private int numSlices   = 10;
+	private int numRegions  = 100;
+	private int numChildren = 10;
 
 	@Before
 	public void setUp() throws Exception {
@@ -29,7 +30,7 @@ public class IOTest {
 
 		io = new IO();
 
-		sliceMsers = new Vector<Vector<Candidate>>();
+		sliceMsers    = new Vector<Vector<Candidate>>();
 
 		int lastId = -1;
 
@@ -37,8 +38,6 @@ public class IOTest {
 		for (int s = 0; s < numSlices; s++) {
 
 			Vector<Candidate> msers = new Vector<Candidate>();
-
-			Candidate lastCandidate = null;
 
 			for (int c = 0; c < numRegions; c++) {
 
@@ -55,15 +54,17 @@ public class IOTest {
 
 				Candidate candidate = new Candidate(size, perimeter, center, pixels, meanGray);
 
-				if (lastCandidate != null) {
-					Vector<Candidate> children = new Vector<Candidate>();
-					children.add(lastCandidate);
-					candidate.addChildren(children);
+				Vector<Candidate> children = new Vector<Candidate>();
+				for (int k = 0; k < numChildren; k++) {
+
+					Candidate child = new Candidate(0, 0, new double[]{0, 0}, new int[][]{}, 0.0);
+					child.setParent(candidate);
+					children.add(child);
 				}
-				lastCandidate = candidate;
+				candidate.addChildren(children);
 
 				if (lastId != -1)
-					assertEquals(candidate.getId(), lastId+1);
+					assertEquals(candidate.getId(), lastId+1+numChildren);
 				lastId = candidate.getId();
 
 				msers.add(candidate);
@@ -90,8 +91,6 @@ public class IOTest {
 		for (int s = 0; s < numSlices; s++) {
 
 			List<Vector<Candidate>> candidates = io.readMsers("test-msers.sip", s, s);
-
-			Candidate lastCandidate = null;
 
 			for (int c = 0; c < numRegions; c++) {
 
@@ -130,16 +129,33 @@ public class IOTest {
 				assertEquals(read.getMeanGrayValue(), write.getMeanGrayValue(), 1.0e-20);
 
 				// children are the same?
-				if (lastCandidate != null) {
+				assertEquals(read.getChildren().size(), numChildren);
+				for (int k = 0; k < numChildren; k++)
+					assertEquals(read.getChildren().get(k).getId(), write.getChildren().get(k).getId());
 
-					assertEquals(read.getChildren().size(), 1);
-					assertEquals(read.getChildren().get(0).getId(), lastCandidate.getId());
-				} else
-					assertEquals(read.getChildren().size(), 0);
-				lastCandidate = read;
+				// parents are the same?
+				assertTrue(read.getParent() == null);
 			}
+
+			Vector<Candidate> msers = flatten(candidates.get(0));
+
+			// have all children be reconstructed?
+			assertEquals(msers.size(), numRegions * (numChildren + 1));
+
+			// is the heritage structure consistent?
+			MSERTest.consistentHeritage(msers, candidates.get(0));
 		}
 
 	}
 
+	private Vector<Candidate> flatten(Vector<Candidate> parents) {
+
+		Vector<Candidate> allRegions = new Vector<Candidate>();
+
+		allRegions.addAll(parents);
+		for (Candidate parent : parents)
+			allRegions.addAll(flatten(parent.getChildren()));
+
+		return allRegions;
+	}
 }
