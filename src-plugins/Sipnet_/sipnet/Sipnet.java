@@ -12,9 +12,14 @@ public class Sipnet {
 		this.texifyer = texifyer;
 	}
 
-	public Sequence bestSearch(List<Vector<Candidate>> sliceCandidates, AssignmentModel assignmentModel) {
+	public Sequence bestSearch(List<Vector<Candidate>> sliceCandidates, AssignmentModel assignmentModel, String parameterFilename) {
 
-		SequenceSearch sequenceSearch = new SequenceSearch(sliceCandidates, assignmentModel, texifyer);
+		SequenceSearch sequenceSearch =
+				new SequenceSearch(
+						sliceCandidates,
+						assignmentModel,
+						texifyer,
+						parameterFilename);
 
 		return sequenceSearch.getBestAssignmentSequence();
 	}

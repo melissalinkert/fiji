@@ -185,7 +185,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			List<Vector<Candidate>> selectedSliceCandidates =
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
-			Sequence bestSequence = sipnet.bestSearch(selectedSliceCandidates, assignmentModel);
+			Sequence bestSequence =
+					sipnet.bestSearch(
+							selectedSliceCandidates,
+							assignmentModel,
+							"./sequence_search.conf");
 	
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");

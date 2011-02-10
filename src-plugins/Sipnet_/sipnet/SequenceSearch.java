@@ -1,8 +1,13 @@
 package sipnet;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -14,9 +19,9 @@ public class SequenceSearch {
 	 * parameters of the sequence search
 	 */
 
-	public static final int NumDistanceCandidates = 50; // number of closest candidates to consider for targets
-	public static final int MaxTargetCandidates   = 25;
-	public static final int MinTargetCandidates   = 1;
+	public static int NumDistanceCandidates = 50; // number of closest candidates to consider for targets
+	public static int MaxTargetCandidates   = 25;
+	public static int MinTargetCandidates   = 10;
 
 	// number of neighbors to consider for neighbor offset
 	public static final int NumNeighbors = 3;
@@ -51,13 +56,19 @@ public class SequenceSearch {
 
 	private boolean noMoreNewVariables = false;
 
-	public SequenceSearch(List<Vector<Candidate>> sliceCandidates, AssignmentModel assignmentModel, Texifyer texifyer) {
+	public SequenceSearch(
+			List<Vector<Candidate>> sliceCandidates,
+			AssignmentModel assignmentModel,
+			Texifyer texifyer,
+			String parameterFilename) {
 
 		this.sliceCandidates = sliceCandidates;
 
 		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Integer>>();
 
 		this.assignmentModel = assignmentModel;
+
+		readParameters(parameterFilename);
 
 		// build cache for candidates
 		IJ.log("Precaching most likely candidates...");
@@ -93,6 +104,27 @@ public class SequenceSearch {
 			return readSequence();
 
 		return new Sequence();
+	}
+
+	public final void readParameters(String filename) {
+
+		Properties parameterFile = new Properties();
+
+		try {
+			parameterFile.load(new FileInputStream(new File(filename)));
+
+			NumDistanceCandidates = Integer.valueOf(parameterFile.getProperty("num_distance_candidates"));
+			MaxTargetCandidates   = Integer.valueOf(parameterFile.getProperty("max_target_candidates"));
+			MinTargetCandidates   = Integer.valueOf(parameterFile.getProperty("min_target_candidates"));
+
+			IJ.log("Sequence search read parameters:");
+			IJ.log("  NumDistanceCandidates: " + NumDistanceCandidates);
+			IJ.log("  MaxTargetCandidates: "   + MaxTargetCandidates);
+			IJ.log("  MinTargetCandidates: "   + MinTargetCandidates);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	private void setupProblem() {
