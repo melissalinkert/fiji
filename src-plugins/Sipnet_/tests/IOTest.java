@@ -43,7 +43,7 @@ public class IOTest {
 
 				int size        = 10;
 				int perimeter   = 5;
-				double[] center = new double[2];
+				double[] center = new double[]{Math.random(), Math.random()};
 				int[][]  pixels = new int[size][2];
 				double meanGray = 0.0;
 
@@ -112,8 +112,8 @@ public class IOTest {
 				assertEquals(size, write.getSize());
 
 				// center is the same?
-				assertEquals(read.getCenter()[0], write.getCenter()[0], 1.0e-20);
-				assertEquals(read.getCenter()[1], write.getCenter()[1], 1.0e-20);
+				assertEquals(read.getCenter(0), write.getCenter(0), 1.0e-20);
+				assertEquals(read.getCenter(1), write.getCenter(1), 1.0e-20);
 
 				// perimeter is the same?
 				assertEquals(read.getPerimeter(), write.getPerimeter());

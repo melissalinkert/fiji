@@ -98,22 +98,22 @@ public class Visualiser {
 
 				if (source == SequenceSearch.emergeNode) {
 
-					drawEmerge((int)target.getCenter()[0], (int)target.getCenter()[1], nip);
+					drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
 
 				} else if (target == SequenceSearch.deathNode) {
 
-					drawDeath((int)source.getCenter()[0], (int)source.getCenter()[1], pip);
+					drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
 
 				} else {
 
 					drawConnectionTo(
-							(int)source.getCenter()[0], (int)source.getCenter()[1],
-							(int)target.getCenter()[0], (int)target.getCenter()[1],
+							(int)source.getCenter(0), (int)source.getCenter(1),
+							(int)target.getCenter(0), (int)target.getCenter(1),
 							pip,
 							singleAssignment.getNegLogP());
 					drawConnectionFrom(
-							(int)source.getCenter()[0], (int)source.getCenter()[1],
-							(int)target.getCenter()[0], (int)target.getCenter()[1],
+							(int)source.getCenter(0), (int)source.getCenter(1),
+							(int)target.getCenter(0), (int)target.getCenter(1),
 							nip,
 							singleAssignment.getNegLogP());
 				}
@@ -156,10 +156,12 @@ public class Visualiser {
 
 	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, boolean drawCandidateId) {
 
+		// draw pixels
 		ip.setColor(color);
 		for (int[] pixel : candidate.getPixels())
 			ip.drawPixel(pixel[0], pixel[1]);
 
+		// draw id
 		if (drawCandidateId) {
 			ip.setColor(
 					new Color(
@@ -168,8 +170,8 @@ public class Visualiser {
 							255 - color.getBlue()));
 			ip.drawString(
 					"" + candidate.getId(),
-					(int)candidate.getCenter()[0],
-					(int)candidate.getCenter()[1]);
+					(int)candidate.getCenter(0),
+					(int)candidate.getCenter(1));
 		}
 	}
 }

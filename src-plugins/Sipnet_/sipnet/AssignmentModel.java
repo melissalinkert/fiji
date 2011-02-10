@@ -96,8 +96,8 @@ public class AssignmentModel {
 
 		Matrix diff = new Matrix(3, 1);
 
-		diff.set(0, 0, target.getCenter()[0] - source.getCenter()[0]);
-		diff.set(1, 0, target.getCenter()[1] - source.getCenter()[1]);
+		diff.set(0, 0, target.getCenter(0) - source.getCenter(0));
+		diff.set(1, 0, target.getCenter(1) - source.getCenter(1));
 		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target));
 
 		return
@@ -111,15 +111,15 @@ public class AssignmentModel {
 		double[] mergedCenter = target1.getCenter();
 		mergedCenter[0] =
 				(target1.getSize()*mergedCenter[0] +
-				 target2.getSize()*target2.getCenter()[0])/
+				 target2.getSize()*target2.getCenter(0))/
 				(target1.getSize() + target2.getSize());
 		mergedCenter[1] =
 				(target1.getSize()*mergedCenter[1] +
-				 target2.getSize()*target2.getCenter()[1])/
+				 target2.getSize()*target2.getCenter(1))/
 				(target1.getSize() + target2.getSize());
 
-		diff.set(0, 0, mergedCenter[0] - source.getCenter()[0]);
-		diff.set(1, 0, mergedCenter[1] - source.getCenter()[1]);
+		diff.set(0, 0, mergedCenter[0] - source.getCenter(0));
+		diff.set(1, 0, mergedCenter[1] - source.getCenter(1));
 		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target1, target2));
 
 		return

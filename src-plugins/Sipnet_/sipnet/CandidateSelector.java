@@ -243,7 +243,7 @@ public class CandidateSelector {
 
 		// highligh region centers in region image
 		for (Candidate region : regions)
-			regionImp.getProcessor().setf((int)region.getCenter()[0], (int)region.getCenter()[1], 255.0f);
+			regionImp.getProcessor().setf((int)region.getCenter(0), (int)region.getCenter(1), 255.0f);
 
 		// show the region image
 		regionImp.updateAndDraw();
@@ -281,8 +281,8 @@ public class CandidateSelector {
 
 					for (Candidate region : regions) {
 
-						double distance = (x-region.getCenter()[0])*(x-region.getCenter()[0]) +
-										  (y-region.getCenter()[1])*(y-region.getCenter()[1]);
+						double distance = (x-region.getCenter(0))*(x-region.getCenter(0)) +
+										  (y-region.getCenter(1))*(y-region.getCenter(1));
 						if (distance < minDistance || bestRegion == null) {
 							minDistance = distance;
 							bestRegion  = region;

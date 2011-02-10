@@ -124,7 +124,7 @@ public class Texifyer {
 
 		int[] center = new int[mser.getCenter().length];
 		for (int d = 0; d < mser.getCenter().length; d++)
-			center[d] = (int)mser.getCenter()[d];
+			center[d] = (int)mser.getCenter(d);
 
 		// draw a circle
 		double offsetX = (center[0] - (double)width/2.0)*scale;

@@ -285,8 +285,8 @@ public class Candidate extends Region<Candidate> {
 
 	public double distanceTo(Candidate candidate) {
 
-		double diffx = getCenter()[0] - candidate.getCenter()[0];
-		double diffy = getCenter()[1] - candidate.getCenter()[1];
+		double diffx = getCenter(0) - candidate.getCenter(0);
+		double diffy = getCenter(1) - candidate.getCenter(1);
 
 		return Math.sqrt(diffx*diffx + diffy*diffy);
 	}
@@ -295,8 +295,8 @@ public class Candidate extends Region<Candidate> {
 
 		double[] offset = new double[2];
 
-		offset[0] = candidate.getCenter()[0] - getCenter()[0];
-		offset[1] = candidate.getCenter()[1] - getCenter()[1];
+		offset[0] = candidate.getCenter(0) - getCenter(0);
+		offset[1] = candidate.getCenter(1) - getCenter(1);
 
 		return offset;
 	}
@@ -361,7 +361,7 @@ public class Candidate extends Region<Candidate> {
 		String ret = "Candidate " + getId() + ",";
 
 		for (int d = 0; d < getCenter().length; d++)
-			ret += " " + (int)getCenter()[d];
+			ret += " " + (int)getCenter(d);
 
 		ret += ", size: " + getSize();
 		ret += ", perimeter: " + getPerimeter();
@@ -381,8 +381,8 @@ public class Candidate extends Region<Candidate> {
 		for (int[] pixel : pixels) {
 
 			double[] p = {
-					(double)pixel[0] - getCenter()[0],
-					(double)pixel[1] - getCenter()[1]};
+					(double)pixel[0] - getCenter(0),
+					(double)pixel[1] - getCenter(1)};
 
 			Matrix  mp = new Matrix(p, 1);
 
