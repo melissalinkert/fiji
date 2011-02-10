@@ -352,10 +352,14 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			int[][] pixels = new int[size][numDimensions];
 
 			int i = 0;
+			// extract first pixel
+			indexToPosition(index, pixels[i]);
+			i++;
+
 			while (next[index] != index && next[index] != NONE) {
 
-				indexToPosition(index, pixels[i]);
 				index = next[index];
+				indexToPosition(index, pixels[i]);
 				i++;
 			}
 
