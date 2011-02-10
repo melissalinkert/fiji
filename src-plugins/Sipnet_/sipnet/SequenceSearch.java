@@ -36,9 +36,11 @@ public class SequenceSearch {
 	// candidates for each slice
 	private List<Vector<Candidate>> sliceCandidates;
 
-	// pairs of nodes that can potentially merge
+	// pairs of nodes that can potentially merge/split
 	private HashMap<Candidate, HashMap<Candidate, Candidate>>      mergeNodes;
 	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> mergeTargets;
+	private HashMap<Candidate, HashMap<Candidate, Candidate>>      splitNodes;
+	private HashMap<Candidate, HashMap<Candidate, Set<Candidate>>> splitSources;
 
 	private HashMap<Candidate, HashMap<Candidate, Integer>> nodeNums;
 	private int nextNodeId = 0;
@@ -129,8 +131,8 @@ public class SequenceSearch {
 
 	private void setupProblem() {
 
-		IJ.log("searching for possible merge candidates");
-		findPossibleMergers();
+		IJ.log("searching for possible bisections");
+		findPossibleBisections();
 		IJ.log("Done.");
 
 		int numVariables   = computeNumVariables();
@@ -167,6 +169,22 @@ public class SequenceSearch {
 					coefficients.add(1.0);
 				}
 
+				// ...and all split edges this target candidate is involved
+				// in...
+				for (Candidate neighbor : candidate.splitPartners()) {
+
+					Candidate smaller = (neighbor.getId() < candidate.getId() ? neighbor  : candidate);
+					Candidate bigger  = (neighbor.getId() < candidate.getId() ? candidate : neighbor);
+
+					Candidate splitNode = splitNodes.get(smaller).get(bigger);
+
+					if (splitNode != null)
+						for (Candidate splitSource : splitSources.get(smaller).get(bigger)) {
+							variableNums.add(getVariableNum(splitSource, splitNode));
+							coefficients.add(1.0);
+						}
+				}
+
 				// ...and the edge from the emerge node...
 				variableNums.add(getVariableNum(emergeNode, candidate));
 				coefficients.add(1.0);
@@ -176,6 +194,12 @@ public class SequenceSearch {
 				// ...the sum of all continuation edges...
 				for (Candidate targetCandidate : candidate.getMostLikelyCandidates()) {
 					variableNums.add(getVariableNum(candidate, targetCandidate));
+					coefficients.add(-1.0);
+				}
+
+				// ...and all split edges from this candidate...
+				for (Candidate splitNode : candidate.splitSourceOf()) {
+					variableNums.add(getVariableNum(candidate, splitNode));
 					coefficients.add(-1.0);
 				}
 
@@ -245,6 +269,13 @@ public class SequenceSearch {
 							coefficients.add(1.0);
 						}
 					}
+
+					// ...and all outgoinh split edges...
+					for (Candidate splitNode : member.splitSourceOf()) {
+
+						variableNums.add(getVariableNum(member, splitNode));
+						coefficients.add(1.0);
+					}
 				}
 
 				// ...has to be at most one
@@ -285,6 +316,21 @@ public class SequenceSearch {
 						for (Candidate mergeNode : member.mergeTargetOf()) {
 							variableNums.add(getVariableNum(mergeNode, member));
 							coefficients.add(1.0);
+						}
+
+						// ...and all incoming split edges...
+						for (Candidate neighbor : member.splitPartners()) {
+
+							Candidate smaller = (member.getId() < neighbor.getId() ? member   : neighbor);
+							Candidate bigger  = (member.getId() < neighbor.getId() ? neighbor : member);
+
+							Candidate splitNode = splitNodes.get(smaller).get(bigger);
+
+							for (Candidate splitSource : splitSources.get(smaller).get(bigger)) {
+
+								variableNums.add(getVariableNum(splitSource, splitNode));
+								coefficients.add(1.0);
+							}
 						}
 
 						// not for last slice
@@ -331,6 +377,7 @@ public class SequenceSearch {
 			for (Candidate candidate : sliceCandidates.get(s))
 				for (Candidate neighbor : candidate.mergePartners()) {
 
+					// don't count them twice
 					if (candidate.getId() > neighbor.getId())
 						continue;
 
@@ -339,6 +386,26 @@ public class SequenceSearch {
 
 							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergeTarget));
 							coefficients.add(assignmentModel.costBisect(mergeTarget, candidate, neighbor));
+						}
+				}
+		}
+
+		// all but first slice
+		for (int s = 1; s < sliceCandidates.size(); s++) {
+
+			// for each split
+			for (Candidate candidate : sliceCandidates.get(s))
+				for (Candidate neighbor : candidate.splitPartners()) {
+
+					// don't count them twice
+					if (candidate.getId() > neighbor.getId())
+						continue;
+
+					if (splitNodes.get(candidate).get(neighbor) != null)
+						for (Candidate splitSource : splitSources.get(candidate).get(neighbor)) {
+
+							variableNums.add(getVariableNum(splitSource, splitNodes.get(candidate).get(neighbor)));
+							coefficients.add(assignmentModel.costBisect(splitSource, candidate, neighbor));
 						}
 				}
 		}
@@ -373,45 +440,87 @@ public class SequenceSearch {
 	}
 
 
-	private void findPossibleMergers() {
+	private void findPossibleBisections() {
 
 		mergeNodes   = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
 		mergeTargets = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
+		splitNodes   = new HashMap<Candidate, HashMap<Candidate, Candidate>>();
+		splitSources = new HashMap<Candidate, HashMap<Candidate, Set<Candidate>>>();
 
-		// all but the last slice
-		for (int s = 0; s < sliceCandidates.size() - 1; s++) {
+		// all slices
+		for (int s = 0; s < sliceCandidates.size(); s++) {
 
-			for (Candidate sourceCandidate : sliceCandidates.get(s)) {
+			// merges (all but last slice)
+			if (s < sliceCandidates.size() - 1)
+				for (Candidate sourceCandidate : sliceCandidates.get(s)) {
 
-				mergeNodes.put(sourceCandidate, new HashMap<Candidate, Candidate>());
-				mergeTargets.put(sourceCandidate, new HashMap<Candidate, Set<Candidate>>());
-			}
+					mergeNodes.put(sourceCandidate, new HashMap<Candidate, Candidate>());
+					mergeTargets.put(sourceCandidate, new HashMap<Candidate, Set<Candidate>>());
+				}
 
+			// splits (all but first slice)
+			if (s > 0)
+				for (Candidate targetCandidate : sliceCandidates.get(s)) {
+
+					splitNodes.put(targetCandidate, new HashMap<Candidate, Candidate>());
+					splitSources.put(targetCandidate, new HashMap<Candidate, Set<Candidate>>());
+				}
+
+			// all pairs of candidates in one slice
 			for (Candidate candidate : sliceCandidates.get(s))
 				for (Candidate neighbor : candidate.getNeighbors()) {
 
 					Candidate smaller = (candidate.getId() < neighbor.getId() ? candidate : neighbor);
 					Candidate bigger  = (candidate.getId() < neighbor.getId() ? neighbor  : candidate);
 
-					// has this pair been considered already?
-					if (mergeNodes.get(smaller).get(bigger) != null)
-						continue;
+					// merges (all but last slice)
+					if (s < sliceCandidates.size() - 1) {
 
-					Set<Candidate> targets   = new HashSet<Candidate>();
-					Candidate      mergeNode = new Candidate();
+						// has this pair been considered already?
+						if (mergeNodes.get(smaller).get(bigger) == null) {
 
-					for (Candidate mergeTarget : smaller.getMostLikelyCandidates())
-						if (bigger.getMostLikelyCandidates().contains(mergeTarget)) {
-							targets.add(mergeTarget);
-							mergeTarget.addMergeTargetOf(mergeNode);
+							Set<Candidate> targets   = new HashSet<Candidate>();
+							Candidate      mergeNode = new Candidate();
+
+							for (Candidate mergeTarget : smaller.getMostLikelyCandidates())
+								if (bigger.getMostLikelyCandidates().contains(mergeTarget)) {
+									targets.add(mergeTarget);
+									mergeTarget.addMergeTargetOf(mergeNode);
+								}
+
+							if (targets.size() > 0) {
+								mergeNodes.get(smaller).put(bigger, mergeNode);
+								mergeTargets.get(smaller).put(bigger, targets);
+
+								smaller.addMergePartner(bigger);
+								bigger.addMergePartner(smaller);
+							}
 						}
+					}
 
-					if (targets.size() > 0) {
-						mergeNodes.get(smaller).put(bigger, mergeNode);
-						mergeTargets.get(smaller).put(bigger, targets);
+					// splits (all but first slice)
+					if (s > 0) {
 
-						smaller.addMergePartner(bigger);
-						bigger.addMergePartner(smaller);
+						// has this pair been considered already?
+						if (splitNodes.get(smaller).get(bigger) != null)
+							continue;
+
+						Set<Candidate> sources   = new HashSet<Candidate>();
+						Candidate      splitNode = new Candidate();
+
+						for (Candidate splitSource : smaller.getMostLikelyOf())
+							if (bigger.getMostLikelyOf().contains(splitSource)) {
+								sources.add(splitSource);
+								splitSource.addSplitSourceOf(splitNode);
+							}
+
+						if (sources.size() > 0) {
+							splitNodes.get(smaller).put(bigger, splitNode);
+							splitSources.get(smaller).put(bigger, sources);
+
+							smaller.addSplitPartner(bigger);
+							bigger.addSplitPartner(smaller);
+						}
 					}
 				}
 		}
@@ -428,6 +537,12 @@ public class SequenceSearch {
 		for (Candidate smaller : mergeNodes.keySet())
 			for (Candidate bigger : mergeNodes.get(smaller).keySet())
 				numVariables += mergeTargets.get(smaller).get(bigger).size();
+
+		// for each possible split of a source candidate to two target
+		// candidates
+		for (Candidate smaller : splitNodes.keySet())
+			for (Candidate bigger : splitNodes.get(smaller).keySet())
+				numVariables += splitSources.get(smaller).get(bigger).size();
 
 		// all but the last slice
 		for (int s = 0; s < sliceCandidates.size() - 1; s++)
@@ -485,9 +600,7 @@ public class SequenceSearch {
 				for (Candidate candidate : sliceCandidates.get(s))
 					for (Candidate neighbor : candidate.mergePartners()) {
 
-						// TODO:
-						// neighborhood relation is not mutual - this does not
-						// get all merges!
+						// don't count them twice
 						if (candidate.getId() > neighbor.getId())
 							continue;
 
@@ -501,6 +614,25 @@ public class SequenceSearch {
 								assignment.add(new SingleAssignment(neighbor, mergeTarget));
 
 								// there can only be one merge target
+								break;
+							}
+					}
+
+				// each split
+				for (Candidate candidate : sliceCandidates.get(s+1))
+					for (Candidate neighbor : candidate.splitPartners()) {
+
+						// don't count them twice
+						if (candidate.getId() > neighbor.getId())
+							continue;
+
+						for (Candidate splitSource : splitSources.get(candidate).get(neighbor))
+							if (getVariableValue(splitSource, splitNodes.get(candidate).get(neighbor)) == 1) {
+
+								assignment.add(new SingleAssignment(splitSource, candidate));
+								assignment.add(new SingleAssignment(splitSource, neighbor));
+
+								// there can only be one split target
 								break;
 							}
 					}

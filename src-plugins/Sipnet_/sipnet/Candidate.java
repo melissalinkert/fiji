@@ -31,8 +31,9 @@ public class Candidate extends Region<Candidate> {
 	// all candidates of which this one is a most likely candidate
 	private Vector<Candidate>          mostSimilarOf;
 
-	// vector of merge nodes that point to this candidate
+	// vector of merge/split nodes that point to this candidate
 	private Vector<Candidate>          mergeTargetOf;
+	private Vector<Candidate>          splitSourceOf;
 
 	// closest candidates in x-y of same slice
 	private Vector<Candidate> neighbors;
@@ -40,8 +41,9 @@ public class Candidate extends Region<Candidate> {
 	private Vector<double[]>  neighborOffsets;
 	private Vector<Integer>   neighborIndices;
 
-	// all potential merge partners of this candidate
+	// all potential merge/split partners of this candidate
 	private Set<Candidate>    mergePartners;
+	private Set<Candidate>    splitPartners;
 
 	// the pixels belonging to this candidate
 	private List<int[]> pixels;
@@ -106,6 +108,8 @@ public class Candidate extends Region<Candidate> {
 		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergePartners         = new HashSet<Candidate>();
+		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.splitPartners         = new HashSet<Candidate>();
 
 		this.pixels = new ArrayList<int[]>();
 	}
@@ -119,6 +123,8 @@ public class Candidate extends Region<Candidate> {
 		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergePartners         = new HashSet<Candidate>();
+		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		this.splitPartners         = new HashSet<Candidate>();
 
 		Arrays.sort(pixels, new PixelComparator());
 		this.pixels        = Arrays.asList(pixels);
@@ -175,9 +181,19 @@ public class Candidate extends Region<Candidate> {
 		mergePartners.add(candidate);
 	}
 
+	public void addSplitPartner(Candidate candidate) {
+
+		splitPartners.add(candidate);
+	}
+
 	public Set<Candidate> mergePartners() {
 
 		return mergePartners;
+	}
+
+	public Set<Candidate> splitPartners() {
+
+		return splitPartners;
 	}
 
 	public void addMergeTargetOf(Candidate candidate) {
@@ -185,9 +201,19 @@ public class Candidate extends Region<Candidate> {
 		mergeTargetOf.add(candidate);
 	}
 
+	public void addSplitSourceOf(Candidate candidate) {
+
+		splitSourceOf.add(candidate);
+	}
+
 	public Vector<Candidate> mergeTargetOf() {
 
 		return mergeTargetOf;
+	}
+
+	public Vector<Candidate> splitSourceOf() {
+
+		return splitSourceOf;
 	}
 
 	public void findNeighbors(Vector<Candidate> candidates) {
