@@ -64,7 +64,9 @@ public class Region<R extends Region<R>> implements Externalizable {
 
 	public double[] getCenter() {
 
-		return this.center;
+		double[] center = new double[this.center.length];
+		System.arraycopy(this.center, 0, center, 0, this.center.length);
+		return center;
 	}
 
 	public double getCenter(int index) {
