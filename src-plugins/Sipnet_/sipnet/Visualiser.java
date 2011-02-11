@@ -2,13 +2,18 @@ package sipnet;
 
 import java.awt.Color;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Vector;
 
 import ij.IJ;
 import ij.ImagePlus;
 
 import ij.plugin.Duplicator;
 
+import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
 public class Visualiser {
@@ -113,7 +118,7 @@ public class Visualiser {
 						if (target != SequenceSearch.deathNode) {
 
 							VColor color = candidateColors.get(target);
-							drawCandidate(target, nip, color.color, drawCandidateId);
+							drawCandidate(target, nip, color.color, (drawCandidateId ? "" + target.getId() : null));
 						}
 					}
 				}
@@ -123,7 +128,7 @@ public class Visualiser {
 					if (source != SequenceSearch.emergeNode) {
 
 						VColor color = candidateColors.get(source);
-						drawCandidate(source, pip, color.color, drawCandidateId);
+						drawCandidate(source, pip, color.color, (drawCandidateId ? "" + source.getId() : null));
 					}
 				}
 			}
@@ -177,6 +182,78 @@ public class Visualiser {
 		blockCopy.updateAndDraw();
 	}
 
+	public void drawMostLikelyCandidates(ImagePlus blockImage, List<Vector<Candidate>> sliceCandidates, String outputDirectory) {
+
+		int width  = blockImage.getWidth();
+		int height = blockImage.getHeight();
+
+		int i = 0;
+		int s = 1;
+
+		for (Vector<Candidate> candidates : sliceCandidates) {
+
+			for (Candidate candidate : candidates) {
+
+				if (candidate.getMostLikelyCandidates().size() == 0) {
+					IJ.log("candidate " + candidate.getId() + " does not have likely candidates");
+					continue;
+				}
+
+				ImageProcessor candidateIp = new ColorProcessor(width, height);
+
+				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null);
+
+				ImagePlus candidateImp = new ImagePlus("candidate", candidateIp);
+				IJ.save(candidateImp, outputDirectory + "/s" + s + "c" + candidate.getId() + ".tif");
+
+				ImageProcessor similarIp = new ColorProcessor(width, height);
+
+				double minSimilarity = 0;
+				double maxSimilarity = 0;
+				for (Candidate similar : candidate.getMostLikelyCandidates()) {
+					if (candidate.getNegLogPAppearance(similar) < minSimilarity ||
+					    minSimilarity == 0)
+						minSimilarity = candidate.getNegLogPAppearance(similar);
+					if (candidate.getNegLogPAppearance(similar) > maxSimilarity ||
+					    maxSimilarity == 0)
+						maxSimilarity = candidate.getNegLogPAppearance(similar);
+				}
+
+				Vector<Candidate> sortedBySize = new Vector<Candidate>();
+				sortedBySize.addAll(candidate.getMostLikelyCandidates());
+
+				class SizeComparator implements Comparator<Candidate> {
+					public int compare(Candidate c1, Candidate c2) {
+						if (c1.getSize() > c2.getSize())
+							return -1;
+						if (c1.getSize() < c2.getSize())
+							return 1;
+						return 0;
+					}
+				}
+				Collections.sort(sortedBySize, new SizeComparator());
+
+				for (Candidate similar : sortedBySize) {
+
+					double similarity = candidate.getNegLogPAppearance(similar);
+
+					int red   = (int)(255.0*(similarity - minSimilarity)/(maxSimilarity - minSimilarity));
+					int green = (int)(255.0*(maxSimilarity - similarity)/(maxSimilarity - minSimilarity));
+
+					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity);
+				}
+
+				i++;
+
+				// create imageplus and store as tif
+				ImagePlus shapeImp = new ImagePlus("most similar shapes", similarIp);
+				IJ.save(shapeImp, outputDirectory + "/s" + s + "c" + candidate.getId() + "-candidates.tif");
+			}
+
+			s++;
+		}
+	}
+
 	private void drawConnectionTo(int x1, int y1, int x2, int y2, ImageProcessor ip, double confidence) {
 
 		ip.setColor(new Color(0, 255, 0));
@@ -207,7 +284,7 @@ public class Visualiser {
 		ip.drawOval(x-3, y-3, 6, 6);
 	}
 
-	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, boolean drawCandidateId) {
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, String annotation) {
 
 		// draw pixels
 		ip.setColor(color);
@@ -215,14 +292,14 @@ public class Visualiser {
 			ip.drawPixel(pixel[0], pixel[1]);
 
 		// draw id
-		if (drawCandidateId) {
+		if (annotation != null) {
 			ip.setColor(
 					new Color(
 							255 - color.getRed(),
 							255 - color.getGreen(),
 							255 - color.getBlue()));
 			ip.drawString(
-					"" + candidate.getId(),
+					annotation,
 					(int)candidate.getCenter(0),
 					(int)candidate.getCenter(1));
 		}
