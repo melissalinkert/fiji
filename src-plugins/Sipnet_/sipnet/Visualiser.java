@@ -13,6 +13,15 @@ import ij.process.ImageProcessor;
 
 public class Visualiser {
 
+	private class VColor {
+
+		Color color;
+
+		public VColor(int r, int g, int b) {
+			color = new Color(r, g, b);
+		}
+	}
+
 	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
 
 		// visualize result
@@ -22,12 +31,70 @@ public class Visualiser {
 		IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
-		HashMap<Candidate, Color> candidateColors = new HashMap<Candidate, Color>();
+		HashMap<Candidate, VColor> candidateColors = new HashMap<Candidate, VColor>();
+
+		/*
+		 * ASSIGN COLORS
+		 */
+		int slice = sequence.size();
+		for (SequenceNode sequenceNode : sequence) {
+
+			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+
+				// associate random colors to last candidates (if not done
+				// already)
+				if (slice == sequence.size()) {
+
+					int r = (int)(Math.random()*255.0);
+					int g = (int)(Math.random()*255.0);
+					int b = (int)(Math.random()*255.0);
+					VColor color = new VColor(r, g, b);
+
+					for (Candidate target : singleAssignment.getTargets())
+						if (target != SequenceSearch.deathNode)
+							candidateColors.put(target, color);
+				}
+
+				for (Candidate source : singleAssignment.getSources())
+
+					if (source != SequenceSearch.emergeNode) {
+
+						// see, if there was a color for this source already
+						VColor color = candidateColors.get(source);
+
+						// no - take color of first target
+						if (color == null)
+							color = candidateColors.get(singleAssignment.getTargets().get(0));
+						// yes - force all targets to take this color
+						else {
+							for (Candidate target : singleAssignment.getTargets())
+								candidateColors.get(target).color = color.color;
+							break;
+						}
+
+						// if target was not assigned as well, this source died -
+						// give it a new color
+						if (color == null) {
+
+							int r = (int)(Math.random()*255.0);
+							int g = (int)(Math.random()*255.0);
+							int b = (int)(Math.random()*255.0);
+
+							color = new VColor(r, g, b);
+						}
+
+						// store new color for all sources now
+						for (Candidate otherSources : singleAssignment.getSources())
+							candidateColors.put(otherSources, color);
+					}
+			}
+			slice--;
+		}
 
 		/*
 		 * DRAW CANDIDATES
 		 */
-		int slice = sequence.size();
+		slice = sequence.size();
 		for (SequenceNode sequenceNode : sequence) {
 
 			// previous slice
@@ -41,39 +108,23 @@ public class Visualiser {
 				// last assignment
 				if (slice == sequence.size()) {
 
-					int r = (int)(Math.random()*255.0);
-					int g = (int)(Math.random()*255.0);
-					int b = (int)(Math.random()*255.0);
+					for (Candidate target : singleAssignment.getTargets()) {
 
-					Candidate candidate = singleAssignment.getTarget();
+						if (target != SequenceSearch.deathNode) {
 
-					if (candidate != SequenceSearch.deathNode) {
-
-						Color color = new Color(r, g, b);
-						candidateColors.put(candidate, color);
-						drawCandidate(candidate, nip, color, drawCandidateId);
+							VColor color = candidateColors.get(target);
+							drawCandidate(target, nip, color.color, drawCandidateId);
+						}
 					}
 				}
 
-				Candidate candidate = singleAssignment.getSource();
+				for (Candidate source : singleAssignment.getSources()) {
 
-				if (candidate != SequenceSearch.deathNode &&
-				    candidate != SequenceSearch.emergeNode) {
+					if (source != SequenceSearch.emergeNode) {
 
-					Color color = candidateColors.get(singleAssignment.getTarget());
-
-					if (color == null) {
-
-						int r = (int)(Math.random()*255.0);
-						int g = (int)(Math.random()*255.0);
-						int b = (int)(Math.random()*255.0);
-
-						color = new Color(r, g, b);
-
-						candidateColors.put(candidate, color);
+						VColor color = candidateColors.get(source);
+						drawCandidate(source, pip, color.color, drawCandidateId);
 					}
-
-					drawCandidate(candidate, pip, color, drawCandidateId);
 				}
 			}
 			slice--;
@@ -93,29 +144,31 @@ public class Visualiser {
 
 			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
 
-				Candidate source = singleAssignment.getSource();
-				Candidate target = singleAssignment.getTarget();
+				for (Candidate source : singleAssignment.getSources()) {
+					for (Candidate target : singleAssignment.getTargets()) {
 
-				if (source == SequenceSearch.emergeNode) {
+						if (source == SequenceSearch.emergeNode) {
 
-					drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
+							drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
 
-				} else if (target == SequenceSearch.deathNode) {
+						} else if (target == SequenceSearch.deathNode) {
 
-					drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
+							drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
 
-				} else {
+						} else {
 
-					drawConnectionTo(
-							(int)source.getCenter(0), (int)source.getCenter(1),
-							(int)target.getCenter(0), (int)target.getCenter(1),
-							pip,
-							singleAssignment.getNegLogP());
-					drawConnectionFrom(
-							(int)source.getCenter(0), (int)source.getCenter(1),
-							(int)target.getCenter(0), (int)target.getCenter(1),
-							nip,
-							singleAssignment.getNegLogP());
+							drawConnectionTo(
+									(int)source.getCenter(0), (int)source.getCenter(1),
+									(int)target.getCenter(0), (int)target.getCenter(1),
+									pip,
+									singleAssignment.getNegLogP());
+							drawConnectionFrom(
+									(int)source.getCenter(0), (int)source.getCenter(1),
+									(int)target.getCenter(0), (int)target.getCenter(1),
+									nip,
+									singleAssignment.getNegLogP());
+						}
+					}
 				}
 			}
 			slice--;
