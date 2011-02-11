@@ -58,7 +58,7 @@ public class AssignmentModel {
 		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 	}
 
-	public final double costContinuation(Candidate source, Candidate target) {
+	public final double costContinuation(Candidate source, Candidate target, boolean dataTerm) {
 
 		final Candidate smaller = (source.getId() > target.getId() ? target : source);
 		final Candidate bigger  = (source.getId() > target.getId() ? source : target);
@@ -70,20 +70,18 @@ public class AssignmentModel {
 			continuationCache.put(smaller, shm);
 		}
 
-		final Double costs = shm.get(bigger);
+		Double prior = shm.get(bigger);
 
-		if (costs == null) {
+		if (prior == null) {
 
-			double dcosts =
-					weightContinuation*continuationPrior(source, target) +
-					weightData*(dataTerm(source) + dataTerm(target));
-
-			shm.put(bigger, dcosts);
-
-			return dcosts;
+			prior = weightContinuation*continuationPrior(source, target);
+			shm.put(bigger, prior);
 		}
 
-		return costs;
+		if (dataTerm)
+			return prior + weightData*(dataTerm(source) + dataTerm(target));
+
+		return prior;
 	}
 
 	public final double costBisect(Candidate source, Candidate target1, Candidate target2) {

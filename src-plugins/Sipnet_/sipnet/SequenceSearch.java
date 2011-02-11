@@ -370,7 +370,7 @@ public class SequenceSearch {
 			for (Candidate sourceCandidate : sliceCandidates.get(s))
 				for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
 					variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
-					coefficients.add(assignmentModel.costContinuation(sourceCandidate, targetCandidate));
+					coefficients.add(assignmentModel.costContinuation(sourceCandidate, targetCandidate, true));
 				}
 
 			// for each merge
