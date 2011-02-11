@@ -79,7 +79,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			ResultCacher resultCacher = new ResultCacher("./.cache", io);
 
 			// read assignment model paramters
-			AssignmentModel assignmentModel = AssignmentModel.readFromFile("./assignment_model.conf");
+			AssignmentModel assignmentModel =
+					AssignmentModel.readFromFile(
+							"./assignment_model.conf",
+							new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
 
 			// setup mser algorithm
 			MSER<T, Candidate> mser =

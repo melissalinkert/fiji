@@ -27,11 +27,18 @@ public class AssignmentModel {
 	private double covaPosition  = 10.0;
 	private double covaShape     = 0.5;
 
+	// size of the margin (in pixels), in which appearence of neurons is more
+	// likely
+	private double appearanceMargin = 100;
+
 	private ShapeDissimilarity shapeDissimilarity;
 
 	/*
 	 * IMPLEMENTATION
 	 */
+
+	// size of the slice images to infer distance to border
+	private int[] imageDimensions;
 
 	private double[][] covaApp =
 	    {{covaPosition, 0.0, 0.0},
@@ -44,9 +51,10 @@ public class AssignmentModel {
 	// this is needed very oftern - therefor, cache the results
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
 
-	public AssignmentModel(ShapeDissimilarity shapeDissimilarity) {
+	public AssignmentModel(ShapeDissimilarity shapeDissimilarity, int[] imageDimensions) {
 
 		this.shapeDissimilarity = shapeDissimilarity;
+		this.imageDimensions    = imageDimensions;
 		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 	}
 
@@ -128,7 +136,16 @@ public class AssignmentModel {
 
 	private final double endPrior(Candidate candidate) {
 
-		return candidate.getSize();
+		// distance to border
+		double distance =
+				Math.min(
+					Math.min(candidate.getCenter(0), imageDimensions[0] - candidate.getCenter(0)),  // min_x
+					Math.min(candidate.getCenter(1), imageDimensions[1] - candidate.getCenter(1))); // min_y
+
+		double weightPosition =
+				Math.min(1.0, distance/appearanceMargin);
+
+		return weightPosition;//*candidate.getSize();
 	}
 
 	private final double dataTerm(Candidate candidate) {
@@ -157,8 +174,10 @@ public class AssignmentModel {
 			weightBisection    = Double.valueOf(parameterFile.getProperty("weight_bisection"));
 			weightEnd          = Double.valueOf(parameterFile.getProperty("weight_end"));
 
-			covaPosition         = Double.valueOf(parameterFile.getProperty("cova_position"));
-			covaShape            = Double.valueOf(parameterFile.getProperty("cova_shape"));
+			covaPosition       = Double.valueOf(parameterFile.getProperty("cova_position"));
+			covaShape          = Double.valueOf(parameterFile.getProperty("cova_shape"));
+
+			appearanceMargin   = Double.valueOf(parameterFile.getProperty("appearance_margin"));
 
 			IJ.log("Assignment model read parameters:");
 			IJ.log("  weight data term: "         + weightData);
@@ -173,7 +192,7 @@ public class AssignmentModel {
 
 	}
 
-	final public static AssignmentModel readFromFile(String filename) {
+	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
 
 		AssignmentModel assignmentModel = null;
 
@@ -184,12 +203,12 @@ public class AssignmentModel {
 			parameterFile.load(new FileInputStream(new File(filename)));
 
 			if (parameterFile.getProperty("shape_dissimilarity").equals("set_difference"))
-				assignmentModel = new AssignmentModel(new SetDifference());
+				assignmentModel = new AssignmentModel(new SetDifference(), imageDimensions);
 			else if (parameterFile.getProperty("shape_dissimilarity").equals("kl_divergence"))
-				assignmentModel = new AssignmentModel(new KLDivergence());
+				assignmentModel = new AssignmentModel(new KLDivergence(), imageDimensions);
 			else {
 				IJ.log("No shape dissimilarity defined in " + filename + ", taking set_difference");
-				assignmentModel = new AssignmentModel(new SetDifference());
+				assignmentModel = new AssignmentModel(new SetDifference(), imageDimensions);
 			}
 
 			assignmentModel.readParameters(filename);
