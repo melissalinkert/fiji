@@ -207,6 +207,16 @@ public class AssignmentModel {
 
 	}
 
+	final void setParameters(double[] w) {
+
+		weightData                 = w[0];
+		weightPositionContinuation = w[1];
+		weightShapeContinuation    = w[2];
+		weightPositionBisection    = w[3];
+		weightShapeBisection       = w[4];
+		weightEnd                  = w[5];
+	}
+
 	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
 
 		AssignmentModel assignmentModel = getInstance();
