@@ -10,7 +10,6 @@ public class Sipnet {
 
 	public Sipnet(
 			List<Vector<Candidate>> sliceCandidates,
-			AssignmentModel assignmentModel,
 			String parameterFilename,
 			Texifyer texifyer) {
 
@@ -19,7 +18,6 @@ public class Sipnet {
 		sequenceSearch =
 				new SequenceSearch(
 						sliceCandidates,
-						assignmentModel,
 						texifyer,
 						parameterFilename);
 	}

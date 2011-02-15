@@ -82,10 +82,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			ResultCacher resultCacher = new ResultCacher("./.cache", io);
 
 			// read assignment model paramters
-			AssignmentModel assignmentModel =
-					AssignmentModel.readFromFile(
-							"./assignment_model.conf",
-							new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
+			AssignmentModel.readFromFile(
+					"./assignment_model.conf",
+					new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
 
 			// setup mser algorithm
 			MSER<T, Candidate> mser =
@@ -123,7 +122,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 				msersImp.setTitle("msers of " + membraneImp.getTitle());
 
-				texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+				texifyer = new Texifyer(msersImp, "./sipnet-tex/");
 
 				// prepare slice candidates
 				sliceCandidates = new Vector<Vector<Candidate>>();
@@ -187,10 +186,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
 			// perform search
-			texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
 			sipnet   = new Sipnet(
 					selectedSliceCandidates,
-					assignmentModel,
 					"./sequence_search.conf",
 					texifyer);
 

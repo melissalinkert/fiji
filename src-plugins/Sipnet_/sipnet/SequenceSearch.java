@@ -60,15 +60,14 @@ public class SequenceSearch {
 
 	public SequenceSearch(
 			List<Vector<Candidate>> sliceCandidates,
-			AssignmentModel assignmentModel,
-			Texifyer texifyer,
-			String parameterFilename) {
+			Texifyer                texifyer,
+			String                  parameterFilename) {
 
 		this.sliceCandidates = sliceCandidates;
 
 		this.nodeNums = new HashMap<Candidate, HashMap<Candidate, Integer>>();
 
-		this.assignmentModel = assignmentModel;
+		this.assignmentModel = AssignmentModel.getInstance();
 
 		readParameters(parameterFilename);
 

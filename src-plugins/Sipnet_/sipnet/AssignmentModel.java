@@ -34,17 +34,36 @@ public class AssignmentModel {
 	 * IMPLEMENTATION
 	 */
 
+	// singleton
+	private static AssignmentModel theInstance;
+
 	// size of the slice images to infer distance to border
 	private int[] imageDimensions;
 
 	// this is needed very oftern - therefor, cache the results
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
 
-	public AssignmentModel(ShapeDissimilarity shapeDissimilarity, int[] imageDimensions) {
+	final static public AssignmentModel getInstance() {
+
+		if (theInstance == null)
+			theInstance = new AssignmentModel();
+
+		return theInstance;
+	}
+
+	private AssignmentModel() {
+
+		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
+	}
+
+	final public void setImageDimensions(int[] dimensions) {
+
+		this.imageDimensions = dimensions;
+	}
+
+	final public void setShapeDissimilarity(ShapeDissimilarity shapeDissimilarity) {
 
 		this.shapeDissimilarity = shapeDissimilarity;
-		this.imageDimensions    = imageDimensions;
-		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 	}
 
 	public final double costContinuation(Candidate source, Candidate target, boolean dataTerm) {
@@ -190,7 +209,9 @@ public class AssignmentModel {
 
 	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
 
-		AssignmentModel assignmentModel = null;
+		AssignmentModel assignmentModel = getInstance();
+
+		assignmentModel.setImageDimensions(imageDimensions);
 
 		Properties parameterFile = new Properties();
 
@@ -199,12 +220,12 @@ public class AssignmentModel {
 			parameterFile.load(new FileInputStream(new File(filename)));
 
 			if (parameterFile.getProperty("shape_dissimilarity").equals("set_difference"))
-				assignmentModel = new AssignmentModel(new SetDifference(), imageDimensions);
+				assignmentModel.setShapeDissimilarity(new SetDifference());
 			else if (parameterFile.getProperty("shape_dissimilarity").equals("kl_divergence"))
-				assignmentModel = new AssignmentModel(new KLDivergence(), imageDimensions);
+				assignmentModel.setShapeDissimilarity(new KLDivergence());
 			else {
 				IJ.log("No shape dissimilarity defined in " + filename + ", taking set_difference");
-				assignmentModel = new AssignmentModel(new SetDifference(), imageDimensions);
+				assignmentModel.setShapeDissimilarity(new SetDifference());
 			}
 
 			assignmentModel.readParameters(filename);

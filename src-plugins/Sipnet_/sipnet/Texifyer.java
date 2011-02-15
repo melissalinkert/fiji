@@ -23,10 +23,10 @@ public class Texifyer {
 	private AssignmentModel assignmentModel;
 	private String          outputDir;
 
-	public Texifyer(ImagePlus regionImp, AssignmentModel assignmentModel, String outputDir) {
+	public Texifyer(ImagePlus regionImp, String outputDir) {
 
 		this.regionImp       = regionImp;
-		this.assignmentModel = assignmentModel;
+		this.assignmentModel = AssignmentModel.getInstance();
 		this.outputDir       = outputDir;
 	}
 
