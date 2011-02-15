@@ -145,7 +145,7 @@ public class AssignmentModel {
 		double weightPosition =
 				Math.min(1.0, distance/appearanceMargin);
 
-		return weightPosition;//*candidate.getSize();
+		return weightPosition*candidate.getSize();
 	}
 
 	private final double dataTerm(Candidate candidate) {
