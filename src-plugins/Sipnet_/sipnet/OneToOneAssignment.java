@@ -7,4 +7,14 @@ public class OneToOneAssignment extends SingleAssignment {
 		addSource(source);
 		addTarget(target);
 	}
+
+	public double getCosts() {
+
+		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+
+		return assignmentModel.costContinuation(
+				getTargets().get(0),
+				getSources().get(0),
+				true);
+	}
 }

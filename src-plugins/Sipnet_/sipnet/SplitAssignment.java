@@ -8,4 +8,14 @@ public class SplitAssignment extends SingleAssignment {
 		addTarget(target1);
 		addTarget(target2);
 	}
+
+	public double getCosts() {
+
+		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+
+		return assignmentModel.costBisect(
+				getSources().get(0),
+				getTargets().get(0),
+				getTargets().get(1));
+	}
 }

@@ -2,12 +2,10 @@ package sipnet;
 
 import java.util.Vector;
 
-public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
+public abstract class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 
 	Vector<Candidate> sources;
 	Vector<Candidate> targets;
-
-	double negLogP;
 
 	public SingleAssignment() {
 
@@ -36,18 +34,10 @@ public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 		this.targets.add(target);
 	}
 
-	public void setNegLogP(double negLogP)
-	{
-		this.negLogP = negLogP;
-	}
-
 	public Vector<Candidate> getTargets()
 	{
 		return this.targets;
 	}
 
-	public double getNegLogP()
-	{
-		return this.negLogP;
-	}
+	abstract public double getCosts();
 }

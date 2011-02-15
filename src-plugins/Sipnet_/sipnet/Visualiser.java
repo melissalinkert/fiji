@@ -166,12 +166,12 @@ public class Visualiser {
 									(int)source.getCenter(0), (int)source.getCenter(1),
 									(int)target.getCenter(0), (int)target.getCenter(1),
 									pip,
-									singleAssignment.getNegLogP());
+									singleAssignment.getCosts());
 							drawConnectionFrom(
 									(int)source.getCenter(0), (int)source.getCenter(1),
 									(int)target.getCenter(0), (int)target.getCenter(1),
 									nip,
-									singleAssignment.getNegLogP());
+									singleAssignment.getCosts());
 						}
 					}
 				}

@@ -8,5 +8,15 @@ public class MergeAssignment extends SingleAssignment {
 		addSource(source2);
 		addTarget(target);
 	}
+
+	public double getCosts() {
+
+		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+
+		return assignmentModel.costBisect(
+				getTargets().get(0),
+				getSources().get(0),
+				getSources().get(1));
+	}
 }
 
