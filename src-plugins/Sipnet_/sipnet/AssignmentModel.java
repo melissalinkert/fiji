@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
 
-import Jama.Matrix;
-
 import ij.IJ;
 
 public class AssignmentModel {
@@ -19,18 +17,17 @@ public class AssignmentModel {
 
 	// factor weights
 	private double weightData;
-	private double weightContinuation;
-	private double weightBisection;
+	private double weightPositionContinuation;
+	private double weightShapeContinuation;
+	private double weightPositionBisection;
+	private double weightShapeBisection;
 	private double weightEnd;
-
-	// default values for factor functions
-	private double covaPosition  = 10.0;
-	private double covaShape     = 0.5;
 
 	// size of the margin (in pixels), in which appearence of neurons is more
 	// likely
 	private double appearanceMargin = 100;
 
+	// a class used to get a measure of shape dissimilarity
 	private ShapeDissimilarity shapeDissimilarity;
 
 	/*
@@ -39,14 +36,6 @@ public class AssignmentModel {
 
 	// size of the slice images to infer distance to border
 	private int[] imageDimensions;
-
-	private double[][] covaApp =
-	    {{covaPosition, 0.0, 0.0},
-	     {0.0, covaPosition, 0.0},
-	     {0.0, 0.0, covaShape}};
-
-	private Matrix covaAppearance             = new Matrix(covaApp);
-	private Matrix invCovaAppearance          = covaAppearance.inverse();
 
 	// this is needed very oftern - therefor, cache the results
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
@@ -74,7 +63,9 @@ public class AssignmentModel {
 
 		if (prior == null) {
 
-			prior = weightContinuation*continuationPrior(source, target);
+			prior =
+					weightPositionContinuation*centerDistance(source, target) +
+					weightShapeContinuation*shapeDistance(source, target);
 			shm.put(bigger, prior);
 		}
 
@@ -87,7 +78,8 @@ public class AssignmentModel {
 	public final double costBisect(Candidate source, Candidate target1, Candidate target2) {
 
 		return
-			weightBisection*bisectionPrior(source, target1, target2) +
+			weightPositionBisection*centerDistance(source, target1, target2) +
+			weightShapeBisection*shapeDistance(source, target1, target2) +
 			weightData*(dataTerm(source) + dataTerm(target1) + dataTerm(target2));
 	}
 
@@ -98,23 +90,25 @@ public class AssignmentModel {
 			weightData*dataTerm(candidate);
 	}
 
-	private final double continuationPrior(Candidate source, Candidate target) {
-
-		Matrix diff = new Matrix(3, 1);
-
-		diff.set(0, 0, target.getCenter(0) - source.getCenter(0));
-		diff.set(1, 0, target.getCenter(1) - source.getCenter(1));
-		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target));
+	private final double centerDistance(Candidate source, Candidate target) {
 
 		return
-				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
+				(target.getCenter(0) - source.getCenter(0))*(target.getCenter(0) - source.getCenter(0)) +
+				(target.getCenter(1) - source.getCenter(1))*(target.getCenter(1) - source.getCenter(1));
 	}
 
-	private final double bisectionPrior(Candidate source, Candidate target1, Candidate target2) {
+	private final double shapeDistance(Candidate source, Candidate target) {
 
-		Matrix diff = new Matrix(3, 1);
+		final double diss =
+				shapeDissimilarity.dissimilarity(source, target);
+
+		return diss*diss;
+	}
+
+	private final double centerDistance(Candidate source, Candidate target1, Candidate target2) {
 
 		double[] mergedCenter = target1.getCenter();
+
 		mergedCenter[0] =
 				(target1.getSize()*mergedCenter[0] +
 				 target2.getSize()*target2.getCenter(0))/
@@ -124,12 +118,16 @@ public class AssignmentModel {
 				 target2.getSize()*target2.getCenter(1))/
 				(target1.getSize() + target2.getSize());
 
-		diff.set(0, 0, mergedCenter[0] - source.getCenter(0));
-		diff.set(1, 0, mergedCenter[1] - source.getCenter(1));
-		diff.set(2, 0, shapeDissimilarity.dissimilarity(source, target1, target2));
-
 		return
-				(diff.transpose().times(invCovaAppearance).times(diff)).get(0, 0);
+				(mergedCenter[0] - source.getCenter(0))*(mergedCenter[0] - source.getCenter(0)) +
+				(mergedCenter[1] - source.getCenter(1))*(mergedCenter[1] - source.getCenter(1));
+	}
+
+	private final double shapeDistance(Candidate source, Candidate target1, Candidate target2) {
+
+		final double diss =
+				shapeDissimilarity.dissimilarity(source, target1, target2);
+		return diss*diss;
 	}
 
 	private final double endPrior(Candidate candidate) {
@@ -167,23 +165,23 @@ public class AssignmentModel {
 		try {
 			parameterFile.load(new FileInputStream(new File(filename)));
 
-			weightData         = Double.valueOf(parameterFile.getProperty("weight_data"));
-			weightContinuation = Double.valueOf(parameterFile.getProperty("weight_continuation"));
-			weightBisection    = Double.valueOf(parameterFile.getProperty("weight_bisection"));
-			weightEnd          = Double.valueOf(parameterFile.getProperty("weight_end"));
-
-			covaPosition       = Double.valueOf(parameterFile.getProperty("cova_position"));
-			covaShape          = Double.valueOf(parameterFile.getProperty("cova_shape"));
+			weightData                 = Double.valueOf(parameterFile.getProperty("weight_data"));
+			weightPositionContinuation = Double.valueOf(parameterFile.getProperty("weight_position_continuation"));
+			weightShapeContinuation    = Double.valueOf(parameterFile.getProperty("weight_shape_continuation"));
+			weightPositionBisection    = Double.valueOf(parameterFile.getProperty("weight_position_bisection"));
+			weightShapeBisection       = Double.valueOf(parameterFile.getProperty("weight_shape_bisection"));
+			weightEnd                  = Double.valueOf(parameterFile.getProperty("weight_end"));
 
 			appearanceMargin   = Double.valueOf(parameterFile.getProperty("appearance_margin"));
 
 			IJ.log("Assignment model read parameters:");
-			IJ.log("  weight data term: "         + weightData);
-			IJ.log("  weight continuation term: " + weightContinuation);
-			IJ.log("  weight bisection term: "    + weightBisection);
-			IJ.log("  weight end term: "          + weightEnd);
-			IJ.log("  cova position: "            + covaPosition);
-			IJ.log("  cova shape dissimilarity: " + covaShape);
+			IJ.log("  weight data term: "               + weightData);
+			IJ.log("  weight pos. continuation term: "  + weightPositionContinuation);
+			IJ.log("  weight shape continuation term: " + weightShapeContinuation);
+			IJ.log("  weight pos. bisection term: "     + weightPositionBisection);
+			IJ.log("  weight shape bisection term: "    + weightShapeBisection);
+			IJ.log("  weight end term: "                + weightEnd);
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
