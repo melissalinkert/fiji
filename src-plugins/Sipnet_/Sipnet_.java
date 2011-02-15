@@ -58,6 +58,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private double maxVariation = 10.0;
 	private double minDiversity = 0.5;
 
+	// don't perform inference, visualise only
+	private boolean visualisationOnly = false;
+
 	private class ProcessingThread extends Thread {
 
 		public void run() {
@@ -180,29 +183,38 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				resultCacher.writeMsers(sliceTopMsers, membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
 			}
 
-			// perform search
-			IJ.log("Searching for the best path");
-			texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
-			sipnet   = new Sipnet(texifyer);
-
 			List<Vector<Candidate>> selectedSliceCandidates =
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
-			Sequence bestSequence =
-					sipnet.bestSearch(
-							selectedSliceCandidates,
-							assignmentModel,
-							"./sequence_search.conf");
-	
-			if (bestSequence == null) {
-				IJ.log("No sequence could be found.");
-				return;
+			// perform search
+			texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+			sipnet   = new Sipnet(
+					selectedSliceCandidates,
+					assignmentModel,
+					"./sequence_search.conf",
+					texifyer);
+
+			if (!visualisationOnly) {
+
+				IJ.log("Searching for the best path");
+				Sequence bestSequence = sipnet.bestSearch();
+			
+				if (bestSequence == null) {
+					IJ.log("No sequence could be found.");
+					return;
+				}
+
+				visualiser.drawSequence(membraneImp, bestSequence, false, false);
+				visualiser.drawSequence(msersImp, bestSequence, false, true);
+				//visualiser3d.showAssignments(bestSequence);
+				//visualiser3d.showSlices(msersImp);
+
+			} else {
+
+				IJ.log("visualising most likely candidates...");
+				visualiser.drawMostLikelyCandidates(membraneImp, selectedSliceCandidates, "./mlcs");
+				IJ.log("done.");
 			}
-	
-			visualiser.drawSequence(membraneImp, bestSequence, false, false);
-			visualiser.drawSequence(msersImp, bestSequence, false, true);
-			visualiser3d.showAssignments(bestSequence);
-			//visualiser3d.showSlices(msersImp);
 		}
 	}
 
@@ -219,6 +231,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("min diversity:", minDiversity, 2);
 		gd.addNumericField("first slice:", 1, 0);
 		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
+		gd.addCheckbox("no inference - only visualisation", false);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -231,6 +244,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		firstSlice = (int)gd.getNextNumber();
 		lastSlice  = (int)gd.getNextNumber();
+
+		visualisationOnly = gd.getNextBoolean();
 
 		if (firstSlice < 1 ||
 		    lastSlice > WindowManager.getCurrentImage().getNSlices() ||

@@ -2,16 +2,30 @@ package sipnet;
 
 import java.awt.Color;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Vector;
 
 import ij.IJ;
 import ij.ImagePlus;
 
 import ij.plugin.Duplicator;
 
+import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
 public class Visualiser {
+
+	private class VColor {
+
+		Color color;
+
+		public VColor(int r, int g, int b) {
+			color = new Color(r, g, b);
+		}
+	}
 
 	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
 
@@ -22,12 +36,70 @@ public class Visualiser {
 		IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
-		HashMap<Candidate, Color> candidateColors = new HashMap<Candidate, Color>();
+		HashMap<Candidate, VColor> candidateColors = new HashMap<Candidate, VColor>();
+
+		/*
+		 * ASSIGN COLORS
+		 */
+		int slice = sequence.size();
+		for (SequenceNode sequenceNode : sequence) {
+
+			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+
+				// associate random colors to last candidates (if not done
+				// already)
+				if (slice == sequence.size()) {
+
+					int r = (int)(Math.random()*255.0);
+					int g = (int)(Math.random()*255.0);
+					int b = (int)(Math.random()*255.0);
+					VColor color = new VColor(r, g, b);
+
+					for (Candidate target : singleAssignment.getTargets())
+						if (target != SequenceSearch.deathNode)
+							candidateColors.put(target, color);
+				}
+
+				for (Candidate source : singleAssignment.getSources())
+
+					if (source != SequenceSearch.emergeNode) {
+
+						// see, if there was a color for this source already
+						VColor color = candidateColors.get(source);
+
+						// no - take color of first target
+						if (color == null)
+							color = candidateColors.get(singleAssignment.getTargets().get(0));
+						// yes - force all targets to take this color
+						else {
+							for (Candidate target : singleAssignment.getTargets())
+								candidateColors.get(target).color = color.color;
+							break;
+						}
+
+						// if target was not assigned as well, this source died -
+						// give it a new color
+						if (color == null) {
+
+							int r = (int)(Math.random()*255.0);
+							int g = (int)(Math.random()*255.0);
+							int b = (int)(Math.random()*255.0);
+
+							color = new VColor(r, g, b);
+						}
+
+						// store new color for all sources now
+						for (Candidate otherSources : singleAssignment.getSources())
+							candidateColors.put(otherSources, color);
+					}
+			}
+			slice--;
+		}
 
 		/*
 		 * DRAW CANDIDATES
 		 */
-		int slice = sequence.size();
+		slice = sequence.size();
 		for (SequenceNode sequenceNode : sequence) {
 
 			// previous slice
@@ -41,39 +113,23 @@ public class Visualiser {
 				// last assignment
 				if (slice == sequence.size()) {
 
-					int r = (int)(Math.random()*255.0);
-					int g = (int)(Math.random()*255.0);
-					int b = (int)(Math.random()*255.0);
+					for (Candidate target : singleAssignment.getTargets()) {
 
-					Candidate candidate = singleAssignment.getTarget();
+						if (target != SequenceSearch.deathNode) {
 
-					if (candidate != SequenceSearch.deathNode) {
-
-						Color color = new Color(r, g, b);
-						candidateColors.put(candidate, color);
-						drawCandidate(candidate, nip, color, drawCandidateId);
+							VColor color = candidateColors.get(target);
+							drawCandidate(target, nip, color.color, (drawCandidateId ? "" + target.getId() : null));
+						}
 					}
 				}
 
-				Candidate candidate = singleAssignment.getSource();
+				for (Candidate source : singleAssignment.getSources()) {
 
-				if (candidate != SequenceSearch.deathNode &&
-				    candidate != SequenceSearch.emergeNode) {
+					if (source != SequenceSearch.emergeNode) {
 
-					Color color = candidateColors.get(singleAssignment.getTarget());
-
-					if (color == null) {
-
-						int r = (int)(Math.random()*255.0);
-						int g = (int)(Math.random()*255.0);
-						int b = (int)(Math.random()*255.0);
-
-						color = new Color(r, g, b);
-
-						candidateColors.put(candidate, color);
+						VColor color = candidateColors.get(source);
+						drawCandidate(source, pip, color.color, (drawCandidateId ? "" + source.getId() : null));
 					}
-
-					drawCandidate(candidate, pip, color, drawCandidateId);
 				}
 			}
 			slice--;
@@ -93,35 +149,109 @@ public class Visualiser {
 
 			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
 
-				Candidate source = singleAssignment.getSource();
-				Candidate target = singleAssignment.getTarget();
+				for (Candidate source : singleAssignment.getSources()) {
+					for (Candidate target : singleAssignment.getTargets()) {
 
-				if (source == SequenceSearch.emergeNode) {
+						if (source == SequenceSearch.emergeNode) {
 
-					drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
+							drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
 
-				} else if (target == SequenceSearch.deathNode) {
+						} else if (target == SequenceSearch.deathNode) {
 
-					drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
+							drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
 
-				} else {
+						} else {
 
-					drawConnectionTo(
-							(int)source.getCenter(0), (int)source.getCenter(1),
-							(int)target.getCenter(0), (int)target.getCenter(1),
-							pip,
-							singleAssignment.getNegLogP());
-					drawConnectionFrom(
-							(int)source.getCenter(0), (int)source.getCenter(1),
-							(int)target.getCenter(0), (int)target.getCenter(1),
-							nip,
-							singleAssignment.getNegLogP());
+							drawConnectionTo(
+									(int)source.getCenter(0), (int)source.getCenter(1),
+									(int)target.getCenter(0), (int)target.getCenter(1),
+									pip,
+									singleAssignment.getNegLogP());
+							drawConnectionFrom(
+									(int)source.getCenter(0), (int)source.getCenter(1),
+									(int)target.getCenter(0), (int)target.getCenter(1),
+									nip,
+									singleAssignment.getNegLogP());
+						}
+					}
 				}
 			}
 			slice--;
 		}
 
 		blockCopy.updateAndDraw();
+	}
+
+	public void drawMostLikelyCandidates(ImagePlus blockImage, List<Vector<Candidate>> sliceCandidates, String outputDirectory) {
+
+		int width  = blockImage.getWidth();
+		int height = blockImage.getHeight();
+
+		int i = 0;
+		int s = 1;
+
+		for (Vector<Candidate> candidates : sliceCandidates) {
+
+			for (Candidate candidate : candidates) {
+
+				if (candidate.getMostLikelyCandidates().size() == 0) {
+					IJ.log("candidate " + candidate.getId() + " does not have likely candidates");
+					continue;
+				}
+
+				ImageProcessor candidateIp = new ColorProcessor(width, height);
+
+				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null);
+
+				ImagePlus candidateImp = new ImagePlus("candidate", candidateIp);
+				IJ.save(candidateImp, outputDirectory + "/s" + s + "c" + candidate.getId() + ".tif");
+
+				ImageProcessor similarIp = new ColorProcessor(width, height);
+
+				double minSimilarity = 0;
+				double maxSimilarity = 0;
+				for (Candidate similar : candidate.getMostLikelyCandidates()) {
+					if (candidate.getNegLogPAppearance(similar) < minSimilarity ||
+					    minSimilarity == 0)
+						minSimilarity = candidate.getNegLogPAppearance(similar);
+					if (candidate.getNegLogPAppearance(similar) > maxSimilarity ||
+					    maxSimilarity == 0)
+						maxSimilarity = candidate.getNegLogPAppearance(similar);
+				}
+
+				Vector<Candidate> sortedBySize = new Vector<Candidate>();
+				sortedBySize.addAll(candidate.getMostLikelyCandidates());
+
+				class SizeComparator implements Comparator<Candidate> {
+					public int compare(Candidate c1, Candidate c2) {
+						if (c1.getSize() > c2.getSize())
+							return -1;
+						if (c1.getSize() < c2.getSize())
+							return 1;
+						return 0;
+					}
+				}
+				Collections.sort(sortedBySize, new SizeComparator());
+
+				for (Candidate similar : sortedBySize) {
+
+					double similarity = candidate.getNegLogPAppearance(similar);
+
+					int red   = (int)(255.0*(similarity - minSimilarity)/(maxSimilarity - minSimilarity));
+					int green = (int)(255.0*(maxSimilarity - similarity)/(maxSimilarity - minSimilarity));
+
+					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity);
+				}
+
+				i++;
+
+				// create imageplus and store as tif
+				ImagePlus shapeImp = new ImagePlus("most similar shapes", similarIp);
+				IJ.save(shapeImp, outputDirectory + "/s" + s + "c" + candidate.getId() + "-candidates.tif");
+			}
+
+			s++;
+		}
 	}
 
 	private void drawConnectionTo(int x1, int y1, int x2, int y2, ImageProcessor ip, double confidence) {
@@ -154,7 +284,7 @@ public class Visualiser {
 		ip.drawOval(x-3, y-3, 6, 6);
 	}
 
-	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, boolean drawCandidateId) {
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, String annotation) {
 
 		// draw pixels
 		ip.setColor(color);
@@ -162,14 +292,14 @@ public class Visualiser {
 			ip.drawPixel(pixel[0], pixel[1]);
 
 		// draw id
-		if (drawCandidateId) {
+		if (annotation != null) {
 			ip.setColor(
 					new Color(
 							255 - color.getRed(),
 							255 - color.getGreen(),
 							255 - color.getBlue()));
 			ip.drawString(
-					"" + candidate.getId(),
+					annotation,
 					(int)candidate.getCenter(0),
 					(int)candidate.getCenter(1));
 		}

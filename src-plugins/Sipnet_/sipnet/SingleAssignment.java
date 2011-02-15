@@ -1,31 +1,39 @@
 package sipnet;
 
+import java.util.Vector;
+
 public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 
-	Candidate source;
-	Candidate target;
+	Vector<Candidate> sources;
+	Vector<Candidate> targets;
 
 	double negLogP;
 
-	public SingleAssignment(Candidate source, Candidate target)
-	{
-		this.source = source;
-		this.target = target;
+	public SingleAssignment() {
+
+		this.sources = new Vector<Candidate>();
+		this.targets = new Vector<Candidate>();
 	}
 
-	public Candidate getSource()
+	public SingleAssignment(Vector<Candidate> sources, Vector<Candidate> targets)
 	{
-		return this.source;
+		this.sources = sources;
+		this.targets = targets;
 	}
 
-	public void setSource(Candidate source)
+	public Vector<Candidate> getSources()
 	{
-		this.source = source;
+		return this.sources;
 	}
 
-	public void setTarget(Candidate target)
+	public void addSource(Candidate source)
 	{
-		this.target = target;
+		this.sources.add(source);
+	}
+
+	public void addTarget(Candidate target)
+	{
+		this.targets.add(target);
 	}
 
 	public void setNegLogP(double negLogP)
@@ -33,9 +41,9 @@ public class SingleAssignment extends SearchNode<Assignment, SingleAssignment> {
 		this.negLogP = negLogP;
 	}
 
-	public Candidate getTarget()
+	public Vector<Candidate> getTargets()
 	{
-		return this.target;
+		return this.targets;
 	}
 
 	public double getNegLogP()

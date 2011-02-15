@@ -24,8 +24,9 @@ public class Assignment extends LinkedList<SingleAssignment> {
 		Set<Candidate> targets = new HashSet<Candidate>();
 
 		for (SingleAssignment singleAssignment : this)
-			if (singleAssignment.getTarget() != SequenceSearch.deathNode)
-				targets.add(singleAssignment.getTarget());
+			for (Candidate target : singleAssignment.getTargets())
+				if (target != SequenceSearch.deathNode)
+					targets.add(target);
 
 		return targets;
 	}

@@ -63,21 +63,26 @@ public class Visualiser3D {
 
 			for (SingleAssignment singleAssignment : assignment) {
 
-				if (singleAssignment.getSource() == SequenceSearch.emergeNode ||
-				    singleAssignment.getTarget() == SequenceSearch.deathNode)
-					continue;
+				for (Candidate source : singleAssignment.getSources()) {
+					for (Candidate target : singleAssignment.getTargets()) {
 
-				double[] from = singleAssignment.getSource().getCenter();
-				double[] to   = singleAssignment.getTarget().getCenter();
+						if (source == SequenceSearch.emergeNode ||
+							target == SequenceSearch.deathNode)
+							continue;
 
-				int id1 = singleAssignment.getSource().getId();
-				int id2 = singleAssignment.getTarget().getId();
+						double[] from = source.getCenter();
+						double[] to   = target.getCenter();
 
-				List<Point3f> line = new ArrayList<Point3f>(2);
-				line.add(new Point3f((float)from[0], (float)from[1], (float)(s*sliceDistance)));
-				line.add(new Point3f((float)to[0],   (float)to[1],   (float)((s+1)*sliceDistance)));
+						int id1 = source.getId();
+						int id2 = target.getId();
 
-				universe.addLineMesh(line, new Color3f(0, 255, 0), "sa-" + s + "-" + id1 + "-" + id2, true);
+						List<Point3f> line = new ArrayList<Point3f>(2);
+						line.add(new Point3f((float)from[0], (float)from[1], (float)(s*sliceDistance)));
+						line.add(new Point3f((float)to[0],   (float)to[1],   (float)((s+1)*sliceDistance)));
+
+						universe.addLineMesh(line, new Color3f(0, 255, 0), "sa-" + s + "-" + id1 + "-" + id2, true);
+					}
+				}
 			}
 			s--;
 		}

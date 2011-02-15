@@ -370,7 +370,7 @@ public class SequenceSearch {
 			for (Candidate sourceCandidate : sliceCandidates.get(s))
 				for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates()) {
 					variableNums.add(getVariableNum(sourceCandidate, targetCandidate));
-					coefficients.add(assignmentModel.costContinuation(sourceCandidate, targetCandidate));
+					coefficients.add(assignmentModel.costContinuation(sourceCandidate, targetCandidate, true));
 				}
 
 			// for each merge
@@ -592,7 +592,7 @@ public class SequenceSearch {
 						if (getVariableValue(sourceCandidate, targetCandidate) == 1) {
 							if (targetCandidate.getId() == 238)
 								IJ.log("continuation from " + sourceCandidate.getId() + " to 238");
-							assignment.add(new SingleAssignment(sourceCandidate, targetCandidate));
+							assignment.add(new OneToOneAssignment(sourceCandidate, targetCandidate));
 						}
 					}
 
@@ -610,8 +610,7 @@ public class SequenceSearch {
 								if (mergeTarget.getId() == 238)
 									IJ.log("merge from " + candidate.getId() + " and " + neighbor.getId() + " to 238");
 
-								assignment.add(new SingleAssignment(candidate, mergeTarget));
-								assignment.add(new SingleAssignment(neighbor, mergeTarget));
+								assignment.add(new MergeAssignment(candidate, neighbor, mergeTarget));
 
 								// there can only be one merge target
 								break;
@@ -629,8 +628,7 @@ public class SequenceSearch {
 						for (Candidate splitSource : splitSources.get(candidate).get(neighbor))
 							if (getVariableValue(splitSource, splitNodes.get(candidate).get(neighbor)) == 1) {
 
-								assignment.add(new SingleAssignment(splitSource, candidate));
-								assignment.add(new SingleAssignment(splitSource, neighbor));
+								assignment.add(new SplitAssignment(splitSource, candidate, neighbor));
 
 								// there can only be one split target
 								break;
@@ -642,14 +640,14 @@ public class SequenceSearch {
 				// each death
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
 					if (getVariableValue(sourceCandidate, deathNode) == 1)
-						assignment.add(new SingleAssignment(sourceCandidate, deathNode));
+						assignment.add(new OneToOneAssignment(sourceCandidate, deathNode));
 
 			// not the last but one slice
 			if (s < sliceCandidates.size() - 2)
 				// each emerge
 				for (Candidate targetCandidate : sliceCandidates.get(s+1))
 					if (getVariableValue(emergeNode, targetCandidate) == 1)
-						assignment.add(new SingleAssignment(emergeNode, targetCandidate));
+						assignment.add(new OneToOneAssignment(emergeNode, targetCandidate));
 
 			sequence.add(new SequenceNode(assignment));
 		}
