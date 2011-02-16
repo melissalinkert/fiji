@@ -72,8 +72,11 @@ public class Visualiser {
 							color = candidateColors.get(singleAssignment.getTargets().get(0));
 						// yes - force all targets to take this color
 						else {
-							for (Candidate target : singleAssignment.getTargets())
+							for (Candidate target : singleAssignment.getTargets()) {
+								if (candidateColors.get(target) == null)
+									candidateColors.put(target, new VColor(0, 0, 0));
 								candidateColors.get(target).color = color.color;
+							}
 							break;
 						}
 
