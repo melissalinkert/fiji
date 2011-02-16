@@ -8,10 +8,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.Vector;
 
 import mser.Region;
@@ -41,9 +39,10 @@ public class Candidate extends Region<Candidate> {
 	private Vector<double[]>  neighborOffsets;
 	private Vector<Integer>   neighborIndices;
 
-	// all potential merge/split partners of this candidate
-	private Set<Candidate>    mergePartners;
-	private Set<Candidate>    splitPartners;
+	// all potential merge/split partners and the corresponding targets/sources
+	// NOTE: only partners with an id bigger than this' id are stored here
+	private HashMap<Candidate, Vector<Candidate>> mergeTargets;
+	private HashMap<Candidate, Vector<Candidate>> splitSources;
 
 	// the pixels belonging to this candidate
 	private List<int[]> pixels;
@@ -107,9 +106,9 @@ public class Candidate extends Region<Candidate> {
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
 		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergePartners         = new HashSet<Candidate>();
+		this.mergeTargets          = new HashMap<Candidate, Vector<Candidate>>();
 		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.splitPartners         = new HashSet<Candidate>();
+		this.splitSources          = new HashMap<Candidate, Vector<Candidate>>();
 
 		this.pixels = new ArrayList<int[]>();
 	}
@@ -122,9 +121,9 @@ public class Candidate extends Region<Candidate> {
 		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
 		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergePartners         = new HashSet<Candidate>();
+		this.mergeTargets          = new HashMap<Candidate, Vector<Candidate>>();
 		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.splitPartners         = new HashSet<Candidate>();
+		this.splitSources          = new HashMap<Candidate, Vector<Candidate>>();
 
 		Arrays.sort(pixels, new PixelComparator());
 		this.pixels        = Arrays.asList(pixels);
@@ -176,24 +175,26 @@ public class Candidate extends Region<Candidate> {
 		mostSimilarOf.add(candidate);
 	}
 
-	public void addMergePartner(Candidate candidate) {
+	public void addMergePartner(Candidate partner, Vector<Candidate> targets) {
 
-		mergePartners.add(candidate);
+		if (partner.getId() > getId())
+			mergeTargets.put(partner, targets);
 	}
 
-	public void addSplitPartner(Candidate candidate) {
+	public void addSplitPartner(Candidate partner, Vector<Candidate> sources) {
 
-		splitPartners.add(candidate);
+		if (partner.getId() > getId())
+			splitSources.put(partner, sources);
 	}
 
-	public Set<Candidate> mergePartners() {
+	public HashMap<Candidate, Vector<Candidate>> mergeTargets() {
 
-		return mergePartners;
+		return mergeTargets;
 	}
 
-	public Set<Candidate> splitPartners() {
+	public HashMap<Candidate, Vector<Candidate>> splitSources() {
 
-		return splitPartners;
+		return splitSources;
 	}
 
 	public void addMergeTargetOf(Candidate candidate) {
