@@ -66,7 +66,7 @@ public class AssignmentModel {
 		this.shapeDissimilarity = shapeDissimilarity;
 	}
 
-	public final double costContinuation(Candidate source, Candidate target, boolean dataTerm) {
+	final public double costContinuation(Candidate source, Candidate target, boolean dataTerm) {
 
 		final Candidate smaller = (source.getId() > target.getId() ? target : source);
 		final Candidate bigger  = (source.getId() > target.getId() ? source : target);
@@ -83,8 +83,8 @@ public class AssignmentModel {
 		if (prior == null) {
 
 			prior =
-					weightPositionContinuation*centerDistance(source, target) +
-					weightShapeContinuation*shapeDistance(source, target);
+					weightPositionContinuation*centerTerm(source, target) +
+					weightShapeContinuation*shapeTerm(source, target);
 			shm.put(bigger, prior);
 		}
 
@@ -94,29 +94,29 @@ public class AssignmentModel {
 		return prior;
 	}
 
-	public final double costBisect(Candidate source, Candidate target1, Candidate target2) {
+	final public double costBisect(Candidate source, Candidate target1, Candidate target2) {
 
 		return
-			weightPositionBisection*centerDistance(source, target1, target2) +
-			weightShapeBisection*shapeDistance(source, target1, target2) +
+			weightPositionBisection*centerTerm(source, target1, target2) +
+			weightShapeBisection*shapeTerm(source, target1, target2) +
 			weightData*(dataTerm(source) + dataTerm(target1) + dataTerm(target2));
 	}
 
-	public final double costEnd(Candidate candidate) {
+	final public double costEnd(Candidate candidate) {
 
 		return
-			weightEnd*endPrior(candidate) +
+			weightEnd*endTerm(candidate) +
 			weightData*dataTerm(candidate);
 	}
 
-	private final double centerDistance(Candidate source, Candidate target) {
+	final public double centerTerm(Candidate source, Candidate target) {
 
 		return
 				(target.getCenter(0) - source.getCenter(0))*(target.getCenter(0) - source.getCenter(0)) +
 				(target.getCenter(1) - source.getCenter(1))*(target.getCenter(1) - source.getCenter(1));
 	}
 
-	private final double shapeDistance(Candidate source, Candidate target) {
+	final public double shapeTerm(Candidate source, Candidate target) {
 
 		final double diss =
 				shapeDissimilarity.dissimilarity(source, target);
@@ -124,7 +124,7 @@ public class AssignmentModel {
 		return diss*diss;
 	}
 
-	private final double centerDistance(Candidate source, Candidate target1, Candidate target2) {
+	final public double centerTerm(Candidate source, Candidate target1, Candidate target2) {
 
 		double[] mergedCenter = target1.getCenter();
 
@@ -142,14 +142,14 @@ public class AssignmentModel {
 				(mergedCenter[1] - source.getCenter(1))*(mergedCenter[1] - source.getCenter(1));
 	}
 
-	private final double shapeDistance(Candidate source, Candidate target1, Candidate target2) {
+	final public double shapeTerm(Candidate source, Candidate target1, Candidate target2) {
 
 		final double diss =
 				shapeDissimilarity.dissimilarity(source, target1, target2);
 		return diss*diss;
 	}
 
-	private final double endPrior(Candidate candidate) {
+	final public double endTerm(Candidate candidate) {
 
 		// distance to border
 		double distance =
@@ -163,7 +163,7 @@ public class AssignmentModel {
 		return weightPosition*candidate.getSize();
 	}
 
-	private final double dataTerm(Candidate candidate) {
+	final public double dataTerm(Candidate candidate) {
 
 		double probMembrane = (double)candidate.getMeanGrayValue()/255.0;
 
