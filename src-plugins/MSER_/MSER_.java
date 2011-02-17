@@ -1,6 +1,4 @@
-package mser;
 
-import java.util.Collection;
 import java.util.HashSet;
 
 import ij.IJ;
@@ -22,6 +20,11 @@ import mpicbg.imglib.image.Image;
 import mpicbg.imglib.image.ImagePlusAdapter;
 
 import mpicbg.imglib.type.numeric.RealType;
+
+import mser.MSER;
+import mser.Region;
+import mser.RegionFactory;
+import java.util.Collection;
 
 public class MSER_<T extends RealType<T>> implements PlugIn {
 
