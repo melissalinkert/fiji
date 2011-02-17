@@ -54,6 +54,7 @@ public class AssignmentModel {
 	private AssignmentModel() {
 
 		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
+		this.shapeDissimilarity = new SetDifference();
 	}
 
 	final public void setImageDimensions(int[] dimensions) {
