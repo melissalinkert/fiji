@@ -15,6 +15,13 @@ public abstract class SingleAssignment extends SearchNode<Assignment, SingleAssi
 
 	public SingleAssignment(Vector<Candidate> sources, Vector<Candidate> targets)
 	{
+		for (Candidate c : sources)
+			if (c == null)
+				throw new RuntimeException("one of the sources is null!");
+		for (Candidate c : targets)
+			if (c == null)
+				throw new RuntimeException("one of the targets is null!");
+
 		this.sources = sources;
 		this.targets = targets;
 	}
@@ -26,11 +33,15 @@ public abstract class SingleAssignment extends SearchNode<Assignment, SingleAssi
 
 	public void addSource(Candidate source)
 	{
+		if (source == null)
+			throw new RuntimeException("source is null!");
 		this.sources.add(source);
 	}
 
 	public void addTarget(Candidate target)
 	{
+		if (target == null)
+			throw new RuntimeException("target is null!");
 		this.targets.add(target);
 	}
 
