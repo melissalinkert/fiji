@@ -3,6 +3,8 @@ package sipnet;
 import java.util.HashMap;
 import java.util.Vector;
 
+import ij.IJ;
+
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
 import mpicbg.imglib.image.Image;
@@ -13,12 +15,44 @@ public class ConnectedComponents<T extends RealType<T>> {
 
 	class ConnectedComponent {
 
-		ConnectedComponent() {
-			this.pixels = new Vector<int[]>();
+		ConnectedComponent(int[] imageDimensions) {
+			this.pixels = new boolean[imageDimensions[0]][imageDimensions[1]];
 		}
 
-		public Vector<int[]> pixels;
-		public double        value;
+		public boolean contains(int[] position) {
+
+			try {
+				return pixels[position[0]][position[1]];
+			} catch (ArrayIndexOutOfBoundsException e) {
+				return false;
+			}
+		}
+
+		public void addPixel(int[] position) {
+			pixels[position[0]][position[1]] = true;
+		}
+
+		public void merge(ConnectedComponent other) {
+
+			for (int x = 0; x < pixels.length; x++)
+				for (int y = 0; y < pixels[x].length; y++)
+					pixels[x][y] = pixels[x][y] || other.pixels[x][y];
+		}
+
+		public Vector<int[]> getPixels() {
+
+			Vector<int[]> result = new Vector<int[]>();
+
+			for (int x = 0; x < pixels.length; x++)
+				for (int y = 0; y < pixels[x].length; y++)
+					if (pixels[x][y])
+						result.add(new int[]{x, y});
+			
+			return result;
+		}
+
+		public  double      value;
+		private boolean[][] pixels;
 	}
 
 	public Vector<ConnectedComponent> find(Image<T> image) {
@@ -28,77 +62,106 @@ public class ConnectedComponents<T extends RealType<T>> {
 
 		LocalizableByDimCursor<T> cursor = image.createLocalizableByDimCursor();
 
-		int[] position = new int[2];
+		int[] imageDimensions = image.getDimensions();
+		int[] position        = new int[2];
 
-		while (cursor.hasNext()) {
+		for (int y = 0; y < imageDimensions[1]; y++) {
+			for (int x = 0; x < imageDimensions[0]; x++) {
 
-			cursor.fwd();
-			cursor.getPosition(position);
+				position[0] = x;
+				position[1] = y;
 
-			int[] leftNeighbor = new int[]{position[0] - 1, position[1]};
-			int[] topNeighbor  = new int[]{position[0], position[1] - 1};
+				cursor.setPosition(position);
 
-			int currentValue   = (int)cursor.getType().getRealFloat();
+				int[] topRightNeighbor = new int[]{position[0] + 1, position[1] - 1};
+				int[] topNeighbor      = new int[]{position[0],     position[1] - 1};
+				int[] topLeftNeighbor  = new int[]{position[0] - 1, position[1] - 1};
+				int[] leftNeighbor     = new int[]{position[0] - 1, position[1]};
 
-			//int leftValue = -1;
-			//if (leftNeighbor[0] >= 0 && leftNeighbor[0] < image.getDimension(0) &&
-				//leftNeighbor[1] >= 1 && leftNeighbor[1] < image.getDimension(1)) {
-				//cursor.setPosition(leftNeighbor);
-				//leftValue = (int)cursor.getType().getRealFloat();
-			//}
+				int currentValue   = (int)cursor.getType().getRealFloat();
 
-			//int topValue = -1;
-			//if (topNeighbor[0] >= 0 && topNeighbor[0] < image.getDimension(0) &&
-				//topNeighbor[1] >= 1 && topNeighbor[1] < image.getDimension(1)) {
-				//cursor.setPosition(topNeighbor);
-				//topValue = (int)cursor.getType().getRealFloat();
-			//}
+				if (currentValue == 0)
+					continue;
 
-			if (components.get(currentValue) == null)
-				components.put(currentValue, new Vector<ConnectedComponent>());
+				if (components.get(currentValue) == null)
+					components.put(currentValue, new Vector<ConnectedComponent>());
 
-			ConnectedComponent leftComp = null;
-			ConnectedComponent topComp  = null;
-			for (ConnectedComponent comp : components.get(currentValue)) {
+				Vector<ConnectedComponent> neighbors = new Vector<ConnectedComponent>();
+				neighbors.setSize(4);
+				int numNotNull = 0;
 
-				if (comp.pixels.contains(leftNeighbor))
-					leftComp = comp;
-				
-				if (comp.pixels.contains(topNeighbor))
-					topComp = comp;
+				for (ConnectedComponent comp : components.get(currentValue)) {
+
+					if (comp.contains(topRightNeighbor)) {
+						neighbors.set(0, comp);
+						numNotNull++;
+					}
+					
+					if (comp.contains(topNeighbor)) {
+						neighbors.set(1,  comp);
+						numNotNull++;
+					}
+
+					if (comp.contains(topLeftNeighbor)) {
+						neighbors.set(2,  comp);
+						numNotNull++;
+					}
+
+					if (comp.contains(leftNeighbor)) {
+						neighbors.set(3,  comp);
+						numNotNull++;
+					}
+				}
+
+				if (numNotNull == 0) {
+
+					// new component
+					ConnectedComponent comp = new ConnectedComponent(imageDimensions);
+					comp.addPixel(new int[]{position[0], position[1]});
+					comp.value = currentValue;
+
+					components.get(currentValue).add(comp);
+
+				} else if (numNotNull == 1) {
+
+					for (ConnectedComponent neighbor : neighbors)
+						if (neighbor != null)
+							neighbor.addPixel(new int[]{position[0], position[1]});
+
+				} else {
+
+					// there should only be two different components
+					ConnectedComponent first  = null;
+					ConnectedComponent second = null;
+
+					for (ConnectedComponent neighbor : neighbors)
+						if (neighbor != null)
+							if (first == null)
+								first = neighbor;
+							else if (second == null)
+								second = neighbor;
+							else if (neighbor != first && neighbor != second)
+								System.out.println("MORE THAN TWO DIFFERENT COMPONENTS OF SAME VALUE ARE NEIGHBORS!");
+
+					first.addPixel(new int[]{position[0], position[1]});
+
+					// merge both components
+					if (first != second) {
+						first.merge(second);
+						components.get(currentValue).remove(second);
+					}
+				}
 			}
-
-			if (leftComp == null && topComp == null) {
-
-				// new component
-				ConnectedComponent comp = new ConnectedComponent();
-				comp.pixels.add(new int[]{position[0], position[1]});
-				comp.value = currentValue;
-
-				components.get(currentValue).add(comp);
-
-			} else if (leftComp != null && topComp == null) {
-
-				leftComp.pixels.add(new int[]{position[0], position[1]});
-
-			} else if (leftComp == null && topComp != null) {
-
-				topComp.pixels.add(new int[]{position[0], position[1]});
-
-			} else {
-
-				leftComp.pixels.add(new int[]{position[0], position[1]});
-
-				// merge both components
-				leftComp.pixels.addAll(topComp.pixels);
-				components.get(currentValue).remove(topComp);
-			}
-
 		}
 
 		Vector<ConnectedComponent> result = new Vector<ConnectedComponent>();
-		for (int value : components.keySet())
+		for (int value : components.keySet()) {
+
+			if (components.get(value).size() > 2)
+				IJ.log("" + components.get(value).size() + " components for " + value);
+			
 			result.addAll(components.get(value));
+		}
 
 		return result;
 	}
