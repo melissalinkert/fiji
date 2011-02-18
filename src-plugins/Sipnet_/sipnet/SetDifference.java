@@ -40,6 +40,14 @@ public class SetDifference implements ShapeDissimilarity {
 
 	final public double setDifferenceRatio(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
 
+		int numMatches   = numMatches(pixels1, offset1, pixels2, offset2);
+		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;
+
+		return (double)numDifferent/Math.min(pixels1.size(), pixels2.size());
+	}
+
+	final public int numMatches(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
+
 		PixelComparator pixelComparator = new PixelComparator(offset1, offset2);
 
 		int numMatches = 0;
@@ -80,8 +88,7 @@ public class SetDifference implements ShapeDissimilarity {
 			// continue with next pixel1
 		}
 
-		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;
-
-		return (double)numDifferent/Math.min(pixels1.size(), pixels2.size());
+		return numMatches;
 	}
+
 }
