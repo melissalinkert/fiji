@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -113,7 +114,7 @@ public class Candidate extends Region<Candidate> {
 		this.pixels = new ArrayList<int[]>();
 	}
 
-	public Candidate(int size, int perimeter, double[] center, int[][] pixels, double meanGrayValue) {
+	public Candidate(int size, int perimeter, double[] center, Vector<int[]> pixels, double meanGrayValue) {
 
 		super(size, perimeter, center, candidateFactory);
 
@@ -125,9 +126,10 @@ public class Candidate extends Region<Candidate> {
 		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
 		this.splitSources          = new HashMap<Candidate, Vector<Candidate>>();
 
-		Arrays.sort(pixels, new PixelComparator());
-		this.pixels        = Arrays.asList(pixels);
+		this.pixels        = new ArrayList<int[]>(pixels);
 		this.meanGrayValue = meanGrayValue;
+
+		Collections.sort(this.pixels, new PixelComparator());
 
 		computePixelCovariance();
 	}

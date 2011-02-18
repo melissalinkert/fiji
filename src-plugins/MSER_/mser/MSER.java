@@ -120,6 +120,8 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		public boolean  varChanged;
 		public double   variation;
 
+		private Vector<int[]> pixels;
+
 		private Vector<R> childRegions;
 
 		public ConnectedComponent(int value) {
@@ -131,6 +133,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			variation    = 0.0;
 			varChanged   = true;
 			history      = null;
+			pixels       = new Vector<int[]>();
 			childRegions = new Vector<R>();
 		}
 
@@ -217,6 +220,8 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			this.history = newHistory;
 			this.size = this.size + other.size;
 
+			this.pixels.addAll(other.pixels);
+
 			// update children
 			this.addChildRegions(other.getChildRegions());
 		}
@@ -288,13 +293,14 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			size++;
 
 			// update center and gray level
-			// TODO: find less expensive calculation
 			int[] position = new int[numDimensions];
 			indexToPosition(index, position);
 			double weight = 1.0/(double)(size);
 			for (int d = 0; d < numDimensions; d++)
 				center[d] = (1.0 - weight)*center[d] + weight*position[d];
 			meanValue = (1.0 - weight)*meanValue + weight*values[index];
+
+			pixels.add(position);
 		}
 
 		public Vector<R> getChildRegions() {
@@ -346,22 +352,7 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 			return numCracks;
 		}
 
-		public int[][] getPixels() {
-
-			int index      = head;
-			int[][] pixels = new int[size][numDimensions];
-
-			int i = 0;
-			// extract first pixel
-			indexToPosition(index, pixels[i]);
-			i++;
-
-			while (next[index] != index && next[index] != NONE) {
-
-				index = next[index];
-				indexToPosition(index, pixels[i]);
-				i++;
-			}
+		public Vector<int[]> getPixels() {
 
 			return pixels;
 		}
@@ -718,17 +709,12 @@ public class MSER<T extends RealType<T>, R extends Region<R>> {
 		if (regions == null)
 			return;
 
-		int   index    = component.head;
-		int[] position = new int[numDimensions];
 		LocalizableByDimCursor<T> cursor = regions.createLocalizableByDimCursor();
-		while (next[index] != index && next[index] != NONE) {
 
-			indexToPosition(index, position);
-			cursor.setPosition(position);
+		for (int[] pixel : component.getPixels()) {
 
+			cursor.setPosition(pixel);
 			cursor.getType().setReal(cursor.getType().getRealFloat() + 10.0);
-
-			index = next[index];
 		}
 	}
 
