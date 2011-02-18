@@ -10,8 +10,6 @@ import mpicbg.imglib.image.Image;
 
 import mpicbg.imglib.type.numeric.RealType;
 
-import mser.MSER;
-
 public class GroundTruth {
 
 	// the groundtruth sequence - depending on the data provided it consists of
@@ -34,6 +32,9 @@ public class GroundTruth {
 
 		if (sliceImages.size() == 0)
 			return;
+
+		IJ.log("reading ground truth...");
+		withRegionInformation = true;
 
 		int slices = sliceImages.size();
 
@@ -87,14 +88,45 @@ public class GroundTruth {
 						remainders.remove(candidate);
 					}
 
-				if (sameNeuron.size() == 1 && targets.size() == 1)
-					assignment.add(new OneToOneAssignment(sameNeuron.get(0), targets.get(0)));
-				else if (sameNeuron.size() == 1 && targets.size() == 2)
+				if (sameNeuron.size() == targets.size()) {
+
+					for (Candidate candidate : sameNeuron) {
+
+						Candidate closest    = null;
+						double    minDistance = -1;
+						for (Candidate target : targets) {
+
+							double distance =
+									(candidate.getCenter(0) - target.getCenter(0))*
+									(candidate.getCenter(0) - target.getCenter(0))
+									+
+									(candidate.getCenter(1) - target.getCenter(1))*
+									(candidate.getCenter(1) - target.getCenter(1));
+
+							if (distance < minDistance || minDistance < 0) {
+
+								minDistance = distance;
+								closest = target;
+							}
+						}
+
+						assignment.add(new OneToOneAssignment(candidate, closest));
+						targets.remove(closest);
+					}
+
+				} else if (sameNeuron.size() == 1 && targets.size() == 2)
+
 					assignment.add(new SplitAssignment(sameNeuron.get(0), targets.get(0), targets.get(1)));
+
 				else if (sameNeuron.size() == 2 && targets.size() == 1)
+
 					assignment.add(new MergeAssignment(sameNeuron.get(0), sameNeuron.get(1), targets.get(0)));
-				else if (sameNeuron.size() == 1 && targets.size() == 0)
-					assignment.add(new OneToOneAssignment(sameNeuron.get(0), SequenceSearch.deathNode));
+
+				else if (targets.size() == 0)
+
+					for (Candidate candidate : sameNeuron)
+						assignment.add(new OneToOneAssignment(candidate, SequenceSearch.deathNode));
+
 				else
 					IJ.log("Invalid assignment in groundtruth: " + sameNeuron.size() + " areas map to " + targets.size() + " areas");
 			}
@@ -104,7 +136,7 @@ public class GroundTruth {
 				assignment.add(new OneToOneAssignment(SequenceSearch.emergeNode, candidate));
 
 			// store this assignment
-			groundtruth.add(new SequenceNode(assignment));
+			groundtruth.push(new SequenceNode(assignment));
 
 			prevCandidates = candidates;
 		}
@@ -150,17 +182,20 @@ public class GroundTruth {
 		for (ConnectedComponents<T>.ConnectedComponent comp : components) {
 
 			double[] center = new double[]{0.0, 0.0};
+			Vector<int[]> pixels = comp.getPixels();
 
-			for (int[] pixel : comp.pixels) {
+			for (int[] pixel : pixels) {
 				center[0] += pixel[0];
 				center[1] += pixel[1];
 			}
+			center[0] /= pixels.size();
+			center[1] /= pixels.size();
 
 			candidates.add(new Candidate(
-					comp.pixels.size(),
+					pixels.size(),
 					0, // perimeter - not used
 					center,
-					comp.pixels,
+					pixels,
 					comp.value));
 		}
 
