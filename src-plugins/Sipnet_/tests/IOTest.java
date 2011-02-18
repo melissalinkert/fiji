@@ -44,20 +44,20 @@ public class IOTest {
 				int size        = 10;
 				int perimeter   = 5;
 				double[] center = new double[]{Math.random(), Math.random()};
-				int[][]  pixels = new int[size][2];
+				Vector<int[]> pixels = new Vector<int[]>(size);
 				double meanGray = 0.0;
 
-				for (int i = 0; i < size; i++) {
-					pixels[i][0] = (int)(Math.random()*100.0);
-					pixels[i][1] = (int)(Math.random()*100.0);
-				}
+				for (int i = 0; i < size; i++)
+					pixels.add(new int[]{
+							(int)(Math.random()*100.0),
+							(int)(Math.random()*100.0)});
 
 				Candidate candidate = new Candidate(size, perimeter, center, pixels, meanGray);
 
 				Vector<Candidate> children = new Vector<Candidate>();
 				for (int k = 0; k < numChildren; k++) {
 
-					Candidate child = new Candidate(0, 0, new double[]{0, 0}, new int[][]{}, 0.0);
+					Candidate child = new Candidate(0, 0, new double[]{0, 0}, new Vector<int[]>(), 0.0);
 					child.setParent(candidate);
 					children.add(child);
 				}
