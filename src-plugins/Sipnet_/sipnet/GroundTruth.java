@@ -1,5 +1,6 @@
 package sipnet;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -11,6 +12,8 @@ import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.numeric.RealType;
 
 public class GroundTruth {
+
+	private static int MaxDistance = 200;
 
 	// the groundtruth sequence - depending on the data provided it consists of
 	// candidates with a center only or candidates with complete regions
@@ -88,48 +91,116 @@ public class GroundTruth {
 						remainders.remove(candidate);
 					}
 
-				if (sameNeuron.size() == targets.size()) {
+				// find splits/merges
+				while (true) {
 
-					for (Candidate candidate : sameNeuron) {
+					double bestSplitValue = -1;
+					double bestMergeValue = -1;
+					Candidate bestSplitSource  = null;
+					Candidate bestSplitTarget1 = null;
+					Candidate bestSplitTarget2 = null;
+					Candidate bestMergeSource  = null;
+					Candidate bestMergeTarget1 = null;
+					Candidate bestMergeTarget2 = null;
 
-						Candidate closest    = null;
-						double    minDistance = -1;
+					// splits
+					for (Candidate source : sameNeuron)
+						for (Candidate target1 : targets)
+							if (overlap(source, target1))
+								for (Candidate target2 : targets)
+									if (target1 != target2 && overlap(source, target2)) {
+
+										double splitValue =
+												source.distanceTo(target1) +
+												source.distanceTo(target2);
+
+										if (splitValue < bestSplitValue || bestSplitValue < 0) {
+
+											bestSplitValue   = splitValue;
+											bestSplitSource  = source;
+											bestSplitTarget1 = target1;
+											bestSplitTarget2 = target2;
+										}
+									}
+
+
+					// merges
+					for (Candidate source : targets)
+						for (Candidate target1 : sameNeuron)
+							if (overlap(source, target1))
+								for (Candidate target2 : sameNeuron)
+									if (target1 != target2 && overlap(source, target2)) {
+
+										double mergeValue =
+												source.distanceTo(target1) +
+												source.distanceTo(target2);
+
+										if (mergeValue < bestMergeValue || bestMergeValue < 0) {
+
+											bestMergeValue   = mergeValue;
+											bestMergeSource  = source;
+											bestMergeTarget1 = target1;
+											bestMergeTarget2 = target2;
+										}
+									}
+					// no more splits/merges?
+					if (bestSplitValue < 0 && bestMergeValue < 0)
+						break;
+
+					if (bestMergeValue < 0 || (bestMergeValue >= 0 && bestSplitValue >= 0 && bestSplitValue < bestMergeValue)) {
+
+						assignment.add(new SplitAssignment(bestSplitSource, bestSplitTarget1, bestSplitTarget2));
+						sameNeuron.remove(bestSplitSource);
+						targets.remove(bestSplitTarget1);
+						targets.remove(bestSplitTarget2);
+
+					} else {
+
+						assignment.add(new MergeAssignment(bestMergeTarget1, bestMergeTarget2, bestMergeSource));
+						sameNeuron.remove(bestMergeTarget1);
+						sameNeuron.remove(bestMergeTarget2);
+						targets.remove(bestMergeSource);
+					}
+				}
+
+				// assign close candidates as continuations
+				while (true) {
+
+					double    bestDistance = -1;
+					Candidate bestSource   = null;
+					Candidate bestTarget   = null;
+
+					for (Candidate source : sameNeuron) {
 						for (Candidate target : targets) {
 
 							double distance =
-									(candidate.getCenter(0) - target.getCenter(0))*
-									(candidate.getCenter(0) - target.getCenter(0))
-									+
-									(candidate.getCenter(1) - target.getCenter(1))*
-									(candidate.getCenter(1) - target.getCenter(1));
+									source.distanceTo(target);
 
-							if (distance < minDistance || minDistance < 0) {
+							if ((distance < bestDistance || bestDistance < 0) && distance < MaxDistance) {
 
-								minDistance = distance;
-								closest = target;
+								bestDistance = distance;
+								bestSource   = source;
+								bestTarget   = target;
 							}
 						}
-
-						assignment.add(new OneToOneAssignment(candidate, closest));
-						targets.remove(closest);
 					}
 
-				} else if (sameNeuron.size() == 1 && targets.size() == 2)
+					// no more good continuations?
+					if (bestSource == null)
+						break;
 
-					assignment.add(new SplitAssignment(sameNeuron.get(0), targets.get(0), targets.get(1)));
+					assignment.add(new OneToOneAssignment(bestSource, bestTarget));
+					sameNeuron.remove(bestSource);
+					targets.remove(bestTarget);
+				}
 
-				else if (sameNeuron.size() == 2 && targets.size() == 1)
+				// treat remainders as death/split
+				for (Candidate dying : sameNeuron)
+					assignment.add(new OneToOneAssignment(dying, SequenceSearch.deathNode));
+				for (Candidate emerging : targets)
+					assignment.add(new OneToOneAssignment(SequenceSearch.emergeNode, emerging));
 
-					assignment.add(new MergeAssignment(sameNeuron.get(0), sameNeuron.get(1), targets.get(0)));
-
-				else if (targets.size() == 0)
-
-					for (Candidate candidate : sameNeuron)
-						assignment.add(new OneToOneAssignment(candidate, SequenceSearch.deathNode));
-
-				else
-					IJ.log("Invalid assignment in groundtruth: " + sameNeuron.size() + " areas map to " + targets.size() + " areas");
-			}
+			} // for each set of source candidates with the same label
 
 			// all remaining candidates must have appeared
 			for (Candidate candidate : remainders)
@@ -200,5 +271,13 @@ public class GroundTruth {
 		}
 
 		return candidates;
+	}
+
+	private boolean overlap(Candidate c1, Candidate c2) {
+
+		int numMatches =
+				(new SetDifference()).numMatches(c1.getPixels(), new int[]{0, 0}, c2.getPixels(), new int[]{0, 0});
+
+		return numMatches > 0;
 	}
 }

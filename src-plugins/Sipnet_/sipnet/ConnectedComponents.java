@@ -3,8 +3,6 @@ package sipnet;
 import java.util.HashMap;
 import java.util.Vector;
 
-import ij.IJ;
-
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
 import mpicbg.imglib.image.Image;
@@ -155,13 +153,8 @@ public class ConnectedComponents<T extends RealType<T>> {
 		}
 
 		Vector<ConnectedComponent> result = new Vector<ConnectedComponent>();
-		for (int value : components.keySet()) {
-
-			if (components.get(value).size() > 2)
-				IJ.log("" + components.get(value).size() + " components for " + value);
-			
+		for (int value : components.keySet())
 			result.addAll(components.get(value));
-		}
 
 		return result;
 	}
