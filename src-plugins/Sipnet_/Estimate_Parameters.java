@@ -119,7 +119,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 
 			// read assignment model paramters
 			AssignmentModel.readFromFile(
-					"./assignment_model.conf",
+					"./assignment_model_caching.conf",
 					new int[]{groundtruthImp.getWidth(), groundtruthImp.getHeight()});
 
 			// let sipnet (i.e., sequence search) cache the most likely
@@ -134,6 +134,9 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 							parameterStdDeviation);
 
 			parameterEstimator.estimate();
+
+			// write result
+			AssignmentModel.writeToFile("./result.conf", "learnt parameters");
 
 			// visualisation
 			visualiser   = new Visualiser();

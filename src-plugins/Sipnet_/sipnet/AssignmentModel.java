@@ -2,6 +2,7 @@ package sipnet;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import java.util.HashMap;
@@ -208,6 +209,32 @@ public class AssignmentModel {
 
 	}
 
+	final void writeParameters(String filename, String comment) {
+
+		Properties parameterFile = new Properties();
+
+		try {
+			parameterFile.setProperty("weight_data",                  "" + weightData);
+			parameterFile.setProperty("weight_position_continuation", "" + weightPositionContinuation);
+			parameterFile.setProperty("weight_shape_continuation",    "" + weightShapeContinuation);
+			parameterFile.setProperty("weight_position_bisection",    "" + weightPositionBisection);
+			parameterFile.setProperty("weight_shape_bisection",       "" + weightShapeBisection);
+			parameterFile.setProperty("weight_end",                   "" + weightEnd);
+
+			if (shapeDissimilarity instanceof KLDivergence)
+				parameterFile.setProperty("shape_dissimilarity", "kl_divergence");
+			else
+				parameterFile.setProperty("shape_dissimilarity", "set_difference");
+
+			parameterFile.setProperty("appearance_margin", "" + appearanceMargin);
+
+			parameterFile.store(new FileOutputStream(new File(filename)), comment);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
 	final void setParameters(double[] w) {
 
 		weightData                 = w[0];
@@ -245,6 +272,11 @@ public class AssignmentModel {
 		}
 
 		return assignmentModel;
+	}
+
+	final public static void writeToFile(String filename, String comment) {
+
+		AssignmentModel.getInstance().writeParameters(filename, comment);
 	}
 
 }
