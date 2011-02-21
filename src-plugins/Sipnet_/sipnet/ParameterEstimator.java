@@ -30,6 +30,10 @@ public class ParameterEstimator {
 	// the function to minimize
 	private Objective objective;
 
+	// the per-component standart deviation of the parameters used for
+	// regularization
+	private double parameterStdDeviation;
+
 	/**
 	 * Interface class for the apache.math optimizer. Delegates computation of
 	 * the gradient to the ParameterEstimator.
@@ -42,12 +46,12 @@ public class ParameterEstimator {
 
 			assignmentModel.setParameters(w);
 
-			gradient[0] = gradientData();
-			gradient[1] = gradientPositionContinuation();
-			gradient[2] = gradientShapeContinuation();
-			gradient[3] = gradientPositionBisection();
-			gradient[4] = gradientShapeBisection();
-			gradient[5] = gradientEnd();
+			gradient[0] = gradientData()                 + regularizer(w[0]);
+			gradient[1] = gradientPositionContinuation() + regularizer(w[1]);
+			gradient[2] = gradientShapeContinuation()    + regularizer(w[2]);
+			gradient[3] = gradientPositionBisection()    + regularizer(w[3]);
+			gradient[4] = gradientShapeBisection()       + regularizer(w[4]);
+			gradient[5] = gradientEnd()                  + regularizer(w[5]);
 
 			try {
 				objective.value(w);
@@ -137,11 +141,15 @@ public class ParameterEstimator {
 
 	}
 
-	public ParameterEstimator(Sequence trainingSequence, List<Vector<Candidate>> msers) {
+	public ParameterEstimator(
+			Sequence trainingSequence,
+			List<Vector<Candidate>> msers,
+			double parameterStdDeviation) {
 
-		this.assignmentModel  = AssignmentModel.getInstance();
-		this.trainingSequence = trainingSequence;
-		this.msers            = msers;
+		this.assignmentModel       = AssignmentModel.getInstance();
+		this.trainingSequence      = trainingSequence;
+		this.msers                 = msers;
+		this.parameterStdDeviation = parameterStdDeviation;
 	}
 
 	final public void estimate() {
@@ -567,5 +575,13 @@ public class ParameterEstimator {
 		}
 
 		return sumTermsExpected - sumTermsTraining;
+	}
+
+	final private double regularizer(double value) {
+
+		if (parameterStdDeviation <= 0.0)
+			return 0;
+
+		return -value/parameterStdDeviation;
 	}
 }

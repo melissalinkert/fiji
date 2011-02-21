@@ -58,6 +58,8 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 	private double maxVariation = 10.0;
 	private double minDiversity = 0.5;
 
+	private double parameterStdDeviation = 1.0;
+ 
 	private class ProcessingThread extends Thread {
 
 		public void run() {
@@ -86,6 +88,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			gd.addNumericField("min diversity:", minDiversity, 2);
 			gd.addNumericField("first slice:", 1, 0);
 			gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
+			gd.addNumericField("parameter std. deviation:", parameterStdDeviation, 2);
 
 			gd.showDialog();
 
@@ -103,6 +106,8 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 
 			firstSlice = (int)gd.getNextNumber();
 			lastSlice  = (int)gd.getNextNumber();
+
+			parameterStdDeviation = gd.getNextNumber();
 
 			groundtruthImp = WindowManager.getImage(groundtruthName);
 			membraneImp    = WindowManager.getImage(membraneName);
@@ -122,7 +127,12 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			new Sipnet(msers, "./sequence_search.conf", null);
 	
 			// perform parameter learning
-			ParameterEstimator parameterEstimator = new ParameterEstimator(groundtruth.getSequence(), msers);
+			ParameterEstimator parameterEstimator =
+					new ParameterEstimator(
+							groundtruth.getSequence(),
+							msers,
+							parameterStdDeviation);
+
 			parameterEstimator.estimate();
 
 			// visualisation
