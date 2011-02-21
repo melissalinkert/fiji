@@ -164,9 +164,15 @@ public class ParameterEstimator {
 
 		try {
 			IJ.log("starting optimizer...");
+			/*
+			 * NOTE:
+			 *
+			 * Here, we are MAXIMIZING, since we compute the values of the
+			 * LIKELIHOOD of the training samples.
+			 */
 			result = optimizer.optimize(
 					objective,
-					GoalType.MINIMIZE,
+					GoalType.MAXIMIZE,
 					new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
 			IJ.log("done.");
 
