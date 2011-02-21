@@ -43,6 +43,7 @@ public class AssignmentModel {
 
 	// this is needed very oftern - therefor, cache the results
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
+	private boolean cacheDirty = false;
 
 	final static public AssignmentModel getInstance() {
 
@@ -72,6 +73,12 @@ public class AssignmentModel {
 
 		final Candidate smaller = (source.getId() > target.getId() ? target : source);
 		final Candidate bigger  = (source.getId() > target.getId() ? source : target);
+
+		if (cacheDirty) {
+
+			continuationCache = new HashMap<Candidate, HashMap<Candidate, Double>>();
+			cacheDirty = false;
+		}
 
 		HashMap<Candidate, Double> shm = continuationCache.get(smaller);
 
@@ -183,6 +190,8 @@ public class AssignmentModel {
 
 		Properties parameterFile = new Properties();
 
+		cacheDirty = true;
+
 		try {
 			parameterFile.load(new FileInputStream(new File(filename)));
 
@@ -243,6 +252,8 @@ public class AssignmentModel {
 		weightPositionBisection    = w[3];
 		weightShapeBisection       = w[4];
 		weightEnd                  = w[5];
+
+		cacheDirty = true;
 	}
 
 	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
