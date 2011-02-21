@@ -1,5 +1,7 @@
 package sipnet;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.math.FunctionEvaluationException;
@@ -14,14 +16,19 @@ import org.apache.commons.math.optimization.RealPointValuePair;
 import org.apache.commons.math.optimization.general.ConjugateGradientFormula;
 import org.apache.commons.math.optimization.general.NonLinearConjugateGradientOptimizer;
 
+import ij.IJ;
+
 public class ParameterEstimator {
 
 	// the assignemt model to estimate paramters for
 	private AssignmentModel assignmentModel;
 
 	// the training input as a sequence of candidates and according msers
-	private Sequence                  trainingSequence;
-	private Vector<Vector<Candidate>> msers;
+	private Sequence                trainingSequence;
+	private List<Vector<Candidate>> msers;
+
+	// the function to minimize
+	private Objective objective;
 
 	/**
 	 * Interface class for the apache.math optimizer. Delegates computation of
@@ -41,6 +48,13 @@ public class ParameterEstimator {
 			gradient[3] = gradientPositionBisection();
 			gradient[4] = gradientShapeBisection();
 			gradient[5] = gradientEnd();
+
+			try {
+				objective.value(w);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			System.out.println("gradient at " + Arrays.toString(w) + ":\n" + Arrays.toString(gradient));
 
 			return gradient;
 		}
@@ -107,6 +121,7 @@ public class ParameterEstimator {
 			for (SequenceNode node : trainingSequence)
 				sumCosts += node.getAssignment().getCosts();
 
+			System.out.println("objective value: " + sumCosts);
 			return sumCosts;
 		}
 
@@ -122,10 +137,11 @@ public class ParameterEstimator {
 
 	}
 
-	public ParameterEstimator(Sequence trainingSequence) {
+	public ParameterEstimator(Sequence trainingSequence, List<Vector<Candidate>> msers) {
 
 		this.assignmentModel  = AssignmentModel.getInstance();
 		this.trainingSequence = trainingSequence;
+		this.msers            = msers;
 	}
 
 	final public void estimate() {
@@ -134,15 +150,17 @@ public class ParameterEstimator {
 				new NonLinearConjugateGradientOptimizer(
 						ConjugateGradientFormula.FLETCHER_REEVES);
 
-		Objective objective = new Objective();
+		objective = new Objective();
 
 		RealPointValuePair result = null;
 
 		try {
+			IJ.log("starting optimizer...");
 			result = optimizer.optimize(
 					objective,
 					GoalType.MINIMIZE,
-					new double[]{0.0, 0.0, 0.0, 0.0, 0.0});
+					new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+			IJ.log("done.");
 
 		} catch (Exception e) {
 
@@ -209,7 +227,11 @@ public class ParameterEstimator {
 				for (Candidate target : source.getMostLikelyCandidates()) {
 
 					double p = Math.exp(-assignmentModel.costContinuation(source, target, true));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
 
 					sumTermsExpected +=
 						(assignmentModel.dataTerm(source) +
@@ -224,7 +246,11 @@ public class ParameterEstimator {
 					for (Candidate target : candidate.mergeTargets().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(target, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected +=
 								(assignmentModel.dataTerm(target) +
@@ -236,7 +262,11 @@ public class ParameterEstimator {
 					for (Candidate source : candidate.splitSources().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(source, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected +=
 								(assignmentModel.dataTerm(source) +
@@ -254,7 +284,11 @@ public class ParameterEstimator {
 				for (Candidate target : sliceCandidates) {
 
 					double p = Math.exp(-assignmentModel.costEnd(target));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
 
 					sumTermsExpected += assignmentModel.dataTerm(target)*p;
 				}
@@ -264,7 +298,12 @@ public class ParameterEstimator {
 				for (Candidate source : sliceCandidates) {
 
 					double p = Math.exp(-assignmentModel.costEnd(source));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
+
 
 					sumTermsExpected += assignmentModel.dataTerm(source)*p;
 				}
@@ -301,7 +340,12 @@ public class ParameterEstimator {
 				for (Candidate target : source.getMostLikelyCandidates()) {
 
 					double p = Math.exp(-assignmentModel.costContinuation(source, target, true));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
+
 
 					sumTermsExpected += assignmentModel.centerTerm(source, target)*p;
 				}
@@ -335,7 +379,11 @@ public class ParameterEstimator {
 				for (Candidate target : source.getMostLikelyCandidates()) {
 
 					double p = Math.exp(-assignmentModel.costContinuation(source, target, true));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
 
 					sumTermsExpected += assignmentModel.shapeTerm(source, target)*p;
 				}
@@ -379,7 +427,11 @@ public class ParameterEstimator {
 					for (Candidate target : candidate.mergeTargets().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(target, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected += assignmentModel.centerTerm(target, candidate, neighbor)*p;
 				}
@@ -388,7 +440,11 @@ public class ParameterEstimator {
 					for (Candidate source : candidate.splitSources().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(source, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected += assignmentModel.centerTerm(source, candidate, neighbor)*p;
 				}
@@ -433,7 +489,11 @@ public class ParameterEstimator {
 					for (Candidate target : candidate.mergeTargets().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(target, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected += assignmentModel.shapeTerm(target, candidate, neighbor)*p;
 				}
@@ -442,7 +502,11 @@ public class ParameterEstimator {
 					for (Candidate source : candidate.splitSources().get(neighbor)) {
 
 						double p = Math.exp(-assignmentModel.costBisect(source, candidate, neighbor));
-						p = p/(p + 1.0);
+
+						if (p == Double.POSITIVE_INFINITY)
+							p = 1.0;
+						else
+							p = p/(p + 1.0);
 
 						sumTermsExpected += assignmentModel.shapeTerm(source, candidate, neighbor)*p;
 				}
@@ -476,7 +540,11 @@ public class ParameterEstimator {
 				for (Candidate target : sliceCandidates) {
 
 					double p = Math.exp(-assignmentModel.costEnd(target));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
 
 					sumTermsExpected += assignmentModel.endTerm(target)*p;
 				}
@@ -486,7 +554,11 @@ public class ParameterEstimator {
 				for (Candidate source : sliceCandidates) {
 
 					double p = Math.exp(-assignmentModel.costEnd(source));
-					p = p/(p + 1.0);
+
+					if (p == Double.POSITIVE_INFINITY)
+						p = 1.0;
+					else
+						p = p/(p + 1.0);
 
 					sumTermsExpected += assignmentModel.endTerm(source)*p;
 				}
