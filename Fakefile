@@ -296,7 +296,8 @@ MAINCLASS(jars/javac.jar)=com.sun.tools.javac.Main
 
 CLASSPATH(jars/fiji-scripting.jar)=jars/ij.jar:jars/jython.jar:jars/Fiji.jar:jars/bsh-2.0b4.jar:jars/js.jar
 CLASSPATH(plugins/Refresh_Javas.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/fake.jar:jars/Fiji.jar
-CLASSPATH(plugins/Sipnet_.jar)=plugins/MSER_.jar:plugins/3D_Viewer.jar:plugins/loci_tools.jar
+CLASSPATH(plugins/MSER_.jar)=jars/ij.jar:jars/imglib-algorithms.jar:jars/imglib-ij.jar:jars/imglib-io.jar:jars/imglib.jar:jars/imglib-scripting.jar
+CLASSPATH(plugins/Sipnet_.jar)=jars/ij.jar:plugins/MSER_.jar:plugins/3D_Viewer.jar:plugins/loci_tools.jar:jars/imglib-algorithms.jar:jars/imglib-ij.jar:jars/imglib-io.jar:jars/imglib.jar:jars/imglib-scripting.jar:jars/Jama-1.0.2.jar:jars/cplex.jar:jars/glpk-java.jar:jars/junit-4.5.jar:jars/commons-math.jar:jars/Fiji.jar:jars/fiji-lib.jar
 CLASSPATH(plugins/Jython_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/jython.jar
 CLASSPATH(plugins/Clojure_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/clojure.jar
 CLASSPATH(plugins/JRuby_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/jruby.jar
@@ -338,7 +339,6 @@ CLASSPATH(jars/VIB-lib.jar)=jars/ij.jar:jars/Jama-1.0.2.jar:jars/junit-4.5.jar:j
 CLASSPATH(plugins/Simple_Neurite_Tracer.jar)=jars/ij.jar:$JAVA3D_JARS:jars/VIB-lib.jar:plugins/VIB_.jar:jars/pal-optimization.jar:jars/junit-4.5.jar:plugins/3D_Viewer.jar:jars/commons-math.jar:jars/jfreechart-1.0.13.jar:jars/jcommon-1.0.12.jar:jars/batik.jar:plugins/AnalyzeSkeleton_.jar:plugins/Skeletonize3D_.jar
 CLASSPATH(plugins/3D_Viewer.jar)=jars/ij.jar:jars/VIB-lib.jar:jars/imglib.jar:jars/Jama-1.0.2.jar:$JAVA3D_JARS
 CLASSPATH(jars/jep.jar)=jars/ij.jar:jars/Jama-1.0.2.jar:jars/junit-4.5.jar
-CLASSPATH(plugins/SPIM_Registration.jar)=jars/ij.jar:$JAVA3D_JARS:jars/imglib.jar:jars/mpicbg.jar:plugins/3D_Viewer.jar:jars/weka.jar:jars/fiji-lib.jar:plugins/loci_tools.jar:plugins/Fiji_Plugins.jar:jars/VIB-lib.jar:jars/Jama-1.0.2.jar:jars/imglib-algorithms.jar:jars/imglib-ij.jar:jars/imglib-io.jar
 CLASSPATH(plugins/Bug_Submitter.jar)=jars/ij.jar:plugins/Fiji_Updater.jar
 CLASSPATH(plugins/TopoJ_.jar)=jars/ij.jar:jars/Jama-1.0.2.jar
 CLASSPATH(jars/imagescience.jar)=jars/ij.jar:plugins/Image_5D.jar
