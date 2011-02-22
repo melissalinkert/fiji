@@ -339,6 +339,11 @@ public class Candidate extends Region<Candidate> {
 		return covariance;
 	}
 
+	public void setMeanGrayValue(double value) {
+
+		meanGrayValue = value;
+	}
+
 	public double getMeanGrayValue() {
 
 		return meanGrayValue;

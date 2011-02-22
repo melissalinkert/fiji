@@ -21,12 +21,15 @@ import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
 import mser.MSER;
 
+import sipnet.Assignment;
 import sipnet.Candidate;
 import sipnet.CandidateFactory;
 import sipnet.GroundTruth;
 
 import sipnet.AssignmentModel;
 import sipnet.ParameterEstimator;
+import sipnet.SequenceNode;
+import sipnet.SingleAssignment;
 import sipnet.Sipnet;
 import sipnet.Visualiser;
 
@@ -188,7 +191,40 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 		GroundTruth groundtruth = new GroundTruth();
 		groundtruth.readFromLabelImages(sliceImages);
 
+		IJ.log("setting mean gray values of ground-truth candidates...");
+		// set mean gray values according to membrane image
+		int s = 1;
+		for (SequenceNode node : groundtruth.getSequence()) {
+
+			Image<T> membraneImg =
+					ImagePlusAdapter.wrap(new ImagePlus("", membraneImp.getStack().getProcessor(s)));
+
+			for (SingleAssignment singleAssignment : node.getAssignment()) {
+				for (Candidate source : singleAssignment.getSources())
+					setMeanGrayValue(source, membraneImg);
+				for (Candidate target : singleAssignment.getTargets())
+					setMeanGrayValue(target, membraneImg);
+			}
+			s++;
+		}
+		IJ.log("done.");
+
 		return groundtruth;
+	}
+
+	private void setMeanGrayValue(Candidate candidate, Image<T> image) {
+
+		LocalizableByDimCursor<T> cursor = image.createLocalizableByDimCursor();
+
+		double value = 0.0;
+
+		for (int[] pixel : candidate.getPixels()) {
+
+			cursor.setPosition(pixel);
+			value += cursor.getType().getRealFloat();
+		}
+
+		candidate.setMeanGrayValue(value/candidate.getPixels().size());
 	}
 
 	private List<Vector<Candidate>> readMsers() {
