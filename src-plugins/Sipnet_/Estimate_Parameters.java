@@ -193,7 +193,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 
 		IJ.log("setting mean gray values of ground-truth candidates...");
 		// set mean gray values according to membrane image
-		int s = 1;
+		int s = groundtruth.getSequence().size();
 		for (SequenceNode node : groundtruth.getSequence()) {
 
 			Image<T> membraneImg =
@@ -205,7 +205,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 				for (Candidate target : singleAssignment.getTargets())
 					setMeanGrayValue(target, membraneImg);
 			}
-			s++;
+			s--;
 		}
 		IJ.log("done.");
 
