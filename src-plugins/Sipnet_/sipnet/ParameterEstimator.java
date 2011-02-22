@@ -78,17 +78,17 @@ public class ParameterEstimator {
 
 			switch (part) {
 				case 0:
-					return gradientData();
+					return gradientData() + regularizer(w[0]);
 				case 1:
-					return gradientPositionContinuation();
+					return gradientPositionContinuation() + regularizer(w[1]);
 				case 2:
-					return gradientShapeContinuation();
+					return gradientShapeContinuation() + regularizer(w[2]);
 				case 3:
-					return gradientPositionBisection();
+					return gradientPositionBisection() + regularizer(w[3]);
 				case 4:
-					return gradientShapeBisection();
+					return gradientShapeBisection() + regularizer(w[4]);
 				case 5:
-					return gradientEnd();
+					return gradientEnd() + regularizer(w[5]);
 				default:
 					throw new RuntimeException("parameter with number " + part + " does not exist");
 			}
@@ -125,8 +125,7 @@ public class ParameterEstimator {
 			for (SequenceNode node : trainingSequence)
 				sumCosts += node.getAssignment().getCosts();
 
-			System.out.println("objective value: " + sumCosts);
-			return sumCosts;
+			return -sumCosts;
 		}
 
 		public MultivariateVectorialFunction gradient() {
@@ -359,7 +358,6 @@ public class ParameterEstimator {
 						p = 1.0;
 					else
 						p = p/(p + 1.0);
-
 
 					sumTermsExpected += assignmentModel.centerTerm(source, target)*p;
 				}
