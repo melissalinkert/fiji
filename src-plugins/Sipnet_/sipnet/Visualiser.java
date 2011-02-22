@@ -5,7 +5,9 @@ import java.awt.Color;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import ij.IJ;
@@ -18,15 +20,6 @@ import ij.process.ImageProcessor;
 
 public class Visualiser {
 
-	private class VColor {
-
-		Color color;
-
-		public VColor(int r, int g, int b) {
-			color = new Color(r, g, b);
-		}
-	}
-
 	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
 
 		// visualize result
@@ -36,67 +29,68 @@ public class Visualiser {
 		IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
-		HashMap<Candidate, VColor> candidateColors = new HashMap<Candidate, VColor>();
+		HashMap<Candidate, Color> colors    = new HashMap<Candidate, Color>();
+		Vector<Set<Candidate>>    treelines = new Vector<Set<Candidate>>();
 
 		/*
 		 * ASSIGN COLORS
 		 */
 		int slice = sequence.size();
 		for (SequenceNode sequenceNode : sequence) {
-
 			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
 
-				// associate random colors to last candidates (if not done
-				// already)
-				if (slice == sequence.size()) {
+				// all sources and all targets are in the same treeline
 
-					int r = (int)(Math.random()*255.0);
-					int g = (int)(Math.random()*255.0);
-					int b = (int)(Math.random()*255.0);
-					VColor color = new VColor(r, g, b);
+				// find all (or create) treelines for targets
+				Vector<Set<Candidate>> targetTreelines = new Vector<Set<Candidate>>();
+				for (Candidate target : singleAssignment.getTargets()) {
 
-					for (Candidate target : singleAssignment.getTargets())
-						if (target != SequenceSearch.deathNode)
-							candidateColors.put(target, color);
+					boolean found = false;
+
+					if (target != SequenceSearch.deathNode)
+						for (Set<Candidate> treeline : treelines)
+							if (treeline.contains(target)) {
+								found = true;
+								targetTreelines.add(treeline);
+							}
+
+					if (!found) {
+
+						Set<Candidate> treeline = new HashSet<Candidate>();
+						treeline.add(target);
+						treelines.add(treeline);
+						targetTreelines.add(treeline);
+					}
 				}
 
+				// merge them
+				Set<Candidate> newTreeline = new HashSet<Candidate>();
+				for (Set<Candidate> targetTreeline : targetTreelines)
+					newTreeline.addAll(targetTreeline);
+
+				// add all sources to them
 				for (Candidate source : singleAssignment.getSources())
+					if (source != SequenceSearch.emergeNode)
+						newTreeline.add(source);
 
-					if (source != SequenceSearch.emergeNode) {
+				// remove old treelines
+				for (Set<Candidate> oldTreeline : targetTreelines)
+					treelines.remove(oldTreeline);
 
-						// see, if there was a color for this source already
-						VColor color = candidateColors.get(source);
-
-						// no - take color of first target
-						if (color == null)
-							color = candidateColors.get(singleAssignment.getTargets().get(0));
-						// yes - force all targets to take this color
-						else {
-							for (Candidate target : singleAssignment.getTargets()) {
-								if (candidateColors.get(target) == null)
-									candidateColors.put(target, new VColor(0, 0, 0));
-								candidateColors.get(target).color = color.color;
-							}
-							break;
-						}
-
-						// if target was not assigned as well, this source died -
-						// give it a new color
-						if (color == null) {
-
-							int r = (int)(Math.random()*255.0);
-							int g = (int)(Math.random()*255.0);
-							int b = (int)(Math.random()*255.0);
-
-							color = new VColor(r, g, b);
-						}
-
-						// store new color for all sources now
-						for (Candidate otherSources : singleAssignment.getSources())
-							candidateColors.put(otherSources, color);
-					}
+				// add new treeline
+				treelines.add(newTreeline);
 			}
-			slice--;
+		}
+
+		for (Set<Candidate> treeline : treelines) {
+
+			int r = (int)(Math.random()*255.0);
+			int g = (int)(Math.random()*255.0);
+			int b = (int)(Math.random()*255.0);
+			Color color = new Color(r, g, b);
+
+			for (Candidate candidate : treeline)
+				colors.put(candidate, color);
 		}
 
 		/*
@@ -120,8 +114,8 @@ public class Visualiser {
 
 						if (target != SequenceSearch.deathNode) {
 
-							VColor color = candidateColors.get(target);
-							drawCandidate(target, nip, color.color, (drawCandidateId ? "" + target.getId() : null));
+							Color color = colors.get(target);
+							drawCandidate(target, nip, color, (drawCandidateId ? "" + target.getId() : null));
 						}
 					}
 				}
@@ -130,8 +124,8 @@ public class Visualiser {
 
 					if (source != SequenceSearch.emergeNode) {
 
-						VColor color = candidateColors.get(source);
-						drawCandidate(source, pip, color.color, (drawCandidateId ? "" + source.getId() : null));
+						Color color = colors.get(source);
+						drawCandidate(source, pip, color, (drawCandidateId ? "" + source.getId() : null));
 					}
 				}
 			}
