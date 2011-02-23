@@ -27,6 +27,9 @@ public class SequenceSearch {
 	//private static final double MinPAssignment       = 1e-20;
 	public static final double MaxNegLogPAppearance = 1e25; //-Math.log(MinPAssignment);
 
+	// enforce explanation of every candidate in the first and last slice?
+	public static boolean FullMarginSlices = false;
+
 	/*
 	 * nodes of the assignment graph
 	 */
@@ -113,11 +116,13 @@ public class SequenceSearch {
 			NumDistanceCandidates = Integer.valueOf(parameterFile.getProperty("num_distance_candidates"));
 			MaxTargetCandidates   = Integer.valueOf(parameterFile.getProperty("max_target_candidates"));
 			MinTargetCandidates   = Integer.valueOf(parameterFile.getProperty("min_target_candidates"));
+			FullMarginSlices      = Boolean.valueOf(parameterFile.getProperty("full_margin_slices"));
 
 			IJ.log("Sequence search read parameters:");
 			IJ.log("  NumDistanceCandidates: " + NumDistanceCandidates);
 			IJ.log("  MaxTargetCandidates: "   + MaxTargetCandidates);
 			IJ.log("  MinTargetCandidates: "   + MinTargetCandidates);
+			IJ.log("  FullMarginSlices: "      + FullMarginSlices);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -273,8 +278,8 @@ public class SequenceSearch {
 					}
 				}
 
-				// ...has to be at most one
-				lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
+				// ...has to be equal or at most one
+				lpSolver.addConstraint(variableNums, coefficients, (FullMarginSlices ? 0 : -1), 1.0);
 
 				numConsUsed++;
 			}
@@ -341,7 +346,7 @@ public class SequenceSearch {
 						lpSolver.addConstraint(variableNums, coefficients, 0, 1.0);
 					else
 						// ...has to be at most one for the last slice
-						lpSolver.addConstraint(variableNums, coefficients, -1, 1.0);
+						lpSolver.addConstraint(variableNums, coefficients, (FullMarginSlices ? 0 : -1), 1.0);
 
 					numConsUsed++;
 				}
