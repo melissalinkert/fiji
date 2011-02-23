@@ -1,6 +1,7 @@
 package sipnet;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
@@ -154,5 +155,49 @@ public class Evaluator {
 	 */
 	final private void checkAssignments() {
 
+		Set<Candidate[]> groundtruthPairs =
+				sequenceToPairs(groundtruth.getSequence());
+		Set<Candidate[]> resultPairs =
+				sequenceToPairs(result);
+
+		int numMatches = 0;
+		for (Candidate[] groundtruthPair : groundtruthPairs) {
+
+			Candidate[] correspondingPair =
+					new Candidate[]{
+							correspondences.get(groundtruthPair[0]),
+							correspondences.get(groundtruthPair[1])};
+
+			for (Candidate[] resultPair : resultPairs)
+				if (resultPair[0] == correspondingPair[0] &&
+				    resultPair[1] == correspondingPair[1]) {
+					numMatches++;
+					break;
+				}
+		}
+
+
+		int numMissed = groundtruthPairs.size() - numMatches;
+		int numExtra  = resultPairs.size() - numMatches;
+		IJ.log("" + groundtruthPairs.size() + " connections in ground-truth, " + numMissed + " missed");
+		IJ.log("" + resultPairs.size() + " connections in result, " + numExtra + " extra");
+
+		numMergeErrors += numExtra;
+		numSplitErrors += numMissed;
+	}
+
+	final private Set<Candidate[]> sequenceToPairs(Sequence sequence) {
+
+		Set<Candidate[]> pairs = new HashSet<Candidate[]>();
+
+		for (Assignment assignment : sequence)
+			for (SingleAssignment singleAssignment : assignment)
+				for (Candidate source : singleAssignment.getSources())
+					if (source != SequenceSearch.emergeNode)
+						for (Candidate target : singleAssignment.getTargets())
+							if (target != SequenceSearch.deathNode)
+								pairs.add(new Candidate[]{source, target});
+
+		return pairs;
 	}
 }
