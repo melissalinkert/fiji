@@ -19,6 +19,18 @@ public class Assignment extends LinkedList<SingleAssignment> {
 		return targets;
 	}
 
+	public Set<Candidate> getSources() {
+
+		Set<Candidate> sources = new HashSet<Candidate>();
+
+		for (SingleAssignment singleAssignment : this)
+			for (Candidate source : singleAssignment.getSources())
+				if (source != SequenceSearch.emergeNode)
+					sources.add(source);
+
+		return sources;
+	}
+
 	public double getCosts() {
 
 		double costs = 0.0;

@@ -35,46 +35,45 @@ public class Visualiser {
 		/*
 		 * ASSIGN COLORS
 		 */
-		int slice = sequence.size();
-		for (SequenceNode sequenceNode : sequence) {
-			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+		for (Assignment assignment : sequence) {
+			for (SingleAssignment singleAssignment : assignment) {
 
 				// all sources and all targets are in the same treeline
 
-				// find all (or create) treelines for targets
-				Vector<Set<Candidate>> targetTreelines = new Vector<Set<Candidate>>();
-				for (Candidate target : singleAssignment.getTargets()) {
+				// find all (or create) treelines for sources
+				Vector<Set<Candidate>> sourceTreelines = new Vector<Set<Candidate>>();
+				for (Candidate source : singleAssignment.getSources()) {
 
 					boolean found = false;
 
-					if (target != SequenceSearch.deathNode)
+					if (source != SequenceSearch.emergeNode)
 						for (Set<Candidate> treeline : treelines)
-							if (treeline.contains(target)) {
+							if (treeline.contains(source)) {
 								found = true;
-								targetTreelines.add(treeline);
+								sourceTreelines.add(treeline);
 							}
 
 					if (!found) {
 
 						Set<Candidate> treeline = new HashSet<Candidate>();
-						treeline.add(target);
+						treeline.add(source);
 						treelines.add(treeline);
-						targetTreelines.add(treeline);
+						sourceTreelines.add(treeline);
 					}
 				}
 
 				// merge them
 				Set<Candidate> newTreeline = new HashSet<Candidate>();
-				for (Set<Candidate> targetTreeline : targetTreelines)
-					newTreeline.addAll(targetTreeline);
+				for (Set<Candidate> sourceTreeline : sourceTreelines)
+					newTreeline.addAll(sourceTreeline);
 
-				// add all sources to them
-				for (Candidate source : singleAssignment.getSources())
-					if (source != SequenceSearch.emergeNode)
-						newTreeline.add(source);
+				// add all targets to them
+				for (Candidate target : singleAssignment.getTargets())
+					if (target != SequenceSearch.deathNode)
+						newTreeline.add(target);
 
 				// remove old treelines
-				for (Set<Candidate> oldTreeline : targetTreelines)
+				for (Set<Candidate> oldTreeline : sourceTreelines)
 					treelines.remove(oldTreeline);
 
 				// add new treeline
@@ -82,6 +81,7 @@ public class Visualiser {
 			}
 		}
 
+		// assign random colors to the treelines
 		for (Set<Candidate> treeline : treelines) {
 
 			int r = (int)(Math.random()*255.0);
@@ -96,8 +96,8 @@ public class Visualiser {
 		/*
 		 * DRAW CANDIDATES
 		 */
-		slice = sequence.size();
-		for (SequenceNode sequenceNode : sequence) {
+		int slice = 1;
+		for (Assignment assignment : sequence) {
 
 			// previous slice
 			ImageProcessor pip = blockCopy.getStack().getProcessor(slice);
@@ -105,7 +105,7 @@ public class Visualiser {
 			// next slice
 			ImageProcessor nip = blockCopy.getStack().getProcessor(slice + 1);
 
-			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+			for (SingleAssignment singleAssignment : assignment) {
 
 				// last assignment
 				if (slice == sequence.size()) {
@@ -129,14 +129,14 @@ public class Visualiser {
 					}
 				}
 			}
-			slice--;
+			slice++;
 		}
 
 		/*
 		 * DRAW CONNECTIONS
 		 */
-		slice = sequence.size();
-		for (SequenceNode sequenceNode : sequence) {
+		slice = 1;
+		for (Assignment assignment : sequence) {
 
 			// previous slice
 			ImageProcessor pip = blockCopy.getStack().getProcessor(slice);
@@ -144,7 +144,7 @@ public class Visualiser {
 			// next slice
 			ImageProcessor nip = blockCopy.getStack().getProcessor(slice + 1);
 
-			for (SingleAssignment singleAssignment : sequenceNode.getAssignment()) {
+			for (SingleAssignment singleAssignment : assignment) {
 
 				for (Candidate source : singleAssignment.getSources()) {
 					for (Candidate target : singleAssignment.getTargets()) {
@@ -173,7 +173,7 @@ public class Visualiser {
 					}
 				}
 			}
-			slice--;
+			slice++;
 		}
 
 		blockCopy.updateAndDraw();

@@ -4,18 +4,35 @@ import java.util.LinkedList;
 import java.util.Set;
 
 @SuppressWarnings("serial")
-public class Sequence extends LinkedList<SequenceNode> {
+public class Sequence extends LinkedList<Assignment> {
+
+	public Set<Candidate> getCandidates(int slice) {
+
+		if (slice == size())
+			return get(slice - 1).getTargets();
+		else
+			return get(slice).getSources();
+	}
 
 	/**
-	 * Returns a set of all active nodes in the sequence, i.e., all the target
-	 * nodes of the last assignment.
-	 *
-	 * @return The set of all active nodes.
+	 * Check consistency of sequence, i.e., whether the set of sources of one
+	 * assignment is equal to the set of targets of the previous assignment.
 	 */
-	public Set<Candidate> getActiveNodes() {
+	public boolean consistent() {
 
-		// linked list is like a stack - first element is the most recently
-		// added one
-		return peekFirst().getAssignment().getTargets();
+		for (int i = 0; i < size()-1; i++) {
+
+			Set<Candidate> targets = get(i).getTargets();
+			Set<Candidate> sources = get(i+1).getSources();
+
+			for (Candidate target : targets)
+				if (!sources.contains(target))
+					return false;
+			for (Candidate source : sources)
+				if (!targets.contains(source))
+					return false;
+		}
+
+		return true;
 	}
 }

@@ -122,8 +122,8 @@ public class ParameterEstimator {
 
 			double sumCosts = 0.0;
 
-			for (SequenceNode node : trainingSequence)
-				sumCosts += node.getAssignment().getCosts();
+			for (Assignment assignment : trainingSequence)
+				sumCosts += assignment.getCosts();
 
 			return -sumCosts;
 		}
@@ -189,49 +189,49 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true continuation
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 1 &&
-				    assignment.getSources().get(0) != SequenceSearch.emergeNode &&
-				    assignment.getTargets().get(0) != SequenceSearch.deathNode)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 1 &&
+				    singleAssignment.getSources().get(0) != SequenceSearch.emergeNode &&
+				    singleAssignment.getTargets().get(0) != SequenceSearch.deathNode)
 
 					sumTermsTraining +=
-							assignmentModel.dataTerm(assignment.getSources().get(0)) +
-							assignmentModel.dataTerm(assignment.getTargets().get(0));
+							assignmentModel.dataTerm(singleAssignment.getSources().get(0)) +
+							assignmentModel.dataTerm(singleAssignment.getTargets().get(0));
 			}
 
 		// every true bisection
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 2)
-
-					sumTermsTraining +=
-							assignmentModel.dataTerm(assignment.getSources().get(0)) +
-							assignmentModel.dataTerm(assignment.getTargets().get(0)) +
-							assignmentModel.dataTerm(assignment.getTargets().get(1));
-
-				if (assignment.getSources().size() == 2 &&
-				    assignment.getTargets().size() == 1)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 2)
 
 					sumTermsTraining +=
-							assignmentModel.dataTerm(assignment.getTargets().get(0)) +
-							assignmentModel.dataTerm(assignment.getSources().get(0)) +
-							assignmentModel.dataTerm(assignment.getSources().get(1));
+							assignmentModel.dataTerm(singleAssignment.getSources().get(0)) +
+							assignmentModel.dataTerm(singleAssignment.getTargets().get(0)) +
+							assignmentModel.dataTerm(singleAssignment.getTargets().get(1));
+
+				if (singleAssignment.getSources().size() == 2 &&
+				    singleAssignment.getTargets().size() == 1)
+
+					sumTermsTraining +=
+							assignmentModel.dataTerm(singleAssignment.getTargets().get(0)) +
+							assignmentModel.dataTerm(singleAssignment.getSources().get(0)) +
+							assignmentModel.dataTerm(singleAssignment.getSources().get(1));
 			}
 
 		// every true end in the training data
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().get(0) == SequenceSearch.emergeNode)
-					sumTermsTraining += assignmentModel.dataTerm(assignment.getTargets().get(0));
+				if (singleAssignment.getSources().get(0) == SequenceSearch.emergeNode)
+					sumTermsTraining += assignmentModel.dataTerm(singleAssignment.getTargets().get(0));
 
-				if (assignment.getTargets().get(0) == SequenceSearch.deathNode)
-					sumTermsTraining += assignmentModel.dataTerm(assignment.getSources().get(0));
+				if (singleAssignment.getTargets().get(0) == SequenceSearch.deathNode)
+					sumTermsTraining += assignmentModel.dataTerm(singleAssignment.getSources().get(0));
 			}
 
 		// for each possible continuation
@@ -333,18 +333,18 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true continuation
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 1 &&
-				    assignment.getSources().get(0) != SequenceSearch.emergeNode &&
-				    assignment.getTargets().get(0) != SequenceSearch.deathNode)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 1 &&
+				    singleAssignment.getSources().get(0) != SequenceSearch.emergeNode &&
+				    singleAssignment.getTargets().get(0) != SequenceSearch.deathNode)
 
 					sumTermsTraining +=
 							assignmentModel.centerTerm(
-									assignment.getSources().get(0),
-									assignment.getTargets().get(0));
+									singleAssignment.getSources().get(0),
+									singleAssignment.getTargets().get(0));
 			}
 
 		// for each possible continuation
@@ -371,18 +371,18 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true continuation
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 1 &&
-				    assignment.getSources().get(0) != SequenceSearch.emergeNode &&
-				    assignment.getTargets().get(0) != SequenceSearch.deathNode)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 1 &&
+				    singleAssignment.getSources().get(0) != SequenceSearch.emergeNode &&
+				    singleAssignment.getTargets().get(0) != SequenceSearch.deathNode)
 
 					sumTermsTraining +=
 							assignmentModel.shapeTerm(
-									assignment.getSources().get(0),
-									assignment.getTargets().get(0));
+									singleAssignment.getSources().get(0),
+									singleAssignment.getTargets().get(0));
 			}
 
 		// for each possible continuation
@@ -409,26 +409,26 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true bisection
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 2)
-
-					sumTermsTraining +=
-							assignmentModel.centerTerm(
-									assignment.getSources().get(0),
-									assignment.getTargets().get(0),
-									assignment.getTargets().get(1));
-
-				if (assignment.getSources().size() == 2 &&
-				    assignment.getTargets().size() == 1)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 2)
 
 					sumTermsTraining +=
 							assignmentModel.centerTerm(
-									assignment.getTargets().get(0),
-									assignment.getSources().get(0),
-									assignment.getSources().get(1));
+									singleAssignment.getSources().get(0),
+									singleAssignment.getTargets().get(0),
+									singleAssignment.getTargets().get(1));
+
+				if (singleAssignment.getSources().size() == 2 &&
+				    singleAssignment.getTargets().size() == 1)
+
+					sumTermsTraining +=
+							assignmentModel.centerTerm(
+									singleAssignment.getTargets().get(0),
+									singleAssignment.getSources().get(0),
+									singleAssignment.getSources().get(1));
 			}
 
 		// for each possible bisection
@@ -471,26 +471,26 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true bisection
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().size() == 1 &&
-				    assignment.getTargets().size() == 2)
-
-					sumTermsTraining +=
-							assignmentModel.shapeTerm(
-									assignment.getSources().get(0),
-									assignment.getTargets().get(0),
-									assignment.getTargets().get(1));
-
-				if (assignment.getSources().size() == 2 &&
-				    assignment.getTargets().size() == 1)
+				if (singleAssignment.getSources().size() == 1 &&
+				    singleAssignment.getTargets().size() == 2)
 
 					sumTermsTraining +=
 							assignmentModel.shapeTerm(
-									assignment.getTargets().get(0),
-									assignment.getSources().get(0),
-									assignment.getSources().get(1));
+									singleAssignment.getSources().get(0),
+									singleAssignment.getTargets().get(0),
+									singleAssignment.getTargets().get(1));
+
+				if (singleAssignment.getSources().size() == 2 &&
+				    singleAssignment.getTargets().size() == 1)
+
+					sumTermsTraining +=
+							assignmentModel.shapeTerm(
+									singleAssignment.getTargets().get(0),
+									singleAssignment.getSources().get(0),
+									singleAssignment.getSources().get(1));
 			}
 
 		// for each possible bisection
@@ -533,14 +533,14 @@ public class ParameterEstimator {
 		double sumTermsExpected = 0.0;
 
 		// every true end in the training data
-		for (SequenceNode node : trainingSequence)
-			for (SingleAssignment assignment : node.getAssignment()) {
+		for (Assignment assignment : trainingSequence)
+			for (SingleAssignment singleAssignment : assignment) {
 
-				if (assignment.getSources().get(0) == SequenceSearch.emergeNode)
-					sumTermsTraining += assignmentModel.endTerm(assignment.getTargets().get(0));
+				if (singleAssignment.getSources().get(0) == SequenceSearch.emergeNode)
+					sumTermsTraining += assignmentModel.endTerm(singleAssignment.getTargets().get(0));
 
-				if (assignment.getTargets().get(0) == SequenceSearch.deathNode)
-					sumTermsTraining += assignmentModel.endTerm(assignment.getSources().get(0));
+				if (singleAssignment.getTargets().get(0) == SequenceSearch.deathNode)
+					sumTermsTraining += assignmentModel.endTerm(singleAssignment.getSources().get(0));
 			}
 
 		// every possible end

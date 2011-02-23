@@ -570,7 +570,7 @@ public class SequenceSearch {
 		Sequence sequence = new Sequence();
 
 		// all but the last slice
-		for (int s = sliceCandidates.size() - 2; s >= 0; s--) {
+		for (int s = 0; s < sliceCandidates.size() - 1; s++) {
 
 			Assignment assignment = new Assignment();
 
@@ -630,9 +630,10 @@ public class SequenceSearch {
 					if (getVariableValue(emergeNode, targetCandidate) == 1)
 						assignment.add(new OneToOneAssignment(emergeNode, targetCandidate));
 
-			sequence.add(new SequenceNode(assignment));
+			sequence.add(assignment);
 		}
 
+		assert(sequence.consistent());
 		return sequence;
 	}
 

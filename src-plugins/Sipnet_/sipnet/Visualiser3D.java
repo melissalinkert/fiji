@@ -55,11 +55,8 @@ public class Visualiser3D {
 	public void showAssignments(Sequence sequence) {
 
 		// connect regions
-		int s = sequence.size() - 1;
-		// from back to front (sequence is a stack)
-		for (SequenceNode node : sequence) {
-
-			Assignment assignment = node.getAssignment();
+		int s = 1;
+		for (Assignment assignment : sequence) {
 
 			for (SingleAssignment singleAssignment : assignment) {
 
@@ -84,7 +81,7 @@ public class Visualiser3D {
 					}
 				}
 			}
-			s--;
+			s++;
 		}
 
 		IJ.log("Opening 3D viewer to display result...");

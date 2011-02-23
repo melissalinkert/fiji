@@ -206,7 +206,7 @@ public class GroundTruth {
 				assignment.add(new OneToOneAssignment(SequenceSearch.emergeNode, candidate));
 
 			// store this assignment
-			groundtruth.push(new SequenceNode(assignment));
+			groundtruth.add(assignment);
 
 			prevCandidates = candidates;
 		}
