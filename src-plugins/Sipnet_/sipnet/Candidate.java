@@ -40,7 +40,6 @@ public class Candidate extends Region<Candidate> {
 	private Vector<Integer>   neighborIndices;
 
 	// all potential merge/split partners and the corresponding targets/sources
-	// NOTE: only partners with an id bigger than this' id are stored here
 	private HashMap<Candidate, Vector<Candidate>> mergeTargets;
 	private HashMap<Candidate, Vector<Candidate>> splitSources;
 
@@ -178,14 +177,12 @@ public class Candidate extends Region<Candidate> {
 
 	public void addMergePartner(Candidate partner, Vector<Candidate> targets) {
 
-		if (partner.getId() > getId())
-			mergeTargets.put(partner, targets);
+		mergeTargets.put(partner, targets);
 	}
 
 	public void addSplitPartner(Candidate partner, Vector<Candidate> sources) {
 
-		if (partner.getId() > getId())
-			splitSources.put(partner, sources);
+		splitSources.put(partner, sources);
 	}
 
 	public HashMap<Candidate, Vector<Candidate>> mergeTargets() {

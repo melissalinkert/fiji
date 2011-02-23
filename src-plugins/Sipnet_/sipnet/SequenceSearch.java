@@ -178,11 +178,10 @@ public class SequenceSearch {
 
 					Candidate splitNode = splitNodes.get(smaller).get(bigger);
 
-					if (splitNode != null)
-						for (Candidate splitSource : smaller.splitSources().get(bigger)) {
-							variableNums.add(getVariableNum(splitSource, splitNode));
-							coefficients.add(1.0);
-						}
+					for (Candidate splitSource : candidate.splitSources().get(neighbor)) {
+						variableNums.add(getVariableNum(splitSource, splitNode));
+						coefficients.add(1.0);
+					}
 				}
 
 				// ...and the edge from the emerge node...
@@ -211,11 +210,10 @@ public class SequenceSearch {
 
 					Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
 
-					if (mergeNode != null)
-						for (Candidate mergeTarget : smaller.mergeTargets().get(bigger)) {
-							variableNums.add(getVariableNum(mergeNode, mergeTarget));
-							coefficients.add(-1.0);
-						}
+					for (Candidate mergeTarget : candidate.mergeTargets().get(neighbor)) {
+						variableNums.add(getVariableNum(mergeNode, mergeTarget));
+						coefficients.add(-1.0);
+					}
 				}
 
 				// ...and the edge to the death node...
@@ -264,7 +262,7 @@ public class SequenceSearch {
 						Candidate smaller = (neighbor.getId() < member.getId() ? neighbor : member);
 						Candidate bigger  = (neighbor.getId() < member.getId() ? member   : neighbor);
 
-						for (Candidate mergeTarget : smaller.mergeTargets().get(bigger)) {
+						for (Candidate mergeTarget : member.mergeTargets().get(neighbor)) {
 							variableNums.add(getVariableNum(mergeNodes.get(smaller).get(bigger), mergeTarget));
 							coefficients.add(1.0);
 						}
@@ -326,7 +324,7 @@ public class SequenceSearch {
 
 							Candidate splitNode = splitNodes.get(smaller).get(bigger);
 
-							for (Candidate splitSource : smaller.splitSources().get(bigger)) {
+							for (Candidate splitSource : member.splitSources().get(neighbor)) {
 
 								variableNums.add(getVariableNum(splitSource, splitNode));
 								coefficients.add(1.0);
@@ -381,12 +379,11 @@ public class SequenceSearch {
 					if (candidate.getId() > neighbor.getId())
 						continue;
 
-					if (mergeNodes.get(candidate).get(neighbor) != null)
-						for (Candidate mergeTarget : candidate.mergeTargets().get(neighbor)) {
+					for (Candidate mergeTarget : candidate.mergeTargets().get(neighbor)) {
 
-							variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergeTarget));
-							coefficients.add(assignmentModel.costBisect(mergeTarget, candidate, neighbor));
-						}
+						variableNums.add(getVariableNum(mergeNodes.get(candidate).get(neighbor), mergeTarget));
+						coefficients.add(assignmentModel.costBisect(mergeTarget, candidate, neighbor));
+					}
 				}
 		}
 
@@ -484,6 +481,7 @@ public class SequenceSearch {
 
 								mergeNodes.get(smaller).put(bigger, mergeNode);
 								smaller.addMergePartner(bigger, targets);
+								bigger.addMergePartner(smaller, targets);
 							}
 						}
 					}
@@ -508,6 +506,7 @@ public class SequenceSearch {
 
 							splitNodes.get(smaller).put(bigger, splitNode);
 							smaller.addSplitPartner(bigger, sources);
+							bigger.addSplitPartner(smaller, sources);
 						}
 					}
 				}
@@ -577,8 +576,10 @@ public class SequenceSearch {
 				// each continuation
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
 					for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
-						if (getVariableValue(sourceCandidate, targetCandidate) == 1)
+						if (getVariableValue(sourceCandidate, targetCandidate) == 1) {
 							assignment.add(new OneToOneAssignment(sourceCandidate, targetCandidate));
+							System.out.println("" + sourceCandidate.getId() + " ⇒ " + targetCandidate.getId());
+						}
 
 				// each merge
 				for (Candidate candidate : sliceCandidates.get(s))
@@ -592,6 +593,7 @@ public class SequenceSearch {
 							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergeTarget) == 1) {
 
 								assignment.add(new MergeAssignment(candidate, neighbor, mergeTarget));
+								System.out.println("" + candidate.getId() + ", " + neighbor.getId() + " ⇒ " + mergeTarget.getId());
 
 								// there can only be one merge target
 								break;
@@ -610,6 +612,7 @@ public class SequenceSearch {
 							if (getVariableValue(splitSource, splitNodes.get(candidate).get(neighbor)) == 1) {
 
 								assignment.add(new SplitAssignment(splitSource, candidate, neighbor));
+								System.out.println("" + splitSource.getId() + " ⇒ " + candidate.getId() + ", " + neighbor.getId());
 
 								// there can only be one split target
 								break;
@@ -620,15 +623,19 @@ public class SequenceSearch {
 			if (s > 0)
 				// each death
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
-					if (getVariableValue(sourceCandidate, deathNode) == 1)
+					if (getVariableValue(sourceCandidate, deathNode) == 1) {
 						assignment.add(new OneToOneAssignment(sourceCandidate, deathNode));
+						System.out.println("" + sourceCandidate.getId() + " ⇒ D");
+					}
 
 			// not the last but one slice
 			if (s < sliceCandidates.size() - 2)
 				// each emerge
 				for (Candidate targetCandidate : sliceCandidates.get(s+1))
-					if (getVariableValue(emergeNode, targetCandidate) == 1)
+					if (getVariableValue(emergeNode, targetCandidate) == 1) {
 						assignment.add(new OneToOneAssignment(emergeNode, targetCandidate));
+						System.out.println("E ⇒ " + targetCandidate.getId());
+					}
 
 			sequence.add(assignment);
 		}
