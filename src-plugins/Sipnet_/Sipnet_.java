@@ -1,4 +1,6 @@
 
+import mpicbg.imglib.cursor.Cursor;
+
 import mser.MSER;
 
 import java.util.HashSet;
@@ -15,6 +17,11 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
 import ij.process.ImageProcessor;
+
+import sipnet.Assignment;
+import sipnet.Evaluator;
+import sipnet.GroundTruth;
+import sipnet.SingleAssignment;
 import sipnet.io.IO;
 import sipnet.io.ResultCacher;
 
@@ -38,6 +45,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	// the stack to process
 	private ImagePlus    membraneImp;
+	private ImagePlus    groundtruthImp;
 	private ImagePlus    msersImp;
 	private int          numSlices;
 
@@ -52,14 +60,17 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private Sipnet       sipnet;
 
 	// parameters
-	private int    delta        = 10;
+	private int    delta        = 1;
 	private int    minArea      = 10;
 	private int    maxArea      = 100000;
 	private double maxVariation = 10.0;
-	private double minDiversity = 0.5;
+	private double minDiversity = 0.1;
 
 	// don't perform inference, visualise only
-	private boolean visualisationOnly = false;
+	private boolean visualisationOnly    = false;
+	private boolean compareToGroundtruth = true;
+
+	private GroundTruth groundtruth = null;
 
 	private class ProcessingThread extends Thread {
 
@@ -207,6 +218,19 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				//visualiser3d.showAssignments(bestSequence);
 				//visualiser3d.showSlices(msersImp);
 
+				// print statistics
+				if (compareToGroundtruth) {
+
+					groundtruth = readGroundTruth(groundtruthImp);
+
+					Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
+
+					IJ.log("num splits: " + evaluator.getNumSplitErrors());
+					IJ.log("num merges: " + evaluator.getNumMergeErrors());
+
+					visualiser.drawUnexplainedErrors(membraneImp, bestSequence, groundtruth, evaluator);
+				}
+
 			} else {
 
 				IJ.log("visualising most likely candidates...");
@@ -220,6 +244,19 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		IJ.log("Starting plugin Sipnet");
 
+		// add drop-down boxes for open images
+		int[] windowIds = WindowManager.getIDList();
+
+		if (windowIds == null || windowIds.length == 0) {
+			IJ.error("At least one image needs to be open");
+			return;
+		}
+
+		String[] windowNames = new String[windowIds.length];
+
+		for (int i = 0; i < windowIds.length; i++)
+			windowNames[i] = WindowManager.getImage(windowIds[i]).getTitle();
+
 		// ask for parameters
 		GenericDialog gd = new GenericDialog("Settings");
 		gd.addNumericField("delta:", delta, 0);
@@ -229,7 +266,10 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("min diversity:", minDiversity, 2);
 		gd.addNumericField("first slice:", 1, 0);
 		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
-		gd.addCheckbox("no inference - only visualisation", false);
+		gd.addCheckbox("no inference - only visualisation", visualisationOnly);
+		gd.addCheckbox("compare to ground-truth", compareToGroundtruth);
+		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
+
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -243,7 +283,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		firstSlice = (int)gd.getNextNumber();
 		lastSlice  = (int)gd.getNextNumber();
 
-		visualisationOnly = gd.getNextBoolean();
+		visualisationOnly    = gd.getNextBoolean();
+		compareToGroundtruth = gd.getNextBoolean();
+		String groundtruthName = gd.getNextChoice();
+
+		if (compareToGroundtruth)
+			groundtruthImp = WindowManager.getImage(groundtruthName);
 
 		if (firstSlice < 1 ||
 		    lastSlice > WindowManager.getCurrentImage().getNSlices() ||
@@ -257,4 +302,100 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		ProcessingThread procThread = new ProcessingThread();
 		procThread.start();
 	}
+
+	private GroundTruth readGroundTruth(ImagePlus groundtruthImp) {
+
+		// prepare mser image
+		msersImp = groundtruthImp.createImagePlus();
+
+		ImageStack regStack = new ImageStack(groundtruthImp.getWidth(), groundtruthImp.getHeight());
+		for (int s = 1; s <= numSlices; s++) {
+			ImageProcessor duplProcessor = groundtruthImp.getStack().getProcessor(s).duplicate();
+			regStack.addSlice("", duplProcessor);
+		}
+		msersImp.setStack(regStack);
+		msersImp.setDimensions(1, numSlices, 1);
+		if (numSlices > 1)
+			msersImp.setOpenAsHyperStack(true);
+		IJ.run(msersImp, "Fire", "");
+
+		msersImp.setTitle("msers of " + groundtruthImp.getTitle());
+
+		// create slice images
+		Vector<Image<T>> sliceImages = new Vector<Image<T>>();
+		Vector<Image<T>> sliceMsers  = new Vector<Image<T>>();
+
+		for (int s = firstSlice-1; s <= lastSlice-1; s++) {
+
+			ImagePlus sliceGroundtruthImp = new ImagePlus("slice " + s+1, groundtruthImp.getStack().getProcessor(s+1));
+			Image<T>  sliceGroundtruth    = ImagePlusAdapter.wrap(sliceGroundtruthImp);
+			ImagePlus sliceMserImp        = new ImagePlus("slice " + s+1, msersImp.getStack().getProcessor(s+1));
+			Image<T>  sliceMser           = ImagePlusAdapter.wrap(sliceMserImp);
+
+			// black out msers image
+			Cursor<T> msersCursor = sliceMser.createCursor();
+			while (msersCursor.hasNext()) {
+				msersCursor.fwd();
+				msersCursor.getType().setReal(0.0);
+			}
+
+			sliceImages.add(sliceGroundtruth);
+			sliceMsers.add(sliceMser);
+		}
+
+		// process ground truth image
+		GroundTruth groundtruth = new GroundTruth();
+		groundtruth.readFromLabelImages(sliceImages);
+
+		IJ.log("setting mean gray values of ground-truth candidates...");
+		assert(groundtruth.getSequence().consistent());
+
+		// set mean gray values according to membrane image
+		int s = 1;
+		for (Assignment assignment : groundtruth.getSequence()) {
+
+			Image<T> membraneImg =
+					ImagePlusAdapter.wrap(new ImagePlus("", membraneImp.getStack().getProcessor(s)));
+
+			// sources have their gray value in slice s
+			for (SingleAssignment singleAssignment : assignment) {
+				for (Candidate source : singleAssignment.getSources())
+					setMeanGrayValue(source, membraneImg);
+			}
+
+			// targets have their gray values in slice s+1 (this is only
+			// necessary in last assignment)
+			if (s == groundtruth.getSequence().size()) {
+
+				membraneImg =
+					ImagePlusAdapter.wrap(new ImagePlus("", membraneImp.getStack().getProcessor(s+1)));
+
+				for (SingleAssignment singleAssignment : assignment) {
+					for (Candidate target : singleAssignment.getTargets())
+						setMeanGrayValue(target, membraneImg);
+				}
+			}
+
+			s++;
+		}
+		IJ.log("done.");
+
+		return groundtruth;
+	}
+
+	private void setMeanGrayValue(Candidate candidate, Image<T> image) {
+
+		LocalizableByDimCursor<T> cursor = image.createLocalizableByDimCursor();
+
+		double value = 0.0;
+
+		for (int[] pixel : candidate.getPixels()) {
+
+			cursor.setPosition(pixel);
+			value += cursor.getType().getRealFloat();
+		}
+
+		candidate.setMeanGrayValue(value/candidate.getPixels().size());
+	}
+
 }

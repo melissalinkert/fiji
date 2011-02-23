@@ -212,34 +212,6 @@ public class GroundTruth {
 		}
 	}
 
-	/**
-	 * Find the closest sequence to the given MSERs with respect to the ground
-	 * truth sequence. If region information is available in the ground truth,
-	 * it is considered as well.
-	 */
-	public Sequence closestToMsers(Vector<Vector<Candidate>> msers) {
-
-		// use closest centers, if region information is not available
-
-		return null;
-	}
-
-	/**
-	 * Get the number of topological errors of compareSequence in terms of number of splits.
-	 */
-	public int numSplits(Sequence compareSequence) {
-
-		return 0;
-	}
-
-	/**
-	 * Get the number of topological errors of compareSequence in term of number of merges.
-	 */
-	public int numMerges(Sequence compareSequence) {
-
-		return 0;
-	}
-
 	public Sequence getSequence() {
 
 		return groundtruth;

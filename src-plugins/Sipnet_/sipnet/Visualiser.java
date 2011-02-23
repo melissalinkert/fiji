@@ -251,6 +251,29 @@ public class Visualiser {
 		}
 	}
 
+	public void drawUnexplainedErrors(ImagePlus blockImage, Sequence sequence, GroundTruth groundtruth, Evaluator evaluator) {
+
+		// visualize result
+		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
+
+		blockCopy.show();
+		blockCopy.updateAndDraw();
+		blockCopy.setTitle("unexplained regions");
+		IJ.selectWindow(blockCopy.getTitle());
+		IJ.run("RGB Color", "");
+
+		for (int s = 1; s <= sequence.size() + 1; s++) {
+
+			ImageProcessor ip = blockCopy.getStack().getProcessor(s);
+
+			for (Candidate candidate : evaluator.getUnexplainedGroundtruth().get(s-1))
+				drawCandidate(candidate, ip, new Color(255, 0, 0), "");
+
+			for (Candidate candidate : evaluator.getUnexplainedResult().get(s-1))
+				drawCandidate(candidate, ip, new Color(0, 0, 255), "");
+		}
+	}
+
 	private void drawConnectionTo(int x1, int y1, int x2, int y2, ImageProcessor ip, double confidence) {
 
 		ip.setColor(new Color(0, 255, 0));
