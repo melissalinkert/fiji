@@ -192,20 +192,35 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 		groundtruth.readFromLabelImages(sliceImages);
 
 		IJ.log("setting mean gray values of ground-truth candidates...");
+		assert(groundtruth.getSequence().consistent());
+
 		// set mean gray values according to membrane image
-		int s = groundtruth.getSequence().size();
-		for (SequenceNode node : groundtruth.getSequence()) {
+		int s = 1;
+		for (Assignment assignment : groundtruth.getSequence()) {
 
 			Image<T> membraneImg =
 					ImagePlusAdapter.wrap(new ImagePlus("", membraneImp.getStack().getProcessor(s)));
 
-			for (SingleAssignment singleAssignment : node.getAssignment()) {
+			// sources have their gray value in slice s
+			for (SingleAssignment singleAssignment : assignment) {
 				for (Candidate source : singleAssignment.getSources())
 					setMeanGrayValue(source, membraneImg);
-				for (Candidate target : singleAssignment.getTargets())
-					setMeanGrayValue(target, membraneImg);
 			}
-			s--;
+
+			// targets have their gray values in slice s+1 (this is only
+			// necessary in last assignment)
+			if (s == groundtruth.getSequence().size()) {
+
+				membraneImg =
+					ImagePlusAdapter.wrap(new ImagePlus("", membraneImp.getStack().getProcessor(s+1)));
+
+				for (SingleAssignment singleAssignment : assignment) {
+					for (Candidate target : singleAssignment.getTargets())
+						setMeanGrayValue(target, membraneImg);
+				}
+			}
+
+			s++;
 		}
 		IJ.log("done.");
 
