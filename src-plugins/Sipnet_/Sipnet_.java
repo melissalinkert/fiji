@@ -1,6 +1,8 @@
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 
 import java.util.Arrays;
@@ -267,34 +269,61 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		double[] parameters = new double[startParameters.length];
 		System.arraycopy(startParameters, 0, parameters, 0, startParameters.length);
 
-		Texifyer texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+		Texifyer       texifyer     = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+		BufferedWriter resultWriter = null;
+		try {
 
-		boolean done = false;
-		while (!done) {
+			resultWriter  = new BufferedWriter(new FileWriter("./grid_search.dat"));
 
-			assignmentModel.setParameters(parameters);
+			boolean done = false;
+			while (!done) {
 
-			sipnet = new Sipnet(
-					selectedSliceCandidates,
-					"./sequence_search.conf",
-					texifyer,
-					assignmentModel);
+				assignmentModel.setParameters(parameters);
 
-			IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
-			Sequence bestSequence = sipnet.bestSearch();
+				sipnet = new Sipnet(
+						selectedSliceCandidates,
+						"./sequence_search.conf",
+						texifyer,
+						assignmentModel);
 
-			Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
+				IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
+				Sequence bestSequence = sipnet.bestSearch();
 
-			for (int i = 0; i < startParameters.length; i++) {
+				Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
 
-				parameters[i] += stepParameters[i];
-				if (parameters[i] <= endParameters[i])
-					break;
+				resultWriter.write(
+						parameters[0] + " " +
+						parameters[1] + " " +
+						parameters[2] + " " +
+						parameters[3] + " " +
+						parameters[4] + " " +
+						parameters[5] + " " +
+						evaluator.getNumSplitErrors() + " " +
+						evaluator.getNumMergeErrors() + "\n");
 
-				if (i == startParameters.length - 1)
-					done = true;
-				else
-					parameters[i] = startParameters[i];
+				for (int i = 0; i < startParameters.length; i++) {
+
+					parameters[i] += stepParameters[i];
+					if (parameters[i] <= endParameters[i])
+						break;
+
+					if (i == startParameters.length - 1)
+						done = true;
+					else
+						parameters[i] = startParameters[i];
+				}
+			}
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		} finally {
+
+			try {
+				if (resultWriter != null)
+					resultWriter.close();
+			} catch (IOException e) {
+				// oh screw you, IOException!
 			}
 		}
 	}
