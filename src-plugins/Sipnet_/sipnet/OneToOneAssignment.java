@@ -8,9 +8,7 @@ public class OneToOneAssignment extends SingleAssignment {
 		addTarget(target);
 	}
 
-	public double getCosts() {
-
-		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+	public double getCosts(AssignmentModel assignmentModel) {
 
 		if (getSources().get(0) == SequenceSearch.emergeNode)
 			return assignmentModel.costEnd(getTargets().get(0));

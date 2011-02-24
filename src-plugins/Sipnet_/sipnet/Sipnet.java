@@ -5,21 +5,20 @@ import java.util.Vector;
 
 public class Sipnet {
 
-	private Texifyer       texifyer;
-	private SequenceSearch sequenceSearch;
+	private SequenceSearch  sequenceSearch;
 
 	public Sipnet(
 			List<Vector<Candidate>> sliceCandidates,
-			String parameterFilename,
-			Texifyer texifyer) {
-
-		this.texifyer = texifyer;
+			String                  parameterFilename,
+			Texifyer                texifyer,
+			AssignmentModel         assignmentModel) {
 
 		sequenceSearch =
 				new SequenceSearch(
 						sliceCandidates,
 						texifyer,
-						parameterFilename);
+						parameterFilename,
+						assignmentModel);
 	}
 
 	public Sequence bestSearch() {

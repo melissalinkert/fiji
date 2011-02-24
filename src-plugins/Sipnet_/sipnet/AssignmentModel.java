@@ -35,9 +35,6 @@ public class AssignmentModel {
 	 * IMPLEMENTATION
 	 */
 
-	// singleton
-	private static AssignmentModel theInstance;
-
 	// size of the slice images to infer distance to border
 	private int[] imageDimensions;
 
@@ -45,15 +42,7 @@ public class AssignmentModel {
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
 	private boolean cacheDirty = false;
 
-	final static public AssignmentModel getInstance() {
-
-		if (theInstance == null)
-			theInstance = new AssignmentModel();
-
-		return theInstance;
-	}
-
-	private AssignmentModel() {
+	public AssignmentModel() {
 
 		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 		this.shapeDissimilarity = new SetDifference();
@@ -218,7 +207,7 @@ public class AssignmentModel {
 
 	}
 
-	final void writeParameters(String filename, String comment) {
+	final public void writeParameters(String filename, String comment) {
 
 		Properties parameterFile = new Properties();
 
@@ -244,7 +233,7 @@ public class AssignmentModel {
 
 	}
 
-	final void setParameters(double[] w) {
+	final public void setParameters(double[] w) {
 
 		weightData                 = w[0];
 		weightPositionContinuation = w[1];
@@ -258,7 +247,7 @@ public class AssignmentModel {
 
 	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
 
-		AssignmentModel assignmentModel = getInstance();
+		AssignmentModel assignmentModel = new AssignmentModel();
 
 		assignmentModel.setImageDimensions(imageDimensions);
 
@@ -284,10 +273,4 @@ public class AssignmentModel {
 
 		return assignmentModel;
 	}
-
-	final public static void writeToFile(String filename, String comment) {
-
-		AssignmentModel.getInstance().writeParameters(filename, comment);
-	}
-
 }

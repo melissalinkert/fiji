@@ -31,12 +31,12 @@ public class Assignment extends LinkedList<SingleAssignment> {
 		return sources;
 	}
 
-	public double getCosts() {
+	public double getCosts(AssignmentModel assignmentModel) {
 
 		double costs = 0.0;
 
 		for (SingleAssignment singleAssignment : this)
-			costs += singleAssignment.getCosts();
+			costs += singleAssignment.getCosts(assignmentModel);
 
 		return costs;
 	}

@@ -1,4 +1,11 @@
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import java.util.Arrays;
+import java.util.Properties;
+
 import mpicbg.imglib.cursor.Cursor;
 
 import mser.MSER;
@@ -32,7 +39,6 @@ import sipnet.Sequence;
 import sipnet.Sipnet;
 import sipnet.Texifyer;
 import sipnet.Visualiser;
-import sipnet.Visualiser3D;
 
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
@@ -52,11 +58,6 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private int          firstSlice;
 	private int          lastSlice;
 
-	private Texifyer     texifyer;
-	private Visualiser   visualiser;
-	private Visualiser3D visualiser3d;
-	private IO           io;
-
 	private Sipnet       sipnet;
 
 	// parameters
@@ -65,6 +66,12 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private int    maxArea      = 100000;
 	private double maxVariation = 10.0;
 	private double minDiversity = 0.1;
+
+	// grip search parameters of assignment model
+	private boolean  performGridSearch;
+	private double[] startParameters = null;
+	private double[] endParameters = null;
+	private double[] stepParameters = null;
 
 	// don't perform inference, visualise only
 	private boolean visualisationOnly    = false;
@@ -83,14 +90,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 			numSlices = membraneImp.getStack().getSize();
-	
-			// setup visualisation and file IO
-			visualiser   = new Visualiser();
-			visualiser3d = new Visualiser3D();
-			io           = new IO();
 
 			// create result cacher
-			ResultCacher resultCacher = new ResultCacher("./.cache", io);
+			ResultCacher resultCacher = new ResultCacher("./.cache", new IO());
 
 			// read assignment model paramters
 			AssignmentModel.readFromFile(
@@ -133,7 +135,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 				msersImp.setTitle("msers of " + membraneImp.getTitle());
 
-				texifyer = new Texifyer(msersImp, "./sipnet-tex/");
+				Texifyer texifyer = new Texifyer(msersImp, null, "./sipnet-tex/");
 
 				// prepare slice candidates
 				sliceCandidates = new Vector<Vector<Candidate>>();
@@ -196,46 +198,103 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			List<Vector<Candidate>> selectedSliceCandidates =
 					sliceCandidates.subList(firstSlice - 1, lastSlice);
 
-			// perform search
-			texifyer = new Texifyer(msersImp, "./sipnet-tex/");
-			sipnet   = new Sipnet(
+			if (performGridSearch)
+				gridSearch(selectedSliceCandidates);
+			else
+				singleSearch(selectedSliceCandidates);
+
+		}
+	}
+	
+	private void singleSearch(List<Vector<Candidate>> selectedSliceCandidates) {
+
+		AssignmentModel assignmentModel
+				= AssignmentModel.readFromFile(
+						"./assignment_model.conf",
+						new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
+
+		// perform search
+		Texifyer texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+		sipnet   = new Sipnet(
+				selectedSliceCandidates,
+				"./sequence_search.conf",
+				texifyer,
+				assignmentModel);
+
+		Visualiser visualiser = new Visualiser(assignmentModel);
+
+		if (!visualisationOnly) {
+
+			IJ.log("Searching for the best path");
+			Sequence bestSequence = sipnet.bestSearch();
+		
+			if (bestSequence == null) {
+				IJ.log("No sequence could be found.");
+				return;
+			}
+
+			visualiser.drawSequence(membraneImp, bestSequence, false, false);
+			visualiser.drawSequence(msersImp, bestSequence, false, true);
+			//visualiser3d.showAssignments(bestSequence);
+			//visualiser3d.showSlices(msersImp);
+
+			// print statistics
+			if (compareToGroundtruth) {
+
+				groundtruth = readGroundTruth(groundtruthImp);
+
+				Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
+
+				IJ.log("num splits: " + evaluator.getNumSplitErrors());
+				IJ.log("num merges: " + evaluator.getNumMergeErrors());
+
+				visualiser.drawUnexplainedErrors(membraneImp, bestSequence, groundtruth, evaluator);
+			}
+
+		} else {
+
+			IJ.log("visualising most likely candidates...");
+			visualiser.drawMostLikelyCandidates(membraneImp, selectedSliceCandidates, "./mlcs");
+			IJ.log("done.");
+		}
+	}
+
+	private void gridSearch(List<Vector<Candidate>> selectedSliceCandidates) {
+
+		AssignmentModel assignmentModel = new AssignmentModel();
+		GroundTruth     groundtruth     = readGroundTruth(groundtruthImp);
+
+		double[] parameters = new double[startParameters.length];
+		System.arraycopy(startParameters, 0, parameters, 0, startParameters.length);
+
+		Texifyer texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
+
+		boolean done = false;
+		while (!done) {
+
+			assignmentModel.setParameters(parameters);
+
+			sipnet = new Sipnet(
 					selectedSliceCandidates,
 					"./sequence_search.conf",
-					texifyer);
+					texifyer,
+					assignmentModel);
 
-			if (!visualisationOnly) {
+			IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
+			Sequence bestSequence = sipnet.bestSearch();
 
-				IJ.log("Searching for the best path");
-				Sequence bestSequence = sipnet.bestSearch();
-			
-				if (bestSequence == null) {
-					IJ.log("No sequence could be found.");
-					return;
-				}
+			Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
 
-				visualiser.drawSequence(membraneImp, bestSequence, false, false);
-				visualiser.drawSequence(msersImp, bestSequence, false, true);
-				//visualiser3d.showAssignments(bestSequence);
-				//visualiser3d.showSlices(msersImp);
+			for (int i = 0; i < startParameters.length; i++) {
 
-				// print statistics
-				if (compareToGroundtruth) {
+				parameters[i] += stepParameters[i];
+				if (parameters[i] <= endParameters[i])
+					break;
 
-					groundtruth = readGroundTruth(groundtruthImp);
-
-					Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
-
-					IJ.log("num splits: " + evaluator.getNumSplitErrors());
-					IJ.log("num merges: " + evaluator.getNumMergeErrors());
-
-					visualiser.drawUnexplainedErrors(membraneImp, bestSequence, groundtruth, evaluator);
-				}
-
-			} else {
-
-				IJ.log("visualising most likely candidates...");
-				visualiser.drawMostLikelyCandidates(membraneImp, selectedSliceCandidates, "./mlcs");
-				IJ.log("done.");
+				if (i == startParameters.length - 1)
+					done = true;
+				else
+					parameters[i] = startParameters[i];
 			}
 		}
 	}
@@ -251,6 +310,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			IJ.error("At least one image needs to be open");
 			return;
 		}
+
+		// try to read parameters from file
+		readParametersFromFile("./sipnet.conf");
 
 		String[] windowNames = new String[windowIds.length];
 
@@ -398,4 +460,47 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		candidate.setMeanGrayValue(value/candidate.getPixels().size());
 	}
 
+	private boolean readParametersFromFile(String filename) {
+
+		Properties parameterFile = new Properties();
+
+		try {
+			parameterFile.load(new FileInputStream(new File(filename)));
+
+			delta        = Integer.valueOf(parameterFile.getProperty("mser_delta"));
+			minArea      = Integer.valueOf(parameterFile.getProperty("mser_min_area"));;
+			maxArea      = Integer.valueOf(parameterFile.getProperty("mser_max_area"));
+			maxVariation = Double.valueOf(parameterFile.getProperty("mser_max_variation"));
+			minDiversity = Double.valueOf(parameterFile.getProperty("mser_min_diversity"));
+
+			performGridSearch = Boolean.valueOf(parameterFile.getProperty("perform_grid_search"));
+
+			if (performGridSearch) {
+
+				String[] start = parameterFile.getProperty("parameters_start").split("\\s");
+
+				startParameters = new double[start.length];
+				for (int i = 0; i < start.length; i++)
+					startParameters[i] = Double.valueOf(start[i]);
+
+				String[] end = parameterFile.getProperty("parameters_end").split("\\s");
+
+				endParameters = new double[end.length];
+				for (int i = 0; i < end.length; i++)
+					endParameters[i] = Double.valueOf(end[i]);
+
+				String[] step = parameterFile.getProperty("parameters_step").split("\\s");
+
+				stepParameters = new double[step.length];
+				for (int i = 0; i < step.length; i++)
+					stepParameters[i] = Double.valueOf(step[i]);
+			}
+
+		} catch (IOException e) {
+
+			return false;
+		}
+
+		return true;
+	}
 }

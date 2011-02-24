@@ -9,9 +9,7 @@ public class MergeAssignment extends SingleAssignment {
 		addTarget(target);
 	}
 
-	public double getCosts() {
-
-		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+	public double getCosts(AssignmentModel assignmentModel) {
 
 		return assignmentModel.costBisect(
 				getTargets().get(0),

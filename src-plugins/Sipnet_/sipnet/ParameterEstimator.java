@@ -123,7 +123,7 @@ public class ParameterEstimator {
 			double sumCosts = 0.0;
 
 			for (Assignment assignment : trainingSequence)
-				sumCosts += assignment.getCosts();
+				sumCosts += assignment.getCosts(assignmentModel);
 
 			return -sumCosts;
 		}
@@ -145,7 +145,7 @@ public class ParameterEstimator {
 			List<Vector<Candidate>> msers,
 			double parameterStdDeviation) {
 
-		this.assignmentModel       = AssignmentModel.getInstance();
+		this.assignmentModel       = new AssignmentModel();
 		this.trainingSequence      = trainingSequence;
 		this.msers                 = msers;
 		this.parameterStdDeviation = parameterStdDeviation;

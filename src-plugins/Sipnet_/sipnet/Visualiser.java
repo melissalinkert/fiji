@@ -20,6 +20,13 @@ import ij.process.ImageProcessor;
 
 public class Visualiser {
 
+	private AssignmentModel assignmentModel;
+
+	public Visualiser(AssignmentModel assignmentModel) {
+
+		this.assignmentModel = assignmentModel;
+	}
+
 	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
 
 		// visualize result
@@ -163,12 +170,12 @@ public class Visualiser {
 									(int)source.getCenter(0), (int)source.getCenter(1),
 									(int)target.getCenter(0), (int)target.getCenter(1),
 									pip,
-									singleAssignment.getCosts());
+									singleAssignment.getCosts(assignmentModel));
 							drawConnectionFrom(
 									(int)source.getCenter(0), (int)source.getCenter(1),
 									(int)target.getCenter(0), (int)target.getCenter(1),
 									nip,
-									singleAssignment.getCosts());
+									singleAssignment.getCosts(assignmentModel));
 						}
 					}
 				}

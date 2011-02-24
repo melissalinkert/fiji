@@ -120,13 +120,13 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			List<Vector<Candidate>> msers       = readMsers();
 
 			// read assignment model paramters
-			AssignmentModel.readFromFile(
+			AssignmentModel assignmentModel = AssignmentModel.readFromFile(
 					"./assignment_model_caching.conf",
 					new int[]{groundtruthImp.getWidth(), groundtruthImp.getHeight()});
 
 			// let sipnet (i.e., sequence search) cache the most likely
 			// candidates:
-			new Sipnet(msers, "./sequence_search.conf", null);
+			new Sipnet(msers, "./sequence_search.conf", null, assignmentModel);
 	
 			// perform parameter learning
 			ParameterEstimator parameterEstimator =
@@ -138,10 +138,10 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			parameterEstimator.estimate();
 
 			// write result
-			AssignmentModel.writeToFile("./result.conf", "learnt parameters");
+			assignmentModel.writeParameters("./result.conf", "learnt parameters");
 
 			// visualisation
-			visualiser   = new Visualiser();
+			visualiser = new Visualiser(assignmentModel);
 			visualiser.drawSequence(msersImp, groundtruth.getSequence(), false, true);
 		}
 	}

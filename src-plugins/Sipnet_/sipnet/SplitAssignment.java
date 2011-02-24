@@ -9,9 +9,7 @@ public class SplitAssignment extends SingleAssignment {
 		addTarget(target2);
 	}
 
-	public double getCosts() {
-
-		AssignmentModel assignmentModel = AssignmentModel.getInstance();
+	public double getCosts(AssignmentModel assignmentModel) {
 
 		return assignmentModel.costBisect(
 				getSources().get(0),

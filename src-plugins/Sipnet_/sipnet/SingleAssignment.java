@@ -50,5 +50,5 @@ public abstract class SingleAssignment extends SearchNode<Assignment, SingleAssi
 		return this.targets;
 	}
 
-	abstract public double getCosts();
+	abstract public double getCosts(AssignmentModel assignmentModel);
 }
