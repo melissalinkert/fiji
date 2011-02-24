@@ -287,7 +287,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						assignmentModel);
 
 				IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
+				long time = System.currentTimeMillis();
 				Sequence bestSequence = sipnet.bestSearch();
+				time = System.currentTimeMillis() - time;
 
 				Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
 
@@ -299,7 +301,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						parameters[4] + " " +
 						parameters[5] + " " +
 						evaluator.getNumSplitErrors() + " " +
-						evaluator.getNumMergeErrors() + "\n");
+						evaluator.getNumMergeErrors() + " " +
+						time/1000.0 + "\n");
 
 				for (int i = 0; i < startParameters.length; i++) {
 
