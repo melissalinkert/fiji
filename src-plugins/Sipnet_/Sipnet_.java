@@ -261,7 +261,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	private void gridSearch(List<Vector<Candidate>> selectedSliceCandidates) {
 
-		AssignmentModel assignmentModel = new AssignmentModel();
+		AssignmentModel assignmentModel = new AssignmentModel(new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
 		GroundTruth     groundtruth     = readGroundTruth(groundtruthImp);
 
 		double[] parameters = new double[startParameters.length];

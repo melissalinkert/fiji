@@ -143,9 +143,10 @@ public class ParameterEstimator {
 	public ParameterEstimator(
 			Sequence trainingSequence,
 			List<Vector<Candidate>> msers,
-			double parameterStdDeviation) {
+			double parameterStdDeviation,
+			int[] imageDimensions) {
 
-		this.assignmentModel       = new AssignmentModel();
+		this.assignmentModel       = new AssignmentModel(imageDimensions);
 		this.trainingSequence      = trainingSequence;
 		this.msers                 = msers;
 		this.parameterStdDeviation = parameterStdDeviation;

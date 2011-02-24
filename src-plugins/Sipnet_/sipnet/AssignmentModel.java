@@ -42,10 +42,12 @@ public class AssignmentModel {
 	private HashMap<Candidate, HashMap<Candidate, Double>> continuationCache;
 	private boolean cacheDirty = false;
 
-	public AssignmentModel() {
+	public AssignmentModel(int[] dimensions) {
 
 		this.continuationCache  = new HashMap<Candidate, HashMap<Candidate, Double>>();
 		this.shapeDissimilarity = new SetDifference();
+
+		this.imageDimensions = dimensions;
 	}
 
 	final public void setImageDimensions(int[] dimensions) {
@@ -247,9 +249,7 @@ public class AssignmentModel {
 
 	final public static AssignmentModel readFromFile(String filename, int[] imageDimensions) {
 
-		AssignmentModel assignmentModel = new AssignmentModel();
-
-		assignmentModel.setImageDimensions(imageDimensions);
+		AssignmentModel assignmentModel = new AssignmentModel(imageDimensions);
 
 		Properties parameterFile = new Properties();
 

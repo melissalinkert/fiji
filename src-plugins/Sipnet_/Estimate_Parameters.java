@@ -133,7 +133,8 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 					new ParameterEstimator(
 							groundtruth.getSequence(),
 							msers,
-							parameterStdDeviation);
+							parameterStdDeviation,
+							new int[]{groundtruthImp.getWidth(), groundtruthImp.getHeight()});
 
 			parameterEstimator.estimate();
 
