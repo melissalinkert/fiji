@@ -73,6 +73,11 @@ public class SequenceSearch {
 
 		// build cache for candidates
 		IJ.log("Precaching most likely candidates...");
+
+		for (int s = 0; s < this.sliceCandidates.size(); s++)
+			for (Candidate candidate : this.sliceCandidates.get(s))
+				candidate.clearCaches();
+
 		for (int s = 0; s < this.sliceCandidates.size() - 1; s++) {
 
 			IJ.log("Slice " + (s+1) + "...");

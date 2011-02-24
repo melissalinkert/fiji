@@ -101,13 +101,7 @@ public class Candidate extends Region<Candidate> {
 	
 		super(0, 0, new double[]{0.0, 0.0}, candidateFactory);
 
-		this.mostSimilarCandidates = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
-		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergeTargets          = new HashMap<Candidate, Vector<Candidate>>();
-		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.splitSources          = new HashMap<Candidate, Vector<Candidate>>();
+		clearCaches();
 
 		this.pixels = new ArrayList<int[]>();
 	}
@@ -116,13 +110,7 @@ public class Candidate extends Region<Candidate> {
 
 		super(size, perimeter, center, candidateFactory);
 
-		this.mostSimilarCandidates = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
-		this.mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.mergeTargets          = new HashMap<Candidate, Vector<Candidate>>();
-		this.splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
-		this.splitSources          = new HashMap<Candidate, Vector<Candidate>>();
+		clearCaches();
 
 		this.pixels        = new ArrayList<int[]>(pixels);
 		this.meanGrayValue = meanGrayValue;
@@ -384,6 +372,17 @@ public class Candidate extends Region<Candidate> {
 		super.readExternal(in);
 
 		computePixelCovariance();
+	}
+
+	public void clearCaches() {
+
+		mostSimilarCandidates = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		negLogPAppearances    = new HashMap<Candidate, Double>(SequenceSearch.MaxTargetCandidates);
+		mostSimilarOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		mergeTargetOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		mergeTargets          = new HashMap<Candidate, Vector<Candidate>>();
+		splitSourceOf         = new Vector<Candidate>(SequenceSearch.MaxTargetCandidates);
+		splitSources          = new HashMap<Candidate, Vector<Candidate>>();
 	}
 
 	public String toString() {
