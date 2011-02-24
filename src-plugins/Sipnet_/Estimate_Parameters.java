@@ -28,7 +28,6 @@ import sipnet.GroundTruth;
 
 import sipnet.AssignmentModel;
 import sipnet.ParameterEstimator;
-import sipnet.SequenceNode;
 import sipnet.SingleAssignment;
 import sipnet.Sipnet;
 import sipnet.Visualiser;
