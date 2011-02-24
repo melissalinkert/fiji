@@ -86,6 +86,8 @@ public class Evaluator {
 		assert(result.consistent());
 
 		SetDifference setDifference = new SetDifference();
+		HashMap<Candidate, HashMap<Candidate, Double>> distanceCache =
+				new HashMap<Candidate, HashMap<Candidate, Double>>();
 
 		// for each slice
 		for (int s = 0; s <= result.size(); s++) {
@@ -106,11 +108,26 @@ public class Evaluator {
 				for (Candidate groundtruthCandidate : groundtruthCandidates)
 					for (Candidate resultCandidate : resultCandidates) {
 
-						double distance = setDifference.setDifferenceRatio(
-								groundtruthCandidate.getPixels(),
-								new int[]{0, 0},
-								resultCandidate.getPixels(),
-								new int[]{0, 0});
+						HashMap<Candidate, Double> cache =
+								distanceCache.get(groundtruthCandidate);
+
+						if (cache == null) {
+							cache = new HashMap<Candidate, Double>();
+							distanceCache.put(groundtruthCandidate, cache);
+						}
+
+						Double distance = cache.get(resultCandidate);
+
+						if (distance == null) {
+
+							distance = setDifference.setDifferenceRatio(
+									groundtruthCandidate.getPixels(),
+									new int[]{0, 0},
+									resultCandidate.getPixels(),
+									new int[]{0, 0});
+
+							cache.put(resultCandidate, distance);
+						}
 
 						if (distance < minDistance || minDistance < 0) {
 
