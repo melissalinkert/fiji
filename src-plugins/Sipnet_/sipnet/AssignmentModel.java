@@ -68,6 +68,8 @@ public class AssignmentModel {
 		if (cacheDirty) {
 
 			continuationCache = new HashMap<Candidate, HashMap<Candidate, Double>>();
+
+			Runtime.getRuntime().gc();
 			cacheDirty = false;
 		}
 
