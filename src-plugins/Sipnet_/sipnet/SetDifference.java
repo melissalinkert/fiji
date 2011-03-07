@@ -14,7 +14,7 @@ public class SetDifference implements ShapeDissimilarity {
 		final int[]       offset1 = new int[]{(int)candidate1.getCenter(0), (int)candidate1.getCenter(1)};
 		final int[]       offset2 = new int[]{(int)candidate2.getCenter(0), (int)candidate2.getCenter(1)};
 
-		return setDifferenceRatio(pixels1, offset1, pixels2, offset2);
+		return setDifference(pixels1, offset1, pixels2, offset2);
 	}
 
 	final public double dissimilarity(final Candidate candidate1, final Candidate candidate2a, final Candidate candidate2b) {
@@ -35,7 +35,7 @@ public class SetDifference implements ShapeDissimilarity {
 				(candidate2a.getSize()*offset2[1] + candidate2b.getSize()*(int)candidate2b.getCenter(1))/
 				(candidate2a.getSize() + candidate2b.getSize());
 
-		return setDifferenceRatio(pixels1, offset1, pixels2, offset2);
+		return setDifference(pixels1, offset1, pixels2, offset2);
 	}
 
 	final public double setDifferenceRatio(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
@@ -44,6 +44,14 @@ public class SetDifference implements ShapeDissimilarity {
 		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;
 
 		return (double)numDifferent/Math.min(pixels1.size(), pixels2.size());
+	}
+
+	final public int setDifference(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
+
+		int numMatches   = numMatches(pixels1, offset1, pixels2, offset2);
+		int numDifferent = pixels1.size() + pixels2.size() - 2*numMatches;
+
+		return numDifferent;
 	}
 
 	final public int numMatches(final List<int[]> pixels1, final int[] offset1, final List<int[]> pixels2, final int[] offset2) {
