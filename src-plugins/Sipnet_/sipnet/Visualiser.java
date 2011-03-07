@@ -27,13 +27,19 @@ public class Visualiser {
 		this.assignmentModel = assignmentModel;
 	}
 
-	public void drawSequence(ImagePlus blockImage, Sequence sequence, boolean drawConfidence, boolean drawCandidateId) {
+	public void drawSequence(
+			ImagePlus blockImage,
+			Sequence sequence,
+			boolean drawConfidence,
+			boolean drawCandidateId,
+			boolean drawLines,
+			double opacity) {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
 
 		blockCopy.show();
-		IJ.selectWindow(blockCopy.getTitle());
+		//IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
 		HashMap<Candidate, Color> colors    = new HashMap<Candidate, Color>();
@@ -122,7 +128,7 @@ public class Visualiser {
 						if (target != SequenceSearch.deathNode) {
 
 							Color color = colors.get(target);
-							drawCandidate(target, nip, color, (drawCandidateId ? "" + target.getId() : null));
+							drawCandidate(target, nip, color, (drawCandidateId ? "" + target.getId() : null), opacity);
 						}
 					}
 				}
@@ -132,7 +138,7 @@ public class Visualiser {
 					if (source != SequenceSearch.emergeNode) {
 
 						Color color = colors.get(source);
-						drawCandidate(source, pip, color, (drawCandidateId ? "" + source.getId() : null));
+						drawCandidate(source, pip, color, (drawCandidateId ? "" + source.getId() : null), opacity);
 					}
 				}
 			}
@@ -142,45 +148,47 @@ public class Visualiser {
 		/*
 		 * DRAW CONNECTIONS
 		 */
-		slice = 1;
-		for (Assignment assignment : sequence) {
+		if (drawLines) {
+			slice = 1;
+			for (Assignment assignment : sequence) {
 
-			// previous slice
-			ImageProcessor pip = blockCopy.getStack().getProcessor(slice);
+				// previous slice
+				ImageProcessor pip = blockCopy.getStack().getProcessor(slice);
 
-			// next slice
-			ImageProcessor nip = blockCopy.getStack().getProcessor(slice + 1);
+				// next slice
+				ImageProcessor nip = blockCopy.getStack().getProcessor(slice + 1);
 
-			for (SingleAssignment singleAssignment : assignment) {
+				for (SingleAssignment singleAssignment : assignment) {
 
-				for (Candidate source : singleAssignment.getSources()) {
-					for (Candidate target : singleAssignment.getTargets()) {
+					for (Candidate source : singleAssignment.getSources()) {
+						for (Candidate target : singleAssignment.getTargets()) {
 
-						if (source == SequenceSearch.emergeNode) {
+							if (source == SequenceSearch.emergeNode) {
 
-							drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
+								drawEmerge((int)target.getCenter(0), (int)target.getCenter(1), nip);
 
-						} else if (target == SequenceSearch.deathNode) {
+							} else if (target == SequenceSearch.deathNode) {
 
-							drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
+								drawDeath((int)source.getCenter(0), (int)source.getCenter(1), pip);
 
-						} else {
+							} else {
 
-							drawConnectionTo(
-									(int)source.getCenter(0), (int)source.getCenter(1),
-									(int)target.getCenter(0), (int)target.getCenter(1),
-									pip,
-									singleAssignment.getCosts(assignmentModel));
-							drawConnectionFrom(
-									(int)source.getCenter(0), (int)source.getCenter(1),
-									(int)target.getCenter(0), (int)target.getCenter(1),
-									nip,
-									singleAssignment.getCosts(assignmentModel));
+								drawConnectionTo(
+										(int)source.getCenter(0), (int)source.getCenter(1),
+										(int)target.getCenter(0), (int)target.getCenter(1),
+										pip,
+										singleAssignment.getCosts(assignmentModel));
+								drawConnectionFrom(
+										(int)source.getCenter(0), (int)source.getCenter(1),
+										(int)target.getCenter(0), (int)target.getCenter(1),
+										nip,
+										singleAssignment.getCosts(assignmentModel));
+							}
 						}
 					}
 				}
+				slice++;
 			}
-			slice++;
 		}
 
 		blockCopy.updateAndDraw();
@@ -205,7 +213,7 @@ public class Visualiser {
 
 				ImageProcessor candidateIp = new ColorProcessor(width, height);
 
-				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null);
+				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null, 1.0);
 
 				ImagePlus candidateImp = new ImagePlus("candidate", candidateIp);
 				IJ.save(candidateImp, outputDirectory + "/s" + s + "c" + candidate.getId() + ".tif");
@@ -244,7 +252,7 @@ public class Visualiser {
 					int red   = (int)(255.0*(similarity - minSimilarity)/(maxSimilarity - minSimilarity));
 					int green = (int)(255.0*(maxSimilarity - similarity)/(maxSimilarity - minSimilarity));
 
-					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity);
+					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity, 1.0);
 				}
 
 				i++;
@@ -258,7 +266,7 @@ public class Visualiser {
 		}
 	}
 
-	public void drawUnexplainedErrors(ImagePlus blockImage, Sequence sequence, GroundTruth groundtruth, Evaluator evaluator) {
+	public void drawUnexplainedErrors(ImagePlus blockImage, Sequence sequence, GroundTruth groundtruth, Evaluator evaluator, double opacity) {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
@@ -274,10 +282,10 @@ public class Visualiser {
 			ImageProcessor ip = blockCopy.getStack().getProcessor(s);
 
 			for (Candidate candidate : evaluator.getUnexplainedGroundtruth().get(s-1))
-				drawCandidate(candidate, ip, new Color(255, 0, 0), "");
+				drawCandidate(candidate, ip, new Color(255, 0, 0), "", opacity);
 
 			for (Candidate candidate : evaluator.getUnexplainedResult().get(s-1))
-				drawCandidate(candidate, ip, new Color(0, 0, 255), "");
+				drawCandidate(candidate, ip, new Color(0, 0, 255), "", opacity);
 		}
 	}
 
@@ -311,12 +319,20 @@ public class Visualiser {
 		ip.drawOval(x-3, y-3, 6, 6);
 	}
 
-	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, String annotation) {
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, Color color, String annotation, double opacity) {
 
 		// draw pixels
-		ip.setColor(color);
-		for (int[] pixel : candidate.getPixels())
+		int[] value = new int[4];
+		for (int[] pixel : candidate.getPixels()) {
+
+			ip.getPixel(pixel[0], pixel[1], value);
+			ip.setColor(
+					new Color(
+							(int)(opacity*value[0] + (1 - opacity)*color.getRed()),
+							(int)(opacity*value[1] + (1 - opacity)*color.getGreen()),
+							(int)(opacity*value[2] + (1 - opacity)*color.getBlue())));
 			ip.drawPixel(pixel[0], pixel[1]);
+		}
 
 		// draw id
 		if (annotation != null) {

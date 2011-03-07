@@ -55,6 +55,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private ImagePlus    membraneImp;
 	private ImagePlus    groundtruthImp;
 	private ImagePlus    msersImp;
+	private ImagePlus    visualisationImp;
 	private int          numSlices;
 
 	private int          firstSlice;
@@ -235,8 +236,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 
-			visualiser.drawSequence(membraneImp, bestSequence, false, false);
-			visualiser.drawSequence(msersImp, bestSequence, false, true);
+			visualiser.drawSequence(visualisationImp, bestSequence, false, false, false, 0.5);
+			visualiser.drawSequence(visualisationImp, bestSequence, false, true, true, 0.5);
 			//visualiser3d.showAssignments(bestSequence);
 			//visualiser3d.showSlices(msersImp);
 
@@ -250,7 +251,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				IJ.log("num splits: " + evaluator.getNumSplitErrors());
 				IJ.log("num merges: " + evaluator.getNumMergeErrors());
 
-				visualiser.drawUnexplainedErrors(membraneImp, bestSequence, groundtruth, evaluator);
+				visualiser.drawUnexplainedErrors(membraneImp, bestSequence, groundtruth, evaluator, 0.5);
 			}
 
 		} else {
@@ -363,6 +364,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addCheckbox("no inference - only visualisation", visualisationOnly);
 		gd.addCheckbox("compare to ground-truth", compareToGroundtruth);
 		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
+		gd.addChoice("use for visualisation",  windowNames, windowNames[0]);
 
 		gd.showDialog();
 		if (gd.wasCanceled())
@@ -380,9 +382,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		visualisationOnly    = gd.getNextBoolean();
 		compareToGroundtruth = gd.getNextBoolean();
 		String groundtruthName = gd.getNextChoice();
+		String visualisationName = gd.getNextChoice();
 
 		if (compareToGroundtruth)
 			groundtruthImp = WindowManager.getImage(groundtruthName);
+		visualisationImp = WindowManager.getImage(visualisationName);
 
 		if (firstSlice < 1 ||
 		    lastSlice > WindowManager.getCurrentImage().getNSlices() ||
