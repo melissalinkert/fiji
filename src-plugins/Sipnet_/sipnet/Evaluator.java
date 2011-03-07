@@ -20,8 +20,8 @@ public class Evaluator {
 	private Vector<Set<Candidate>>             unexplainedResult;
 
 	// lists of false merges and missed merges for each assignment
-	private Vector<HashMap<Candidate, Candidate>> mergeErrors;
-	private Vector<HashMap<Candidate, Candidate>> splitErrors;
+	private Vector<Vector<Candidate[]>> mergeErrors;
+	private Vector<Vector<Candidate[]>> splitErrors;
 
 	// statistics
 	private int numMergeErrors;
@@ -37,8 +37,8 @@ public class Evaluator {
 		this.unexplainedGroundtruth = new Vector<Set<Candidate>>();
 		this.unexplainedResult      = new Vector<Set<Candidate>>();
 
-		this.mergeErrors = new Vector<HashMap<Candidate, Candidate>>();
-		this.splitErrors = new Vector<HashMap<Candidate, Candidate>>();
+		this.mergeErrors = new Vector<Vector<Candidate[]>>();
+		this.splitErrors = new Vector<Vector<Candidate[]>>();
 
 		findCorrespondences();
 		checkAssignments();
@@ -54,12 +54,12 @@ public class Evaluator {
 		return this.unexplainedResult;
 	}
 
-	public Vector<HashMap<Candidate,Candidate>> getMergeErrors()
+	public Vector<Vector<Candidate[]>> getMergeErrors()
 	{
 		return this.mergeErrors;
 	}
 
-	public Vector<HashMap<Candidate,Candidate>> getSplitErrors()
+	public Vector<Vector<Candidate[]>> getSplitErrors()
 	{
 		return this.splitErrors;
 	}
@@ -86,8 +86,8 @@ public class Evaluator {
 		assert(result.consistent());
 
 		SetDifference setDifference = new SetDifference();
-		HashMap<Candidate, HashMap<Candidate, Double>> distanceCache =
-				new HashMap<Candidate, HashMap<Candidate, Double>>();
+		HashMap<Candidate, HashMap<Candidate, Integer>> numMatchesCache =
+				new HashMap<Candidate, HashMap<Candidate, Integer>>();
 
 		// for each slice
 		for (int s = 0; s <= result.size(); s++) {
@@ -100,7 +100,7 @@ public class Evaluator {
 			boolean done = false;
 			while (!done) {
 
-				double    minDistance     = -1.0;
+				int       maxNumMatches   = 0;
 				Candidate bestGroundtruth = null;
 				Candidate bestResult      = null;
 
@@ -108,40 +108,37 @@ public class Evaluator {
 				for (Candidate groundtruthCandidate : groundtruthCandidates)
 					for (Candidate resultCandidate : resultCandidates) {
 
-						HashMap<Candidate, Double> cache =
-								distanceCache.get(groundtruthCandidate);
+						HashMap<Candidate, Integer> cache =
+								numMatchesCache.get(groundtruthCandidate);
 
 						if (cache == null) {
-							cache = new HashMap<Candidate, Double>();
-							distanceCache.put(groundtruthCandidate, cache);
+							cache = new HashMap<Candidate, Integer>();
+							numMatchesCache.put(groundtruthCandidate, cache);
 						}
 
-						Double distance = cache.get(resultCandidate);
+						Integer numMatches = cache.get(resultCandidate);
 
-						if (distance == null) {
+						if (numMatches == null) {
 
-							distance = setDifference.setDifferenceRatio(
+							numMatches = setDifference.numMatches(
 									groundtruthCandidate.getPixels(),
 									new int[]{0, 0},
 									resultCandidate.getPixels(),
 									new int[]{0, 0});
 
-							cache.put(resultCandidate, distance);
+							cache.put(resultCandidate, numMatches);
 						}
 
-						if (distance < minDistance || minDistance < 0) {
+						if (numMatches > maxNumMatches) {
 
-							minDistance     = distance;
+							maxNumMatches   = numMatches;
 							bestGroundtruth = groundtruthCandidate;
 							bestResult      = resultCandidate;
 						}
 					}
 
 				// is there any overlap at all?
-				if (minDistance >= 0 &&
-				    minDistance <
-							(bestGroundtruth.getSize() + bestResult.getSize())/
-							Math.min(bestGroundtruth.getSize(), bestResult.getSize())) {
+				if (maxNumMatches > 0) {
 
 					correspondences.put(bestGroundtruth, bestResult);
 					groundtruthCandidates.remove(bestGroundtruth);
@@ -172,30 +169,45 @@ public class Evaluator {
 	 */
 	final private void checkAssignments() {
 
-		Set<Candidate[]> groundtruthPairs =
+		Vector<Set<Candidate[]>> groundtruthPairs =
 				sequenceToPairs(groundtruth.getSequence());
-		Set<Candidate[]> resultPairs =
+		Vector<Set<Candidate[]>> resultPairs =
 				sequenceToPairs(result);
 
-		int numMatches = 0;
-		for (Candidate[] groundtruthPair : groundtruthPairs) {
+		int numMissed = 0;
+		int numExtra  = 0;
 
-			Candidate[] correspondingPair =
-					new Candidate[]{
-							correspondences.get(groundtruthPair[0]),
-							correspondences.get(groundtruthPair[1])};
+		for (int s = 0; s < groundtruthPairs.size(); s++) {
 
-			for (Candidate[] resultPair : resultPairs)
-				if (resultPair[0] == correspondingPair[0] &&
-				    resultPair[1] == correspondingPair[1]) {
-					numMatches++;
-					break;
-				}
+			Set<Candidate[]> remainingGroundtruth = new HashSet<Candidate[]>(groundtruthPairs.get(s));
+
+			for (Candidate[] groundtruthPair : groundtruthPairs.get(s)) {
+
+				Candidate[] correspondingPair =
+						new Candidate[]{
+								correspondences.get(groundtruthPair[0]),
+								correspondences.get(groundtruthPair[1])};
+
+				for (Candidate[] resultPair : resultPairs.get(s))
+					if (resultPair[0] == correspondingPair[0] &&
+						resultPair[1] == correspondingPair[1]) {
+
+						// remove this pair from result pairs
+						resultPairs.get(s).remove(resultPair);
+						remainingGroundtruth.remove(groundtruthPair);
+
+						break;
+					}
+			}
+
+			mergeErrors.add(new Vector<Candidate[]>(resultPairs.get(s)));
+			splitErrors.add(new Vector<Candidate[]>(remainingGroundtruth));
+
+			numMissed += remainingGroundtruth.size();
+			numExtra  += resultPairs.get(s).size();
 		}
 
 
-		int numMissed = groundtruthPairs.size() - numMatches;
-		int numExtra  = resultPairs.size() - numMatches;
 		IJ.log("" + groundtruthPairs.size() + " connections in ground-truth, " + numMissed + " missed");
 		IJ.log("" + resultPairs.size() + " connections in result, " + numExtra + " extra");
 
@@ -203,17 +215,23 @@ public class Evaluator {
 		numSplitErrors += numMissed;
 	}
 
-	final private Set<Candidate[]> sequenceToPairs(Sequence sequence) {
+	final private Vector<Set<Candidate[]>> sequenceToPairs(Sequence sequence) {
 
-		Set<Candidate[]> pairs = new HashSet<Candidate[]>();
+		Vector<Set<Candidate[]>> pairs = new Vector<Set<Candidate[]>>();
 
-		for (Assignment assignment : sequence)
+		for (Assignment assignment : sequence) {
+
+			Set<Candidate[]> apairs = new HashSet<Candidate[]>();
+
 			for (SingleAssignment singleAssignment : assignment)
 				for (Candidate source : singleAssignment.getSources())
 					if (source != SequenceSearch.emergeNode)
 						for (Candidate target : singleAssignment.getTargets())
 							if (target != SequenceSearch.deathNode)
-								pairs.add(new Candidate[]{source, target});
+								apairs.add(new Candidate[]{source, target});
+
+			pairs.add(apairs);
+		}
 
 		return pairs;
 	}

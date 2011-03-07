@@ -39,7 +39,6 @@ public class Visualiser {
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
 
 		blockCopy.show();
-		//IJ.selectWindow(blockCopy.getTitle());
 		IJ.run("RGB Color", "");
 
 		HashMap<Candidate, Color> colors    = new HashMap<Candidate, Color>();
@@ -271,22 +270,59 @@ public class Visualiser {
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
 
-		blockCopy.show();
-		blockCopy.updateAndDraw();
 		blockCopy.setTitle("unexplained regions");
-		IJ.selectWindow(blockCopy.getTitle());
+		blockCopy.show();
 		IJ.run("RGB Color", "");
 
+		// unexplained regions
 		for (int s = 1; s <= sequence.size() + 1; s++) {
 
 			ImageProcessor ip = blockCopy.getStack().getProcessor(s);
 
+			// missed regions
 			for (Candidate candidate : evaluator.getUnexplainedGroundtruth().get(s-1))
 				drawCandidate(candidate, ip, new Color(255, 0, 0), "", opacity);
 
+			// additional regions
 			for (Candidate candidate : evaluator.getUnexplainedResult().get(s-1))
 				drawCandidate(candidate, ip, new Color(0, 0, 255), "", opacity);
 		}
+
+		// merge and split errors
+		for (int s = 0; s < sequence.size(); s++) {
+
+			ImageProcessor ip = blockCopy.getStack().getProcessor(s+1);
+
+			for (Candidate[] pair : evaluator.getMergeErrors().get(s)) {
+
+				drawMergeError(
+						(int)pair[0].getCenter(0), (int)pair[0].getCenter(1),
+						(int)pair[1].getCenter(0), (int)pair[1].getCenter(1),
+						ip);
+			}
+
+			for (Candidate[] pair : evaluator.getSplitErrors().get(s)) {
+
+				drawSplitError(
+						(int)pair[0].getCenter(0), (int)pair[0].getCenter(1),
+						(int)pair[1].getCenter(0), (int)pair[1].getCenter(1),
+						ip);
+			}
+		}
+
+		blockCopy.updateAndDraw();
+	}
+
+	private void drawMergeError(int x1, int y1, int x2, int y2, ImageProcessor ip) {
+
+		ip.setColor(new Color(255, 0, 0));
+		ip.drawLine(x1, y1, x2, y2);
+	}
+
+	private void drawSplitError(int x1, int y1, int x2, int y2, ImageProcessor ip) {
+
+		ip.setColor(new Color(0, 255, 0));
+		ip.drawLine(x1, y1, x2, y2);
 	}
 
 	private void drawConnectionTo(int x1, int y1, int x2, int y2, ImageProcessor ip, double confidence) {
