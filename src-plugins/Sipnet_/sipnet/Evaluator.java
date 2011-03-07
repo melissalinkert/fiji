@@ -7,8 +7,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
 
-import ij.IJ;
-
 public class Evaluator {
 
 	private GroundTruth groundtruth;
@@ -20,6 +18,8 @@ public class Evaluator {
 	// lists of unexplained ground-truth and result regions for each slice
 	private Vector<Set<Candidate>>      unexplainedGroundtruth;
 	private Vector<Set<Candidate>>      unexplainedResult;
+	// unexplained result regions, for which no ground truth data is available
+	private Vector<Set<Candidate>>      unknownResult;
 
 	// lists of false merges and missed merges for each assignment
 	private Vector<Vector<Candidate[]>> mergeErrors;
@@ -78,6 +78,7 @@ public class Evaluator {
 
 		this.unexplainedGroundtruth = new Vector<Set<Candidate>>();
 		this.unexplainedResult      = new Vector<Set<Candidate>>();
+		this.unknownResult          = new Vector<Set<Candidate>>();
 
 		this.mergeErrors = new Vector<Vector<Candidate[]>>();
 		this.splitErrors = new Vector<Vector<Candidate[]>>();
@@ -175,7 +176,7 @@ public class Evaluator {
 			}
 
 			// each merge of one groundtruth region is a merge error
-			for (Candidate resultCandidate :resultCandidates) {
+			for (Candidate resultCandidate : resultCandidates) {
 
 				if (correspondences.get(resultCandidate) == null)
 					additional.add(resultCandidate);
@@ -183,11 +184,41 @@ public class Evaluator {
 					numMergeErrors += (correspondences.get(resultCandidate).size() - 1);
 			}
 
-			IJ.log("" + missed.size() + " unexplained ground-truth regions in slice " + s);
-			IJ.log("" + additional.size() + " unexplained result regions in slice " + s);
-
 			unexplainedGroundtruth.add(missed);
 			unexplainedResult.add(additional);
+
+			// find result regions that have no groundtruth
+			Set<Candidate> unknown = new HashSet<Candidate>();
+
+			for (Candidate resultCandidate : additional) {
+
+				// regions that have no groundtruth region in the quadrants of
+				// their relative coordinates are outside the groundtruth
+				// segmentation
+				boolean upperLeft  = false;
+				boolean lowerLeft  = false;
+				boolean lowerRight = false;
+				boolean upperRight = false;
+
+				for (Candidate groundtruthCandidate : groundtruthCandidates) {
+
+					double offsetX =
+							groundtruthCandidate.getCenter(0) - resultCandidate.getCenter(0);
+					double offsetY =
+							groundtruthCandidate.getCenter(1) - resultCandidate.getCenter(1);
+
+					upperLeft  = upperLeft  || (offsetX <= 0 && offsetY >  0);
+					lowerLeft  = lowerLeft  || (offsetX <= 0 && offsetY <= 0);
+					lowerRight = lowerRight || (offsetX >  0 && offsetY <  0);
+					upperRight = upperRight || (offsetX >  0 && offsetY <= 0);
+				}
+
+				if (!(upperLeft && lowerLeft && lowerRight && upperRight))
+					unknown.add(resultCandidate);
+			}
+
+			unexplainedResult.get(s).removeAll(unknown);
+			unknownResult.add(unknown);
 		}
 	}
 
@@ -213,6 +244,13 @@ public class Evaluator {
 
 			remainingGroundtruthPairs.add(new HashSet<Candidate[]>(groundtruthPairs.get(s)));
 			remainingResultPairs.add(new HashSet<Candidate[]>(resultPairs.get(s)));
+
+			// remove all result pairs, for which no groundtruth is available
+			for (Candidate[] resultPair : resultPairs.get(s))
+				if (unknownResult.get(s).contains(resultPair[0]) ||
+					unknownResult.get(s).contains(resultPair[1]))
+					remainingResultPairs.remove(resultPair);
+
 
 			// for each ground-truth pair, remove all result pairs that are
 			// explained by that
