@@ -432,7 +432,10 @@ public class SequenceSearch {
 
 	private boolean solveProblem() {
 
+		long time = System.currentTimeMillis();
 		int result = lpSolver.solve(2);
+		time = System.currentTimeMillis() - time;
+		IJ.log("sover finished in " + time/1000.0 + " seconds");
 
 		if (result != 0) {
 			IJ.log("LP problem could not be solved.");

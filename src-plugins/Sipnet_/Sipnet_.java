@@ -228,9 +228,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 		if (!visualisationOnly) {
 
-			IJ.log("Searching for the best path");
 			Sequence bestSequence = sipnet.bestSearch();
-		
+
 			if (bestSequence == null) {
 				IJ.log("No sequence could be found.");
 				return;
