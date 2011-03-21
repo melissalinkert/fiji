@@ -73,12 +73,18 @@ public class ResultCacher {
 
 	public void writeMembraneProbabilities(ImagePlus membraneImp, String stackFile) {
 
+		if (!io.exists(cacheDir))
+			io.createDir(cacheDir);
+
 		String msersFile = cacheDir + "/" + createFilename(stackFile) + "-membrane.tif";
 
 		IJ.save(membraneImp, msersFile);
 	}
 
 	public void writeMserImages(ImagePlus msersImp, String stackFile, MSER<?,?>.Parameters mserParameters) {
+
+		if (!io.exists(cacheDir))
+			io.createDir(cacheDir);
 
 		String msersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.tif";
 
@@ -89,6 +95,9 @@ public class ResultCacher {
 	 * Writes MSER forests (one for each slice) to a file.
 	 */
 	public void writeMsers(Vector<Vector<Candidate>> topMsers, String stackFile, MSER<?,?>.Parameters mserParameters) {
+
+		if (!io.exists(cacheDir))
+			io.createDir(cacheDir);
 
 		String topMsersFile = cacheDir + "/" + createFilename(stackFile, mserParameters) + "-msers.sip";
 

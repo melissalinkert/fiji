@@ -15,6 +15,8 @@ import ij.io.FileSaver;
 
 import mpicbg.imglib.type.numeric.RealType;
 
+import sipnet.io.IO;
+
 public class Texifyer {
 
 	final double texWidth = 13.0;
@@ -22,15 +24,20 @@ public class Texifyer {
 	private ImagePlus       regionImp;
 	private AssignmentModel assignmentModel;
 	private String          outputDir;
+	final private IO        io;
 
 	public Texifyer(ImagePlus regionImp, AssignmentModel assignmentModel, String outputDir) {
 
 		this.regionImp       = regionImp;
 		this.assignmentModel = assignmentModel;
 		this.outputDir       = outputDir;
+		this.io              = new IO();
 	}
 
 	public <T extends RealType<T>> void texifyMserTree(MSER<T, Candidate> mser, int slice) {
+
+		if (!io.exists(outputDir))
+			io.createDir(outputDir);
 
 		ImagePlus imp = new ImagePlus("", regionImp.getStack().getProcessor(slice + 1));
 		FileSaver saver = new FileSaver(imp);
@@ -60,6 +67,9 @@ public class Texifyer {
 	}
 
 	public void texifyClosestCandidates(Collection<Candidate> regions, int slice) {
+
+		if (!io.exists(outputDir))
+			io.createDir(outputDir);
 
 		ImagePlus imp = new ImagePlus("", regionImp.getStack().getProcessor(slice + 1));
 		FileSaver saver = new FileSaver(imp);

@@ -30,6 +30,12 @@ public class IO {
 		return ((new File(filename1)).lastModified() > (new File(filename2)).lastModified());
 	}
 
+	public void createDir(String directory) {
+
+		if (!(new File(directory)).mkdir())
+			throw new RuntimeException("could not create directory " + (new File(directory)).getAbsolutePath());
+	}
+
 	public void writeMsers(Vector<Vector<Candidate>> sliceTopMsers, String filename) {
 
 		File outfile = new File(filename);
