@@ -15,4 +15,6 @@ interface LinearProgramSolver {
 	public int solve(int numThreads);
 
 	public double getValue(int variableNum);
+
+	public double getMarginal(int variableNum, int value);
 }

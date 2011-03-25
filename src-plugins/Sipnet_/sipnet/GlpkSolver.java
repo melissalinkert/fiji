@@ -91,4 +91,9 @@ class GlpkSolver implements LinearProgramSolver {
 		double value = GLPK.glp_mip_col_val(problem, variableNum + 1);
 		return value;
 	}
+
+	public double getMarginal(int variableNum, int value) {
+
+		throw new RuntimeException("GLPK solver does not compute marginal probabilities");
+	}
 }

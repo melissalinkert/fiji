@@ -108,4 +108,8 @@ class CplexSolver implements LinearProgramSolver {
 		return values[variableNum];
 	}
 
+	public double getMarginal(int variableNum, int value) {
+
+		throw new RuntimeException("CPLEX linear solver does not provide marginal probabilities");
+	}
 }
