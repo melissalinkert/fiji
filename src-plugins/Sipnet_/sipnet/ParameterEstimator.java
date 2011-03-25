@@ -23,6 +23,9 @@ public class ParameterEstimator {
 	// the assignemt model to estimate paramters for
 	private AssignmentModel assignmentModel;
 
+	// the sequence search used for marginalisation of the assignment variables
+	private SequenceSearch  sequenceSearch;
+
 	// the training input as a sequence of candidates and according msers
 	private Sequence                trainingSequence;
 	private List<Vector<Candidate>> msers;
@@ -44,7 +47,13 @@ public class ParameterEstimator {
 
 			double[] gradient = new double[6];
 
+			IJ.log("setting assignment model parameters");
 			assignmentModel.setParameters(w);
+			IJ.log("creating new sequence search");
+			sequenceSearch = new SequenceSearch(msers, "./sequence_search_training.conf", assignmentModel, true);
+			IJ.log("infering marginal probabilities...");
+			sequenceSearch.getBestAssignmentSequence();
+			IJ.log("done.");
 
 			gradient[0] = gradientData()                 + regularizer(w[0]);
 			gradient[1] = gradientPositionContinuation() + regularizer(w[1]);
@@ -147,6 +156,7 @@ public class ParameterEstimator {
 			int[] imageDimensions) {
 
 		this.assignmentModel       = new AssignmentModel(imageDimensions);
+		this.sequenceSearch        = null;
 		this.trainingSequence      = trainingSequence;
 		this.msers                 = msers;
 		this.parameterStdDeviation = parameterStdDeviation;
@@ -181,7 +191,9 @@ public class ParameterEstimator {
 			e.printStackTrace();
 		}
 
+		// write result
 		assignmentModel.setParameters(result.getPointRef());
+		assignmentModel.writeParameters("./result.conf", "learnt parameters");
 	}
 
 	final private double gradientData() {
@@ -351,17 +363,10 @@ public class ParameterEstimator {
 		// for each possible continuation
 		for (Vector<Candidate> sliceCandidates : msers)
 			for (Candidate source : sliceCandidates)
-				for (Candidate target : source.getMostLikelyCandidates()) {
-
-					double p = Math.exp(-assignmentModel.costContinuation(source, target, true));
-
-					if (p == Double.POSITIVE_INFINITY)
-						p = 1.0;
-					else
-						p = p/(p + 1.0);
-
-					sumTermsExpected += assignmentModel.centerTerm(source, target)*p;
-				}
+				for (Candidate target : source.getMostLikelyCandidates())
+					sumTermsExpected +=
+							assignmentModel.centerTerm(source, target)*
+							sequenceSearch.marginalConnected(source, target);
 
 		return sumTermsExpected - sumTermsTraining;
 	}
@@ -389,17 +394,10 @@ public class ParameterEstimator {
 		// for each possible continuation
 		for (Vector<Candidate> sliceCandidates : msers)
 			for (Candidate source : sliceCandidates)
-				for (Candidate target : source.getMostLikelyCandidates()) {
-
-					double p = Math.exp(-assignmentModel.costContinuation(source, target, true));
-
-					if (p == Double.POSITIVE_INFINITY)
-						p = 1.0;
-					else
-						p = p/(p + 1.0);
-
-					sumTermsExpected += assignmentModel.shapeTerm(source, target)*p;
-				}
+				for (Candidate target : source.getMostLikelyCandidates())
+					sumTermsExpected +=
+							assignmentModel.shapeTerm(source, target)*
+							sequenceSearch.marginalConnected(source, target);
 
 		return sumTermsExpected - sumTermsTraining;
 	}
@@ -437,30 +435,16 @@ public class ParameterEstimator {
 			for (Candidate candidate : sliceCandidates) {
 
 				for (Candidate neighbor : candidate.mergeTargets().keySet())
-					for (Candidate target : candidate.mergeTargets().get(neighbor)) {
-
-						double p = Math.exp(-assignmentModel.costBisect(target, candidate, neighbor));
-
-						if (p == Double.POSITIVE_INFINITY)
-							p = 1.0;
-						else
-							p = p/(p + 1.0);
-
-						sumTermsExpected += assignmentModel.centerTerm(target, candidate, neighbor)*p;
-				}
+					for (Candidate target : candidate.mergeTargets().get(neighbor))
+						sumTermsExpected +=
+								assignmentModel.centerTerm(target, candidate, neighbor)*
+								sequenceSearch.marginalMerge(candidate, neighbor, target);
 
 				for (Candidate neighbor : candidate.splitSources().keySet())
-					for (Candidate source : candidate.splitSources().get(neighbor)) {
-
-						double p = Math.exp(-assignmentModel.costBisect(source, candidate, neighbor));
-
-						if (p == Double.POSITIVE_INFINITY)
-							p = 1.0;
-						else
-							p = p/(p + 1.0);
-
-						sumTermsExpected += assignmentModel.centerTerm(source, candidate, neighbor)*p;
-				}
+					for (Candidate source : candidate.splitSources().get(neighbor))
+						sumTermsExpected +=
+								assignmentModel.centerTerm(source, candidate, neighbor)*
+								sequenceSearch.marginalSplit(source, candidate, neighbor);
 			}
 
 		return sumTermsExpected - sumTermsTraining;
@@ -499,30 +483,16 @@ public class ParameterEstimator {
 			for (Candidate candidate : sliceCandidates) {
 
 				for (Candidate neighbor : candidate.mergeTargets().keySet())
-					for (Candidate target : candidate.mergeTargets().get(neighbor)) {
-
-						double p = Math.exp(-assignmentModel.costBisect(target, candidate, neighbor));
-
-						if (p == Double.POSITIVE_INFINITY)
-							p = 1.0;
-						else
-							p = p/(p + 1.0);
-
-						sumTermsExpected += assignmentModel.shapeTerm(target, candidate, neighbor)*p;
-				}
+					for (Candidate target : candidate.mergeTargets().get(neighbor))
+						sumTermsExpected +=
+								assignmentModel.shapeTerm(target, candidate, neighbor)*
+								sequenceSearch.marginalMerge(candidate, neighbor, target);
 
 				for (Candidate neighbor : candidate.splitSources().keySet())
-					for (Candidate source : candidate.splitSources().get(neighbor)) {
-
-						double p = Math.exp(-assignmentModel.costBisect(source, candidate, neighbor));
-
-						if (p == Double.POSITIVE_INFINITY)
-							p = 1.0;
-						else
-							p = p/(p + 1.0);
-
-						sumTermsExpected += assignmentModel.shapeTerm(source, candidate, neighbor)*p;
-				}
+					for (Candidate source : candidate.splitSources().get(neighbor))
+						sumTermsExpected +=
+								assignmentModel.shapeTerm(source, candidate, neighbor)*
+								sequenceSearch.marginalSplit(source, candidate, neighbor);
 			}
 
 		return sumTermsExpected - sumTermsTraining;
@@ -550,31 +520,17 @@ public class ParameterEstimator {
 
 			// all but last slice
 			if (s < msers.size() - 1)
-				for (Candidate target : sliceCandidates) {
-
-					double p = Math.exp(-assignmentModel.costEnd(target));
-
-					if (p == Double.POSITIVE_INFINITY)
-						p = 1.0;
-					else
-						p = p/(p + 1.0);
-
-					sumTermsExpected += assignmentModel.endTerm(target)*p;
-				}
+				for (Candidate target : sliceCandidates)
+					sumTermsExpected +=
+							assignmentModel.endTerm(target)*
+							sequenceSearch.marginalConnected(SequenceSearch.emergeNode, target);
 
 			// all but first slice
 			if (s > 0)
-				for (Candidate source : sliceCandidates) {
-
-					double p = Math.exp(-assignmentModel.costEnd(source));
-
-					if (p == Double.POSITIVE_INFINITY)
-						p = 1.0;
-					else
-						p = p/(p + 1.0);
-
-					sumTermsExpected += assignmentModel.endTerm(source)*p;
-				}
+				for (Candidate source : sliceCandidates)
+					sumTermsExpected +=
+							assignmentModel.endTerm(source)*
+							sequenceSearch.marginalConnected(source, SequenceSearch.deathNode);
 
 			s++;
 		}

@@ -26,10 +26,8 @@ import sipnet.Candidate;
 import sipnet.CandidateFactory;
 import sipnet.GroundTruth;
 
-import sipnet.AssignmentModel;
 import sipnet.ParameterEstimator;
 import sipnet.SingleAssignment;
-import sipnet.Sipnet;
 import sipnet.Visualiser;
 
 import mpicbg.imglib.image.Image;
@@ -119,15 +117,6 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			GroundTruth             groundtruth = readGroundTruth();
 			List<Vector<Candidate>> msers       = readMsers();
 
-			// read assignment model paramters
-			AssignmentModel assignmentModel = AssignmentModel.readFromFile(
-					"./assignment_model_caching.conf",
-					new int[]{groundtruthImp.getWidth(), groundtruthImp.getHeight()});
-
-			// let sipnet (i.e., sequence search) cache the most likely
-			// candidates:
-			new Sipnet(msers, "./sequence_search.conf", null, assignmentModel);
-	
 			// perform parameter learning
 			ParameterEstimator parameterEstimator =
 					new ParameterEstimator(
@@ -138,11 +127,8 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 
 			parameterEstimator.estimate();
 
-			// write result
-			assignmentModel.writeParameters("./result.conf", "learnt parameters");
-
 			// visualisation
-			visualiser = new Visualiser(assignmentModel);
+			//visualiser = new Visualiser(assignmentModel);
 			visualiser.drawSequence(msersImp, groundtruth.getSequence(), false, true, true, 0.5);
 		}
 	}

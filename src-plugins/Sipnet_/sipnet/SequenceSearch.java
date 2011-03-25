@@ -38,10 +38,10 @@ public class SequenceSearch {
 	private List<Vector<Candidate>> sliceCandidates;
 
 	// pairs of nodes that can potentially merge/split
-	private HashMap<Candidate, HashMap<Candidate, Candidate>>         mergeNodes;
-	private HashMap<Candidate, HashMap<Candidate, Candidate>>         splitNodes;
+	private HashMap<Candidate, HashMap<Candidate, Candidate>> mergeNodes;
+	private HashMap<Candidate, HashMap<Candidate, Candidate>> splitNodes;
 
-	private HashMap<Candidate, HashMap<Candidate, Integer>> nodeNums;
+	private HashMap<Candidate, HashMap<Candidate, Integer>>   nodeNums;
 	private int nextNodeId = 0;
 
 	// dummy candidates
@@ -55,13 +55,15 @@ public class SequenceSearch {
 	private AssignmentModel     assignmentModel;
 	private LinearProgramSolver lpSolver;
 
-	private boolean noMoreNewVariables = false;
+	// instead of finding the best sequence, compute the marginal probabilities
+	// of the assignment variables
+	private boolean computeMarginals;
 
 	public SequenceSearch(
 			List<Vector<Candidate>> sliceCandidates,
-			Texifyer                texifyer,
 			String                  parameterFilename,
-			AssignmentModel         assignmentModel) {
+			AssignmentModel         assignmentModel,
+			boolean                 computeMarginals) {
 
 		this.sliceCandidates = sliceCandidates;
 
@@ -69,35 +71,9 @@ public class SequenceSearch {
 
 		this.assignmentModel = assignmentModel;
 
+		this.computeMarginals = computeMarginals;
+
 		readParameters(parameterFilename);
-
-		// build cache for candidates
-		IJ.log("Precaching most likely candidates...");
-
-		for (int s = 0; s < this.sliceCandidates.size(); s++)
-			for (Candidate candidate : this.sliceCandidates.get(s))
-				candidate.clearCaches();
-
-		for (int s = 0; s < this.sliceCandidates.size() - 1; s++) {
-
-			IJ.log("Slice " + (s+1) + "...");
-			int numCandidates = this.sliceCandidates.get(s).size();
-			int numCached     = 0;
-
-			for (Candidate candidate : this.sliceCandidates.get(s)) {
-
-				candidate.cacheMostSimilarCandidates(this.sliceCandidates.get(s+1), assignmentModel);
-				numCached++;
-				IJ.showProgress(numCached, numCandidates);
-			}
-		}
-
-		IJ.log("Precaching neighbors...");
-		for (int s = 0; s < this.sliceCandidates.size(); s++)
-			for (Candidate candidate : this.sliceCandidates.get(s))
-				candidate.findNeighbors(this.sliceCandidates.get(s));
-
-		IJ.log("Done.");
 	}
 
 	public Sequence getBestAssignmentSequence() {
@@ -135,8 +111,135 @@ public class SequenceSearch {
 
 	}
 
+	/**
+	 * Check whether source is connected to target in the final sequence. Source
+	 * is allowed to be emergeNode, target is allowed to be deathNode.
+	 */
+	public boolean isConnected(Candidate source, Candidate target) {
+
+		int variable = getVariableNum(source, target);
+
+		if (variable < 0)
+			return false;
+
+		return (getVariableValue(variable) == 1);
+	}
+
+	/**
+	 * Check whether source splits in target1 and target2 in final sequence.
+	 */
+	public boolean isSplit(Candidate source, Candidate target1, Candidate target2) {
+
+		Candidate smaller = (target1.getId() < target2.getId() ? target1 : target2);
+		Candidate bigger  = (target1.getId() < target2.getId() ? target2 : target1);
+
+		Candidate splitNode = splitNodes.get(smaller).get(bigger);
+
+		int variable = getVariableNum(source, splitNode);
+
+		if (variable < 0)
+			return false;
+
+		return (getVariableValue(variable) == 1);
+	}
+
+	/**
+	 * Check whether source1 and source2 merge to target in final sequence.
+	 */
+	public boolean isMerge(Candidate source1, Candidate source2, Candidate target) {
+
+		Candidate smaller = (source1.getId() < source2.getId() ? source1 : source2);
+		Candidate bigger  = (source1.getId() < source2.getId() ? source2 : source1);
+
+		Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
+
+		int variable = getVariableNum(mergeNode, target);
+
+		if (variable < 0)
+			return false;
+
+		return (getVariableValue(variable) == 1);
+	}
+
+	/**
+	 * Marginal probability of the event "source is connected to target". Source
+	 * is allowed to be emergeNode, target is allowed to be deathNode.
+	 */
+	public double marginalConnected(Candidate source, Candidate target) {
+
+		int variable = getVariableNum(source, target);
+
+		if (variable < 0)
+			return 0.0;
+
+		return getMarginal(variable, 1);
+	}
+
+	/**
+	 * Marginal probability of the event "source splits in target1 and target2".
+	 */
+	public double marginalSplit(Candidate source, Candidate target1, Candidate target2) {
+
+		Candidate smaller = (target1.getId() < target2.getId() ? target1 : target2);
+		Candidate bigger  = (target1.getId() < target2.getId() ? target2 : target1);
+
+		Candidate splitNode = splitNodes.get(smaller).get(bigger);
+
+		int variable = getVariableNum(source, splitNode);
+
+		if (variable < 0)
+			return 0.0;
+
+		return getMarginal(variable, 1);
+	}
+
+	/**
+	 * Marginal probability of the event "source1 and source2 merge to target".
+	 */
+	public double marginalMerge(Candidate source1, Candidate source2, Candidate target) {
+
+		Candidate smaller = (source1.getId() < source2.getId() ? source1 : source2);
+		Candidate bigger  = (source1.getId() < source2.getId() ? source2 : source1);
+
+		Candidate mergeNode = mergeNodes.get(smaller).get(bigger);
+
+		int variable = getVariableNum(mergeNode, target);
+
+		if (variable < 0)
+			return 0.0;
+
+		return getMarginal(variable, 1);
+	}
+
 	private void setupProblem() {
 
+		// build cache for candidates
+		IJ.log("Precaching most likely candidates...");
+
+		for (int s = 0; s < this.sliceCandidates.size(); s++)
+			for (Candidate candidate : this.sliceCandidates.get(s))
+				candidate.clearCaches();
+
+		for (int s = 0; s < this.sliceCandidates.size() - 1; s++) {
+
+			IJ.log("Slice " + (s+1) + "...");
+			int numCandidates = this.sliceCandidates.get(s).size();
+			int numCached     = 0;
+
+			for (Candidate candidate : this.sliceCandidates.get(s)) {
+
+				candidate.cacheMostSimilarCandidates(this.sliceCandidates.get(s+1), assignmentModel);
+				numCached++;
+				IJ.showProgress(numCached, numCandidates);
+			}
+		}
+
+		IJ.log("Precaching neighbors...");
+		for (int s = 0; s < this.sliceCandidates.size(); s++)
+			for (Candidate candidate : this.sliceCandidates.get(s))
+				candidate.findNeighbors(this.sliceCandidates.get(s));
+
+		IJ.log("Done.");
 		IJ.log("searching for possible bisections");
 		findPossibleBisections();
 		IJ.log("Done.");
@@ -148,7 +251,10 @@ public class SequenceSearch {
 
 		IJ.log("setting up problem: " + numVariables + " variables, " + numConstraints + " constraints");
 
-		lpSolver = new CplexSolver(numVariables, numConstraints);
+		if (computeMarginals)
+			lpSolver = new GraphicalModelSolver(numVariables, numConstraints);
+		else
+			lpSolver = new CplexSolver(numVariables, numConstraints);
 
 		/*
 		 * INCOMING AND OUTGOING EDGES
@@ -361,8 +467,6 @@ public class SequenceSearch {
 		/*
 		 * OBJECTIVE FUNCTION
 		 */
-
-		noMoreNewVariables = true;
 
 		Vector<Integer> variableNums = new Vector<Integer>();
 		Vector<Double>  coefficients = new Vector<Double>();
@@ -656,9 +760,12 @@ public class SequenceSearch {
 	/**
 	 * Each pair of source-to-target candidates represents an edge in the graph,
 	 * which in turn is modelled as a variable. This function returns the
-	 * variable number a given pair is associated to.
+	 * variable number a given pair is associated to. If
+	 * <code>createOnDemand</code> is set, the variable num will be created if
+	 * it does not exist yet. Otherwise, return value of -1 indicates a
+	 * non-existing varible.
 	 */
-	private int getVariableNum(Candidate candidate1, Candidate candidate2) {
+	private int getVariableNum(Candidate candidate1, Candidate candidate2, boolean createOnDemand) {
 
 		if (candidate1.getId() > candidate2.getId()) {
 			Candidate tmp = candidate1;
@@ -669,8 +776,8 @@ public class SequenceSearch {
 		HashMap<Candidate, Integer> m = nodeNums.get(candidate1);
 
 		if (m == null) {
-			if (noMoreNewVariables)
-				throw new RuntimeException("new variable " + candidate1.getId() + " + " + candidate2.getId());
+			if (!createOnDemand)
+				return -1;
 			m = new HashMap<Candidate, Integer>();
 			nodeNums.put(candidate1, m);
 		}
@@ -680,21 +787,36 @@ public class SequenceSearch {
 		if (id != null)
 			return id;
 		else {
-			if (noMoreNewVariables)
-				throw new RuntimeException("new variable " + candidate1.getId() + " + " + candidate2.getId());
+			if (!createOnDemand)
+				return -1;
 			m.put(candidate2, new Integer(nextNodeId));
 			nextNodeId++;
 
 			return nextNodeId - 1;
 		}
 	}
+	/**
+	 * Default call creates new variable nums.
+	 */
+	private int getVariableNum(Candidate candidate1, Candidate candidate2) {
+		return getVariableNum(candidate1, candidate2, true);
+	}
 
-	private int getVariableValue(Candidate from, Candidate to) {
+	private int getVariableValue(int variable) {
 
-		double value = lpSolver.getValue((int)getVariableNum(from, to));
+		double value = lpSolver.getValue(variable);
 		
 		if (value > 0.5)
 			return 1;
 		return 0;
+	}
+	private int getVariableValue(Candidate from, Candidate to) {
+
+		return getVariableValue(getVariableNum(from, to));
+	}
+
+	private double getMarginal(int variable, int value) {
+
+		return lpSolver.getMarginal(variable, value);
 	}
 }

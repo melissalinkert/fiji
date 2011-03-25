@@ -10,15 +10,14 @@ public class Sipnet {
 	public Sipnet(
 			List<Vector<Candidate>> sliceCandidates,
 			String                  parameterFilename,
-			Texifyer                texifyer,
 			AssignmentModel         assignmentModel) {
 
 		sequenceSearch =
 				new SequenceSearch(
 						sliceCandidates,
-						texifyer,
 						parameterFilename,
-						assignmentModel);
+						assignmentModel,
+						false);
 	}
 
 	public Sequence bestSearch() {

@@ -217,11 +217,9 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						new int[]{membraneImp.getWidth(), membraneImp.getHeight()});
 
 		// perform search
-		Texifyer texifyer = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 		sipnet   = new Sipnet(
 				selectedSliceCandidates,
 				"./sequence_search.conf",
-				texifyer,
 				assignmentModel);
 
 		Visualiser visualiser = new Visualiser(assignmentModel);
@@ -269,7 +267,6 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		double[] parameters = new double[startParameters.length];
 		System.arraycopy(startParameters, 0, parameters, 0, startParameters.length);
 
-		Texifyer       texifyer     = new Texifyer(msersImp, assignmentModel, "./sipnet-tex/");
 		BufferedWriter resultWriter = null;
 		try {
 
@@ -283,7 +280,6 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				sipnet = new Sipnet(
 						selectedSliceCandidates,
 						"./sequence_search.conf",
-						texifyer,
 						assignmentModel);
 
 				IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
