@@ -1,12 +1,18 @@
 #include <iostream>
+#include <limits>
+#include <cmath>
 #include "interface.h"
 
 using namespace Ipopt;
 
 IpOpt::IpOpt(size_t numNodes, size_t numConstraints) :
+	_theta(numNodes),
 	_marginals(numNodes),
 	_numVariables(numNodes),
-	_numConstraints(numConstraints) {
+	_numConstraints(numConstraints),
+	_nextConstraint(0),
+	_numEntriesA(0),
+	_constTerm(0.0) {
 
 	// initialize ipopt solver
 }
@@ -14,25 +20,45 @@ IpOpt::IpOpt(size_t numNodes, size_t numConstraints) :
 void
 IpOpt::setSingleSiteFactor(size_t node, double value0, double value1) {
 
+	double min = std::min(value0, value1);
+
+	_theta[node] = (value1 - min) - (value0 - min);
+
+	_constTerm += min;
 }
 
 void
-IpOpt::setEdgeFactor(size_t node1, size_t node2,
-										 double value00, double value01,
-										 double value10, double value11) {
+IpOpt::setEdgeFactor(
+		size_t node1, size_t node2,
+		double value00, double value01,
+		double value10, double value11) {
 
+	throw "[IpOpt] factors of degree > 1 are currently not supported";
 }
 
 void
 IpOpt::setFactor(int numNodes, size_t* nodes, double* values) {
 
-	throw "[IpOpt] factors of degree > 2 are currently not supported";
+	throw "[IpOpt] factors of degree > 1 are currently not supported";
 }
 
 void
-IpOpt::setLinearConstraint(int numNodes, size_t* nodes, double* coefficients,
-													 double lowerBound, double upperBound) {
+IpOpt::setLinearConstraint(
+		int numNodes, size_t* nodes, double* coefficients,
+		int relation, double value) {
 
+	std::vector<int>    vars(numNodes);
+	std::vector<double> coefs(numNodes);
+
+	for (int i = 0; i < numNodes; i++) {
+		vars[i]  = nodes[i];
+		coefs[i] = coefficients[i];
+	}
+
+	Constraint constraint = {vars, coefs, relation, value};
+	_constraints.push_back(constraint);
+
+	_numEntriesA += numNodes;
 }
 
 void
@@ -69,12 +95,13 @@ bool IpOpt::get_nlp_info(
 	n = _numVariables;
 	m = _numConstraints;
 
-	// TODO: number of non-zero entries in the Jacobian of g
-	nnz_jac_g = 8;
+	// number of non-zero entries in the Jacobian of g (which is A)
+	nnz_jac_g = _numEntriesA;
 
-	// TODO: number of non-zero entries on lower left triangle (including
-	// diagonal) of the Hessian of h
-	nnz_h_lag = 10;
+	// Number of non-zero entries on lower left triangle (including
+	// diagonal) of the Hessian of h.
+	// Our Hessian does only have diagonal entries.
+	nnz_h_lag = _numVariables;
 
 	// use the C style indexing (0-based)
 	index_style = TNLP::C_STYLE;
@@ -93,9 +120,17 @@ bool IpOpt::get_bounds_info(
 		x_u[i] = 1.0;
 	}
 
-	// TODO: set constraint bounds
+	// set constraint bounds
 	for (int j = 0; j < _numConstraints; j++)
-		g_l[j] = g_u[j] = 0.0;
+		if (_constraints[j].relation == 0)
+			g_l[j] = g_u[j] = _constraints[j].value;
+		else if (_constraints[j].relation == -1) {
+			g_l[j] = -std::numeric_limits<double>::max();
+			g_u[j] = _constraints[j].value;
+		} else if (_constraints[j].relation == 1) {
+			g_l[j] = _constraints[j].value;
+			g_u[j] = std::numeric_limits<double>::max();
+		}
 
 	return true;
 }
@@ -120,30 +155,49 @@ bool IpOpt::get_starting_point(
 // returns the value of the objective function
 bool IpOpt::eval_f(int n, const double* x, bool new_x, double& obj_value) {
 
-	// TODO: compute objective value
-	obj_value = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+	for (int i = 0; i < _numVariables; i++)
+		obj_value +=
+				// linear part
+				_theta[i]*x[i]
+				// entropy part
+				-x[i]*log(x[i])
+				-(1.0-x[i])*log(1.0-x[i]);
 
 	return true;
 }
 
-// return the gradient of the objective function grad_{x} f(x)
-bool IpOpt::eval_grad_f(int n, const double* x, bool new_x, double* grad_f) {
+// return the gradient of the objective function
+bool IpOpt::eval_grad_f(int n, const double* x, bool new_x, double* grad) {
 
-	// TODO: compute gradient of objective function
-	grad_f[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
-	grad_f[1] = x[0] * x[3];
-	grad_f[2] = x[0] * x[3] + 1;
-	grad_f[3] = x[0] * (x[0] + x[1] + x[2]);
+	for (int i = 0; i < _numVariables; i++)
+		grad[i] =
+				_theta[i] - log(x[i]) + log(1.0-x[i]);
 
 	return true;
 }
 
-// return the value of the constraints: g(x)
-bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* g) {
-	// TODO: compute the constraint values
+// return the value of the constraints Ax
+bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* values) {
 
-	g[0] = x[0] * x[1] * x[2] * x[3];
-	g[1] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3];
+
+	int next = 0;
+	for (int j = 0; j < _numConstraints; j++) {
+
+		std::vector<int>::iterator    var  = _constraints[j].vars.begin();
+		std::vector<double>::iterator coef = _constraints[j].coefs.begin();
+
+		double value = 0.0;
+		while (var != _constraints[j].vars.end()) {
+
+			value += (*coef)*x[*var];
+
+			++var;
+			++coef;
+		}
+
+		values[next] = value;
+		++next;
+	}
 
 	return true;
 }
@@ -154,41 +208,28 @@ bool IpOpt::eval_jac_g(
 		int m, int nele_jac, int* iRow, int *jCol,
 		double* values) {
 
-	// TODO: compute the Jacobian of g
-
 	if (values == NULL) {
-		// return the structure of the jacobian
+		// return the structure of A
 
-		// this particular jacobian is dense
-		iRow[0] = 0;
-		jCol[0] = 0;
-		iRow[1] = 0;
-		jCol[1] = 1;
-		iRow[2] = 0;
-		jCol[2] = 2;
-		iRow[3] = 0;
-		jCol[3] = 3;
-		iRow[4] = 1;
-		jCol[4] = 0;
-		iRow[5] = 1;
-		jCol[5] = 1;
-		iRow[6] = 1;
-		jCol[6] = 2;
-		iRow[7] = 1;
-		jCol[7] = 3;
+		int next = 0;
+		for (int j = 0; j < _numConstraints; j++)
+			for (std::vector<int>::iterator var = _constraints[j].vars.begin();
+			     var != _constraints[j].vars.end(); ++var) {
+				iRow[next] = j;
+				jCol[next] = *var;
+				++next;
+			}
 	}
 	else {
-		// return the values of the jacobian of the constraints
 
-		values[0] = x[1]*x[2]*x[3]; // 0,0
-		values[1] = x[0]*x[2]*x[3]; // 0,1
-		values[2] = x[0]*x[1]*x[3]; // 0,2
-		values[3] = x[0]*x[1]*x[2]; // 0,3
-
-		values[4] = 2*x[0]; // 1,0
-		values[5] = 2*x[1]; // 1,1
-		values[6] = 2*x[2]; // 1,2
-		values[7] = 2*x[3]; // 1,3
+		// return the values of A
+		int next = 0;
+		for (int j = 0; j < _numConstraints; j++)
+			for (std::vector<double>::iterator coef = _constraints[j].coefs.begin();
+			     coef != _constraints[j].coefs.end(); ++coef) {
+				values[next] = *coef;
+				++next;
+			}
 	}
 
 	return true;
@@ -202,59 +243,22 @@ bool IpOpt::eval_h(
 		int* jCol, double* values) {
 
 	if (values == NULL) {
-		// return the structure. This is a symmetric matrix, fill the lower left
+		// Return the structure. This is a symmetric matrix, fill the lower left
 		// triangle only.
 
-		// the hessian for this problem is actually dense
-		int idx=0;
-		for (int row = 0; row < 4; row++) {
-			for (int col = 0; col <= row; col++) {
-				iRow[idx] = row;
-				jCol[idx] = col;
-				idx++;
-			}
+		// Only diagonal entries
+		for (int i = 0; i < _numVariables; i++) {
+			iRow[i] = i;
+			jCol[i] = i;
 		}
+	} else {
+		// Return the values. This is a symmetric matrix, fill the lower left
+		// triangle only.
 
-		assert(idx == nele_hess);
-	}
-	else {
-		// return the values. This is a symmetric matrix, fill the lower left
-		// triangle only
-
-		// fill the objective portion
-		values[0] = obj_factor * (2*x[3]); // 0,0
-
-		values[1] = obj_factor * (x[3]);	 // 1,0
-		values[2] = 0.;										// 1,1
-
-		values[3] = obj_factor * (x[3]);	 // 2,0
-		values[4] = 0.;										// 2,1
-		values[5] = 0.;										// 2,2
-
-		values[6] = obj_factor * (2*x[0] + x[1] + x[2]); // 3,0
-		values[7] = obj_factor * (x[0]);								 // 3,1
-		values[8] = obj_factor * (x[0]);								 // 3,2
-		values[9] = 0.;																	// 3,3
-
-
-		// add the portion for the first constraint
-		values[1] += lambda[0] * (x[2] * x[3]); // 1,0
-
-		values[3] += lambda[0] * (x[1] * x[3]); // 2,0
-		values[4] += lambda[0] * (x[0] * x[3]); // 2,1
-
-		values[6] += lambda[0] * (x[1] * x[2]); // 3,0
-		values[7] += lambda[0] * (x[0] * x[2]); // 3,1
-		values[8] += lambda[0] * (x[0] * x[1]); // 3,2
-
-		// add the portion for the second constraint
-		values[0] += lambda[1] * 2; // 0,0
-
-		values[2] += lambda[1] * 2; // 1,1
-
-		values[5] += lambda[1] * 2; // 2,2
-
-		values[9] += lambda[1] * 2; // 3,3
+		// Only diagonal entries
+		for (int i = 0; i < _numVariables; i++) {
+			values[i] = -1.0/x[i] - 1.0/(1.0-x[i]);
+		}
 	}
 
 	return true;
@@ -268,5 +272,10 @@ void IpOpt::finalize_solution(
 		const IpoptData* ip_data,
 		IpoptCalculatedQuantities* ip_cq) {
 
-	// TODO: store solution x in _marginals
+	// store solution x in _marginals
+
+	for (int i = 0; i < _numVariables; i++) {
+		_marginals[i][0] = 1.0 - x[i];
+		_marginals[i][1] = x[i];
+	}
 }

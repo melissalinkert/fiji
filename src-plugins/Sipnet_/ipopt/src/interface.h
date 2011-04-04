@@ -7,6 +7,14 @@ using namespace Ipopt;
 
 class IpOpt : public TNLP {
 
+	struct Constraint {
+
+		std::vector<int>    vars;
+		std::vector<double> coefs;
+		int                 relation;
+		double              value;
+	};
+
 public:
 
 	IpOpt(size_t numNodes, size_t numConstraints);
@@ -20,7 +28,7 @@ public:
 	void setFactor(int numNodes, size_t* nodes, double* values);
 
 	void setLinearConstraint(int numNodes, size_t* nodes, double* coefficients,
-	                         double lowerBound, double upperBound);
+	                         int relation, double value);
 
 	void inferMarginals(int numThreads);
 
@@ -87,9 +95,15 @@ public:
 			IpoptCalculatedQuantities* ip_cq);
 private:
 
+	std::vector<double>               _theta;
 	std::vector<std::vector<double> > _marginals;
+	std::vector<Constraint>           _constraints;
 
 	int _numVariables;
 	int _numConstraints;
+	int _nextConstraint;
 
+	int      _numEntriesA;
+
+	double _constTerm;
 };
