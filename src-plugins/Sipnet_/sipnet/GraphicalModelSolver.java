@@ -2,6 +2,8 @@ package sipnet;
 
 import java.util.List;
 
+import ij.IJ;
+
 import opengm.OpenGM;
 
 /**
@@ -10,6 +12,10 @@ import opengm.OpenGM;
  * either zero or infinity.
  */
 public class GraphicalModelSolver implements LinearProgramSolver {
+
+	static {
+		System.loadLibrary("jopengm");
+	}
 
 	final private OpenGM opengm;
 
@@ -22,6 +28,8 @@ public class GraphicalModelSolver implements LinearProgramSolver {
 	                          List<Double>  coefficients,
 	                          int relation,
 	                          double b) {
+
+		IJ.log("adding constraint of order " + variableNums.size());
 
 		long[]  varNums = new long[variableNums.size()];
 		double[] values = new double[(int)Math.pow(2, variableNums.size())];
@@ -51,7 +59,7 @@ public class GraphicalModelSolver implements LinearProgramSolver {
 				values[c] = Double.NEGATIVE_INFINITY;
 
 			int num1s = 0;
-			for (int i = config.length-1; i <= 0; i--)
+			for (int i = config.length-1; i >= 0; i--)
 				if (config[i] == 1) {
 					num1s++;
 					config[i] = 0;
@@ -66,6 +74,8 @@ public class GraphicalModelSolver implements LinearProgramSolver {
 		}
 
 		opengm.setFactor(varNums.length, varNums, values);
+
+		IJ.log("done");
 	}
 
 	public void setObjective(List<Integer> variableNums,

@@ -10,14 +10,15 @@ public class Sipnet {
 	public Sipnet(
 			List<Vector<Candidate>> sliceCandidates,
 			String                  parameterFilename,
-			AssignmentModel         assignmentModel) {
+			AssignmentModel         assignmentModel,
+			boolean                 marginalize) {
 
 		sequenceSearch =
 				new SequenceSearch(
 						sliceCandidates,
 						parameterFilename,
 						assignmentModel,
-						false);
+						marginalize);
 	}
 
 	public Sequence bestSearch() {

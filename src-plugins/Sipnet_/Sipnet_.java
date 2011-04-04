@@ -76,6 +76,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private double[] endParameters = null;
 	private double[] stepParameters = null;
 
+	// don't perform MAP inference, take max marginals instead
+	private boolean marginalize = false;
 	// don't perform inference, visualise only
 	private boolean visualisationOnly    = false;
 	private boolean compareToGroundtruth = true;
@@ -220,7 +222,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		sipnet   = new Sipnet(
 				selectedSliceCandidates,
 				"./sequence_search.conf",
-				assignmentModel);
+				assignmentModel,
+				marginalize);
 
 		Visualiser visualiser = new Visualiser(assignmentModel);
 
@@ -280,7 +283,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				sipnet = new Sipnet(
 						selectedSliceCandidates,
 						"./sequence_search.conf",
-						assignmentModel);
+						assignmentModel,
+						marginalize);
 
 				IJ.log("searching for best sequence with parameters = " + Arrays.toString(parameters));
 				long time = System.currentTimeMillis();
@@ -356,6 +360,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("min diversity:", minDiversity, 2);
 		gd.addNumericField("first slice:", 1, 0);
 		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
+		gd.addCheckbox("maximum marginals for inference", marginalize);
 		gd.addCheckbox("no inference - only visualisation", visualisationOnly);
 		gd.addCheckbox("compare to ground-truth", compareToGroundtruth);
 		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
@@ -374,6 +379,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		firstSlice = (int)gd.getNextNumber();
 		lastSlice  = (int)gd.getNextNumber();
 
+		marginalize          = gd.getNextBoolean();
 		visualisationOnly    = gd.getNextBoolean();
 		compareToGroundtruth = gd.getNextBoolean();
 		String groundtruthName = gd.getNextChoice();
