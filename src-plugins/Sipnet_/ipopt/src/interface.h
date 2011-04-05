@@ -95,6 +95,9 @@ public:
 			IpoptCalculatedQuantities* ip_cq);
 private:
 
+	IpOpt(const IpOpt& other);
+	IpOpt& operator=(const IpOpt& other);
+
 	std::vector<double>               _theta;
 	std::vector<std::vector<double> > _marginals;
 	std::vector<Constraint>           _constraints;

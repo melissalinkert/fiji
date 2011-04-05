@@ -7,7 +7,7 @@ using namespace Ipopt;
 
 IpOpt::IpOpt(int numNodes, int numConstraints) :
 	_theta(numNodes),
-	_marginals(numNodes),
+	_marginals(numNodes, std::vector<double>(2)),
 	_numVariables(numNodes),
 	_numConstraints(numConstraints),
 	_nextConstraint(0),
@@ -64,31 +64,46 @@ IpOpt::setLinearConstraint(
 void
 IpOpt::inferMarginals(int numThreads) {
 
-	SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+	{
+		SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
 
-	app->Options()->SetStringValue("linear_solver", "mumps");
-	app->Options()->SetIntegerValue("mumps_mem_percent", 5);
+		app->Options()->SetStringValue("linear_solver", "mumps");
+		app->Options()->SetIntegerValue("mumps_mem_percent", 5);
+		//app->Options()->SetIntegerValue("max_iter", 5);
 
-	ApplicationReturnStatus status;
-	status = app->Initialize();
-	if (status != Solve_Succeeded) {
-		std::cout << "[IpOpt] Error during initialization!" << std::endl;
-		return;
+		ApplicationReturnStatus status;
+		status = app->Initialize();
+		if (status != Solve_Succeeded) {
+			std::cout << "[IpOpt] Error during initialization!" << std::endl;
+			return;
+		}
+
+		std::cout << "[IpOpt] solving non-linear constrained optimization problem..." << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+
+		status = app->OptimizeTNLP(this);
+
+		if (status == Solve_Succeeded) {
+			std::cout << "[IpOpt] done." << std::endl;
+		}
+		else {
+			std::cout << "[IpOpt] an error occurred" << std::endl;
+		}
+
+		std::cout << "[IpOpt] destroying ipopt object..." << std::endl;
 	}
 
-	std::cout << "[IpOpt] solving non-linear constrained optimization problem..." << std::endl;
-	status = app->OptimizeTNLP(this);
-
-	if (status == Solve_Succeeded) {
-		std::cout << "[IpOpt] done." << std::endl;
-	}
-	else {
-		std::cout << "[IpOpt] an error occurred" << std::endl;
-	}
+	std::cout << "[IpOpt] Done." << std::endl;
 }
 
 int
 IpOpt::getState(int node) {
+
+	if (node >= _numVariables) {
+		std::cout << "[IpOpt] getState: illegal variable number " << node << "!" << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+		return 0;
+	}
 
 	if (_marginals[node][0] > _marginals[node][1])
 		return 0;
@@ -97,6 +112,12 @@ IpOpt::getState(int node) {
 
 double
 IpOpt::getMarginal(int node, int state) {
+
+	if (node >= _numVariables) {
+		std::cout << "[IpOpt] getMarginal: illegal variable number " << node << "!" << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+		return 0.0;
+	}
 
 	return _marginals[node][state];
 }
@@ -162,12 +183,8 @@ bool IpOpt::get_starting_point(
 		int m, bool init_lambda,
 		double* lambda) {
 
-	// TODO: find a feasible starting point
-
-	x[0] = 1.0;
-	x[1] = 5.0;
-	x[2] = 5.0;
-	x[3] = 1.0;
+	for (int i = 0; i < _numVariables; i++)
+		x[i] = 0.0;
 
 	return true;
 }
@@ -294,8 +311,12 @@ void IpOpt::finalize_solution(
 
 	// store solution x in _marginals
 
+	std::cout << "[IpOpt] reading back marginals..." << std::endl;
+
 	for (int i = 0; i < _numVariables; i++) {
 		_marginals[i][0] = 1.0 - x[i];
 		_marginals[i][1] = x[i];
 	}
+
+	std::cout << "[IpOpt] Done." << std::endl;
 }
