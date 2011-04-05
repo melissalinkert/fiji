@@ -17,24 +17,24 @@ class IpOpt : public TNLP {
 
 public:
 
-	IpOpt(size_t numNodes, size_t numConstraints);
+	IpOpt(int numNodes, int numConstraints);
 
-	void setSingleSiteFactor(size_t node, double value0, double value1);
+	void setSingleSiteFactor(int node, double value0, double value1);
 
-	void setEdgeFactor(size_t node1, size_t node2,
+	void setEdgeFactor(int node1, int node2,
 	                   double value00, double value01,
 	                   double value10, double value11);
 
-	void setFactor(int numNodes, size_t* nodes, double* values);
+	void setFactor(int numNodes, int* nodes, double* values);
 
-	void setLinearConstraint(int numNodes, size_t* nodes, double* coefficients,
+	void setLinearConstraint(int numNodes, int* nodes, double* coefficients,
 	                         int relation, double value);
 
 	void inferMarginals(int numThreads);
 
-	int getState(size_t node);
+	int getState(int node);
 
-	double getMarginal(size_t node, int state);
+	double getMarginal(int node, int state);
 
 	/////////////////////////////
 	// IpOpt interface methods //

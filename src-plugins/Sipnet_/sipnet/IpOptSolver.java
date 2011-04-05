@@ -28,7 +28,7 @@ public class IpOptSolver implements LinearProgramSolver {
 	                          int relation,
 	                          double b) {
 
-		long[]   vars  = new long[variableNums.size()];
+		int[]    vars  = new int[variableNums.size()];
 		double[] coefs = new double[variableNums.size()];
 
 		for (int i = 0; i < variableNums.size(); i++) {

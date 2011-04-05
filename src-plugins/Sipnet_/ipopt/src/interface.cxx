@@ -5,7 +5,7 @@
 
 using namespace Ipopt;
 
-IpOpt::IpOpt(size_t numNodes, size_t numConstraints) :
+IpOpt::IpOpt(int numNodes, int numConstraints) :
 	_theta(numNodes),
 	_marginals(numNodes),
 	_numVariables(numNodes),
@@ -18,7 +18,7 @@ IpOpt::IpOpt(size_t numNodes, size_t numConstraints) :
 }
 
 void
-IpOpt::setSingleSiteFactor(size_t node, double value0, double value1) {
+IpOpt::setSingleSiteFactor(int node, double value0, double value1) {
 
 	double min = std::min(value0, value1);
 
@@ -29,7 +29,7 @@ IpOpt::setSingleSiteFactor(size_t node, double value0, double value1) {
 
 void
 IpOpt::setEdgeFactor(
-		size_t node1, size_t node2,
+		int node1, int node2,
 		double value00, double value01,
 		double value10, double value11) {
 
@@ -37,14 +37,14 @@ IpOpt::setEdgeFactor(
 }
 
 void
-IpOpt::setFactor(int numNodes, size_t* nodes, double* values) {
+IpOpt::setFactor(int numNodes, int* nodes, double* values) {
 
 	throw "[IpOpt] factors of degree > 1 are currently not supported";
 }
 
 void
 IpOpt::setLinearConstraint(
-		int numNodes, size_t* nodes, double* coefficients,
+		int numNodes, int* nodes, double* coefficients,
 		int relation, double value) {
 
 	std::vector<int>    vars(numNodes);
@@ -88,7 +88,7 @@ IpOpt::inferMarginals(int numThreads) {
 }
 
 int
-IpOpt::getState(size_t node) {
+IpOpt::getState(int node) {
 
 	if (_marginals[node][0] > _marginals[node][1])
 		return 0;
@@ -96,7 +96,7 @@ IpOpt::getState(size_t node) {
 }
 
 double
-IpOpt::getMarginal(size_t node, int state) {
+IpOpt::getMarginal(int node, int state) {
 
 	return _marginals[node][state];
 }
