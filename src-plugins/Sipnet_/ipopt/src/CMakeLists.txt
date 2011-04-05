@@ -6,6 +6,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(SWIG REQUIRED)
 find_package(JNI REQUIRED)
 find_package(IPOPT REQUIRED)
+find_package(CoinMumps REQUIRED)
+
+set(SOLVER_LIBS ${COINMUMPS_LIBRARY})
 
 # SWIG interface creation
 add_custom_command(OUTPUT
@@ -27,4 +30,4 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${IPOPT_INCLUDE_DIR} ${JNI_INCLU
 
 # target
 add_library(jipopt SHARED ${wrapper_lib_src})
-target_link_libraries(jipopt ${IPOPT_LIBRARY})
+target_link_libraries(jipopt ${IPOPT_LIBRARY} ${SOLVER_LIBS} blas lapack dl pthread)

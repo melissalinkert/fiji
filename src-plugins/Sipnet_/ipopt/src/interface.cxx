@@ -64,7 +64,27 @@ IpOpt::setLinearConstraint(
 void
 IpOpt::inferMarginals(int numThreads) {
 
-	// perform non-linear convex optimization
+	SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+
+	app->Options()->SetStringValue("linear_solver", "mumps");
+	app->Options()->SetIntegerValue("mumps_mem_percent", 5);
+
+	ApplicationReturnStatus status;
+	status = app->Initialize();
+	if (status != Solve_Succeeded) {
+		std::cout << "[IpOpt] Error during initialization!" << std::endl;
+		return;
+	}
+
+	std::cout << "[IpOpt] solving non-linear constrained optimization problem..." << std::endl;
+	status = app->OptimizeTNLP(this);
+
+	if (status == Solve_Succeeded) {
+		std::cout << "[IpOpt] done." << std::endl;
+	}
+	else {
+		std::cout << "[IpOpt] an error occurred" << std::endl;
+	}
 }
 
 int

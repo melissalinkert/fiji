@@ -1,5 +1,6 @@
 find_path(IPOPT_INCLUDE_DIR IpoptConfig.h PATH_SUFFIXES coin)
 
+# ipopt
 set(IPOPT_NAMES ${IPOPT_NAMES} ipopt libipopt)
 find_library(IPOPT_LIBRARY NAMES ${IPOPT_NAMES} )
 
