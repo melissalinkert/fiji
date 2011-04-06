@@ -67,8 +67,8 @@ IpOpt::inferMarginals(int numThreads) {
 	{
 		SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
 
-		app->Options()->SetStringValue("linear_solver", "mumps");
-		app->Options()->SetIntegerValue("mumps_mem_percent", 5);
+		//app->Options()->SetStringValue("linear_solver", "ma27");
+		//app->Options()->SetIntegerValue("mumps_mem_percent", 5);
 		//app->Options()->SetIntegerValue("max_iter", 5);
 
 		ApplicationReturnStatus status;
