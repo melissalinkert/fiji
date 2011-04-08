@@ -2,13 +2,12 @@ package sipnet;
 
 import java.util.List;
 
-import ij.IJ;
-
 import ipopt.IpOpt;
 
 /**
  * Computes marginal probabilities for models that can be expessed as linear
- * programs.
+ * programs. If another solver is given on contruction, it is used to infer the
+ * initial state of the marginal probability search.
  */
 public class IpOptSolver implements LinearProgramSolver {
 
@@ -16,11 +15,23 @@ public class IpOptSolver implements LinearProgramSolver {
 		System.loadLibrary("jipopt");
 	}
 
+	final int numVariables;
+
 	final private IpOpt ipopt;
+
+	// optional, if not null this solver is used for initialisation
+	final private LinearProgramSolver initSolver;
 
 	public IpOptSolver(int numVariables, int numConstraints) {
 
-		ipopt = new IpOpt(numVariables, numConstraints);
+		this(numVariables, numConstraints, null);
+	}
+
+	public IpOptSolver(int numVariables, int numConstraints, LinearProgramSolver initSolver) {
+
+		this.numVariables = numVariables;
+		this.ipopt        = new IpOpt(numVariables, numConstraints);
+		this.initSolver   = initSolver;
 	}
 
 	public void addConstraint(List<Integer> variableNums,
@@ -40,6 +51,9 @@ public class IpOptSolver implements LinearProgramSolver {
 				variableNums.size(),
 				vars, coefs,
 				relation, b);
+
+		if (initSolver != null)
+			initSolver.addConstraint(variableNums, coefficients, relation, b);
 	}
 
 	public void setObjective(List<Integer> variableNums,
@@ -50,9 +64,23 @@ public class IpOptSolver implements LinearProgramSolver {
 			ipopt.setSingleSiteFactor(
 					variableNums.get(i),
 					0, coefficients.get(i));
+
+		if (initSolver != null)
+			initSolver.setObjective(variableNums, coefficients);
 	}
 
 	public int solve(int numThreads) {
+
+		double[] initialState = new double[numVariables];
+
+		if (initSolver != null) {
+
+			initSolver.solve(numThreads);
+			for (int i = 0; i < numVariables; i++)
+				initialState[i] = initSolver.getValue(i);
+		}
+
+		ipopt.setInitialState(initialState);
 
 		ipopt.inferMarginals(numThreads);
 		return 0;

@@ -30,6 +30,8 @@ public:
 	void setLinearConstraint(int numNodes, int* nodes, double* coefficients,
 	                         int relation, double value);
 
+	void setInitialState(double* values);
+
 	void inferMarginals(int numThreads);
 
 	int getState(int node);
@@ -99,6 +101,7 @@ private:
 	IpOpt& operator=(const IpOpt& other);
 
 	std::vector<double>               _theta;
+	std::vector<double>               _initialState;
 	std::vector<std::vector<double> > _marginals;
 	std::vector<Constraint>           _constraints;
 
@@ -106,7 +109,9 @@ private:
 	int _numConstraints;
 	int _nextConstraint;
 
-	int      _numEntriesA;
+	int    _numEntriesA;
 
 	double _constTerm;
+
+	SmartPtr<TNLP> _this;
 };

@@ -22,6 +22,8 @@ public:
                              double coefficients[],
                              int relation, double b);
 
+    void setInitialState(double initialState[]);
+
     void inferMarginals(int numThreads);
 
     int getState(int node);

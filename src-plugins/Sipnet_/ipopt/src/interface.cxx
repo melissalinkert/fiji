@@ -7,12 +7,14 @@ using namespace Ipopt;
 
 IpOpt::IpOpt(int numNodes, int numConstraints) :
 	_theta(numNodes),
+	_initialState(numNodes),
 	_marginals(numNodes, std::vector<double>(2)),
 	_numVariables(numNodes),
 	_numConstraints(numConstraints),
 	_nextConstraint(0),
 	_numEntriesA(0),
-	_constTerm(0.0) {
+	_constTerm(0.0),
+	_this(this) {
 
 	// initialize ipopt solver
 }
@@ -62,14 +64,25 @@ IpOpt::setLinearConstraint(
 }
 
 void
+IpOpt::setInitialState(double* initialState) {
+
+	for (int i = 0; i < _numVariables; i++)
+		_initialState[i] = initialState[i];
+}
+
+void
 IpOpt::inferMarginals(int numThreads) {
 
 	{
 		SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
 
-		//app->Options()->SetStringValue("linear_solver", "ma27");
-		//app->Options()->SetIntegerValue("mumps_mem_percent", 5);
-		//app->Options()->SetIntegerValue("max_iter", 5);
+		// we want to maximize
+		app->Options()->SetNumericValue("obj_scaling_factor", -1.0);
+		app->Options()->SetStringValue("linear_solver", "ma57");
+		app->Options()->SetIntegerValue("max_iter", 100000);
+
+		// check correctness of derivatives numerically
+		app->Options()->SetStringValue("derivative_test", "second-order");
 
 		ApplicationReturnStatus status;
 		status = app->Initialize();
@@ -81,7 +94,7 @@ IpOpt::inferMarginals(int numThreads) {
 		std::cout << "[IpOpt] solving non-linear constrained optimization problem..." << std::endl;
 		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
 
-		status = app->OptimizeTNLP(this);
+		status = app->OptimizeTNLP(_this);
 
 		if (status == Solve_Succeeded) {
 			std::cout << "[IpOpt] done." << std::endl;
@@ -184,7 +197,7 @@ bool IpOpt::get_starting_point(
 		double* lambda) {
 
 	for (int i = 0; i < _numVariables; i++)
-		x[i] = 0.0;
+		x[i] = _initialState[i];
 
 	return true;
 }
@@ -314,6 +327,7 @@ void IpOpt::finalize_solution(
 	std::cout << "[IpOpt] reading back marginals..." << std::endl;
 
 	for (int i = 0; i < _numVariables; i++) {
+		std::cout << "x_" << i << ": " << x[i] << std::endl;
 		_marginals[i][0] = 1.0 - x[i];
 		_marginals[i][1] = x[i];
 	}
