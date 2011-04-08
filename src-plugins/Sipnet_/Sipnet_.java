@@ -362,7 +362,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
 		gd.addCheckbox("maximum marginals for inference", marginalize);
 		gd.addCheckbox("no inference - only visualisation", visualisationOnly);
-		gd.addCheckbox("compare to ground-truth", compareToGroundtruth);
+		gd.addCheckbox("compare to ground-truth", (windowIds.length > 1));
 		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
 		gd.addChoice("use for visualisation",  windowNames, windowNames[0]);
 
