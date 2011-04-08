@@ -7,6 +7,7 @@ find_package(SWIG REQUIRED)
 find_package(JNI REQUIRED)
 find_package(IPOPT REQUIRED)
 find_package(CoinHsl REQUIRED)
+find_package(CoinMetis REQUIRED)
 
 # SWIG interface creation
 add_custom_command(OUTPUT
@@ -28,4 +29,4 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${IPOPT_INCLUDE_DIR} ${JNI_INCLU
 
 # target
 add_library(jipopt SHARED ${wrapper_lib_src})
-target_link_libraries(jipopt ${IPOPT_LIBRARY} ${COINHSL_LIBRARY} blas lapack dl pthread)
+target_link_libraries(jipopt ${IPOPT_LIBRARY} ${COINHSL_LIBRARY} ${COINMETIS_LIBRARY} blas lapack dl pthread)
