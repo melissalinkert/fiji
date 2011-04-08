@@ -82,7 +82,7 @@ IpOpt::inferMarginals(int numThreads) {
 		app->Options()->SetIntegerValue("max_iter", 100000);
 
 		// check correctness of derivatives numerically
-		app->Options()->SetStringValue("derivative_test", "second-order");
+		//app->Options()->SetStringValue("derivative_test", "second-order");
 
 		ApplicationReturnStatus status;
 		status = app->Initialize();
@@ -205,13 +205,16 @@ bool IpOpt::get_starting_point(
 // returns the value of the objective function
 bool IpOpt::eval_f(int n, const double* x, bool new_x, double& obj_value) {
 
-	for (int i = 0; i < _numVariables; i++)
+	obj_value = 0;
+	for (int i = 0; i < _numVariables; i++) {
 		obj_value +=
 				// linear part
 				_theta[i]*x[i]
+				+
 				// entropy part
-				-x[i]*log(x[i])
-				-(1.0-x[i])*log(1.0-x[i]);
+				(-x[i]*log(x[i])
+				 -(1.0-x[i])*log(1.0-x[i]));
+	}
 
 	return true;
 }
@@ -219,18 +222,18 @@ bool IpOpt::eval_f(int n, const double* x, bool new_x, double& obj_value) {
 // return the gradient of the objective function
 bool IpOpt::eval_grad_f(int n, const double* x, bool new_x, double* grad) {
 
-	for (int i = 0; i < _numVariables; i++)
+	for (int i = 0; i < _numVariables; i++) {
 		grad[i] =
 				_theta[i] - log(x[i]) + log(1.0-x[i]);
+	}
 
 	return true;
 }
 
-// return the value of the constraints Ax
+// return the value of the constraints g(x) = Ax
 bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* values) {
 
 
-	int next = 0;
 	for (int j = 0; j < _numConstraints; j++) {
 
 		std::vector<int>::iterator    var  = _constraints[j].vars.begin();
@@ -245,8 +248,7 @@ bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* values) {
 			++coef;
 		}
 
-		values[next] = value;
-		++next;
+		values[j] = value;
 	}
 
 	return true;
@@ -285,7 +287,7 @@ bool IpOpt::eval_jac_g(
 	return true;
 }
 
-//return the structure or values of the hessian
+//return the structure or values of the Hessian of the Lagrangian equation
 bool IpOpt::eval_h(
 		int n, const double* x, bool new_x,
 		double obj_factor, int m, const double* lambda,
@@ -305,9 +307,12 @@ bool IpOpt::eval_h(
 		// Return the values. This is a symmetric matrix, fill the lower left
 		// triangle only.
 
+		// We have to consider the values for the Hessian of the objective only,
+		// since the Hessian of the Lagrangian functions is zero.
+
 		// Only diagonal entries
 		for (int i = 0; i < _numVariables; i++) {
-			values[i] = -1.0/x[i] - 1.0/(1.0-x[i]);
+			values[i] = obj_factor*(-1.0/x[i] - 1.0/(1.0-x[i]));
 		}
 	}
 
