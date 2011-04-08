@@ -691,7 +691,6 @@ public class SequenceSearch {
 					for (Candidate targetCandidate : sourceCandidate.getMostLikelyCandidates())
 						if (getVariableValue(sourceCandidate, targetCandidate) == 1) {
 							assignment.add(new OneToOneAssignment(sourceCandidate, targetCandidate));
-							System.out.println("" + sourceCandidate.getId() + " ⇒ " + targetCandidate.getId());
 						}
 
 				// each merge
@@ -706,7 +705,6 @@ public class SequenceSearch {
 							if (getVariableValue(mergeNodes.get(candidate).get(neighbor), mergeTarget) == 1) {
 
 								assignment.add(new MergeAssignment(candidate, neighbor, mergeTarget));
-								System.out.println("" + candidate.getId() + ", " + neighbor.getId() + " ⇒ " + mergeTarget.getId());
 
 								// there can only be one merge target
 								break;
@@ -725,7 +723,6 @@ public class SequenceSearch {
 							if (getVariableValue(splitSource, splitNodes.get(candidate).get(neighbor)) == 1) {
 
 								assignment.add(new SplitAssignment(splitSource, candidate, neighbor));
-								System.out.println("" + splitSource.getId() + " ⇒ " + candidate.getId() + ", " + neighbor.getId());
 
 								// there can only be one split target
 								break;
@@ -738,7 +735,6 @@ public class SequenceSearch {
 				for (Candidate sourceCandidate : sliceCandidates.get(s))
 					if (getVariableValue(sourceCandidate, deathNode) == 1) {
 						assignment.add(new OneToOneAssignment(sourceCandidate, deathNode));
-						System.out.println("" + sourceCandidate.getId() + " ⇒ D");
 					}
 
 			// not the last but one slice
@@ -747,7 +743,6 @@ public class SequenceSearch {
 				for (Candidate targetCandidate : sliceCandidates.get(s+1))
 					if (getVariableValue(emergeNode, targetCandidate) == 1) {
 						assignment.add(new OneToOneAssignment(emergeNode, targetCandidate));
-						System.out.println("E ⇒ " + targetCandidate.getId());
 					}
 
 			sequence.add(assignment);
