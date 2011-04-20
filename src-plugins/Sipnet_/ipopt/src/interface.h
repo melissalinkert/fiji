@@ -5,38 +5,19 @@
 
 using namespace Ipopt;
 
-class IpOpt : public TNLP {
+struct Constraint {
 
-	struct Constraint {
+	std::vector<int>    vars;
+	std::vector<double> coefs;
+	int                 relation;
+	double              value;
+};
 
-		std::vector<int>    vars;
-		std::vector<double> coefs;
-		int                 relation;
-		double              value;
-	};
+class Problem : public TNLP {
 
 public:
 
-	IpOpt(int numNodes, int numConstraints);
-
-	void setSingleSiteFactor(int node, double value0, double value1);
-
-	void setEdgeFactor(int node1, int node2,
-	                   double value00, double value01,
-	                   double value10, double value11);
-
-	void setFactor(int numNodes, int* nodes, double* values);
-
-	void setLinearConstraint(int numNodes, int* nodes, double* coefficients,
-	                         int relation, double value);
-
-	void setInitialState(double* values);
-
-	void inferMarginals(int numThreads);
-
-	int getState(int node);
-
-	double getMarginal(int node, int state);
+	Problem(int numNodes, int numConstraints);
 
 	/////////////////////////////
 	// IpOpt interface methods //
@@ -95,10 +76,6 @@ public:
 			double obj_value,
 			const IpoptData* ip_data,
 			IpoptCalculatedQuantities* ip_cq);
-private:
-
-	IpOpt(const IpOpt& other);
-	IpOpt& operator=(const IpOpt& other);
 
 	std::vector<double>               _theta;
 	std::vector<double>               _initialState;
@@ -113,5 +90,40 @@ private:
 
 	double _constTerm;
 
-	SmartPtr<TNLP> _this;
+private:
+
+	Problem(const Problem& other);
+	Problem& operator=(const Problem& other);
+
+};
+
+class IpOpt {
+
+public:
+
+	IpOpt(int numNodes, int numConstraints);
+
+	void setSingleSiteFactor(int node, double value0, double value1);
+
+	void setEdgeFactor(int node1, int node2,
+	                   double value00, double value01,
+	                   double value10, double value11);
+
+	void setFactor(int numNodes, int* nodes, double* values);
+
+	void setLinearConstraint(int numNodes, int* nodes, double* coefficients,
+	                         int relation, double value);
+
+	void setInitialState(double* values);
+
+	void inferMarginals(int numThreads);
+
+	int getState(int node);
+
+	double getMarginal(int node, int state);
+
+private:
+
+	Problem*       _problem;
+	SmartPtr<TNLP> _tnlp;
 };

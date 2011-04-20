@@ -6,27 +6,17 @@
 using namespace Ipopt;
 
 IpOpt::IpOpt(int numNodes, int numConstraints) :
-	_theta(numNodes),
-	_initialState(numNodes),
-	_marginals(numNodes, std::vector<double>(2)),
-	_numVariables(numNodes),
-	_numConstraints(numConstraints),
-	_nextConstraint(0),
-	_numEntriesA(0),
-	_constTerm(0.0),
-	_this(this) {
-
-	// initialize ipopt solver
-}
+	_problem(new Problem(numNodes, numConstraints)),
+	_tnlp(_problem) {}
 
 void
 IpOpt::setSingleSiteFactor(int node, double value0, double value1) {
 
 	double min = std::min(value0, value1);
 
-	_theta[node] = (value1 - min) - (value0 - min);
+	_problem->_theta[node] = (value1 - min) - (value0 - min);
 
-	_constTerm += min;
+	_problem->_constTerm += min;
 }
 
 void
@@ -58,16 +48,16 @@ IpOpt::setLinearConstraint(
 	}
 
 	Constraint constraint = {vars, coefs, relation, value};
-	_constraints.push_back(constraint);
+	_problem->_constraints.push_back(constraint);
 
-	_numEntriesA += numNodes;
+	_problem->_numEntriesA += numNodes;
 }
 
 void
 IpOpt::setInitialState(double* initialState) {
 
-	for (int i = 0; i < _numVariables; i++)
-		_initialState[i] = initialState[i];
+	for (int i = 0; i < _problem->_numVariables; i++)
+		_problem->_initialState[i] = initialState[i];
 }
 
 void
@@ -92,9 +82,9 @@ IpOpt::inferMarginals(int numThreads) {
 		}
 
 		std::cout << "[IpOpt] solving non-linear constrained optimization problem..." << std::endl;
-		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _problem->_numVariables << std::endl;
 
-		status = app->OptimizeTNLP(_this);
+		status = app->OptimizeTNLP(_tnlp);
 
 		if (status == Solve_Succeeded) {
 			std::cout << "[IpOpt] done." << std::endl;
@@ -112,13 +102,13 @@ IpOpt::inferMarginals(int numThreads) {
 int
 IpOpt::getState(int node) {
 
-	if (node >= _numVariables) {
+	if (node >= _problem->_numVariables) {
 		std::cout << "[IpOpt] getState: illegal variable number " << node << "!" << std::endl;
-		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _problem->_numVariables << std::endl;
 		return 0;
 	}
 
-	if (_marginals[node][0] > _marginals[node][1])
+	if (_problem->_marginals[node][0] > _problem->_marginals[node][1])
 		return 0;
 	return 1;
 }
@@ -126,13 +116,13 @@ IpOpt::getState(int node) {
 double
 IpOpt::getMarginal(int node, int state) {
 
-	if (node >= _numVariables) {
+	if (node >= _problem->_numVariables) {
 		std::cout << "[IpOpt] getMarginal: illegal variable number " << node << "!" << std::endl;
-		std::cout << "[IpOpt] number of variables is " << _numVariables << std::endl;
+		std::cout << "[IpOpt] number of variables is " << _problem->_numVariables << std::endl;
 		return 0.0;
 	}
 
-	return _marginals[node][state];
+	return _problem->_marginals[node][state];
 }
 
 
@@ -140,9 +130,21 @@ IpOpt::getMarginal(int node, int state) {
 // IpOpt interface methods //
 /////////////////////////////
 
+Problem::Problem(int numNodes, int numConstraints) :
+	_theta(numNodes),
+	_initialState(numNodes),
+	_marginals(numNodes, std::vector<double>(2)),
+	_numVariables(numNodes),
+	_numConstraints(numConstraints),
+	_nextConstraint(0),
+	_numEntriesA(0),
+	_constTerm(0.0) {
+
+	// initialize ipopt solver
+}
 
 // returns the size of the problem
-bool IpOpt::get_nlp_info(
+bool Problem::get_nlp_info(
 		int& n, int& m, int& nnz_jac_g,
 		int& nnz_h_lag, IndexStyleEnum& index_style) {
 
@@ -164,7 +166,7 @@ bool IpOpt::get_nlp_info(
 }
 
 // returns the variable bounds
-bool IpOpt::get_bounds_info(
+bool Problem::get_bounds_info(
 		int n, double* x_l, double* x_u,
 		int m, double* g_l, double* g_u) {
 
@@ -190,7 +192,7 @@ bool IpOpt::get_bounds_info(
 }
 
 // returns the initial point for the problem
-bool IpOpt::get_starting_point(
+bool Problem::get_starting_point(
 		int n, bool init_x, double* x,
 		bool init_z, double* z_L, double* z_U,
 		int m, bool init_lambda,
@@ -203,7 +205,7 @@ bool IpOpt::get_starting_point(
 }
 
 // returns the value of the objective function
-bool IpOpt::eval_f(int n, const double* x, bool new_x, double& obj_value) {
+bool Problem::eval_f(int n, const double* x, bool new_x, double& obj_value) {
 
 	obj_value = 0;
 	for (int i = 0; i < _numVariables; i++) {
@@ -220,7 +222,7 @@ bool IpOpt::eval_f(int n, const double* x, bool new_x, double& obj_value) {
 }
 
 // return the gradient of the objective function
-bool IpOpt::eval_grad_f(int n, const double* x, bool new_x, double* grad) {
+bool Problem::eval_grad_f(int n, const double* x, bool new_x, double* grad) {
 
 	for (int i = 0; i < _numVariables; i++) {
 		grad[i] =
@@ -231,7 +233,7 @@ bool IpOpt::eval_grad_f(int n, const double* x, bool new_x, double* grad) {
 }
 
 // return the value of the constraints g(x) = Ax
-bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* values) {
+bool Problem::eval_g(int n, const double* x, bool new_x, int m, double* values) {
 
 
 	for (int j = 0; j < _numConstraints; j++) {
@@ -255,7 +257,7 @@ bool IpOpt::eval_g(int n, const double* x, bool new_x, int m, double* values) {
 }
 
 // return the structure or values of the jacobian
-bool IpOpt::eval_jac_g(
+bool Problem::eval_jac_g(
 		int n, const double* x, bool new_x,
 		int m, int nele_jac, int* iRow, int *jCol,
 		double* values) {
@@ -288,7 +290,7 @@ bool IpOpt::eval_jac_g(
 }
 
 //return the structure or values of the Hessian of the Lagrangian equation
-bool IpOpt::eval_h(
+bool Problem::eval_h(
 		int n, const double* x, bool new_x,
 		double obj_factor, int m, const double* lambda,
 		bool new_lambda, int nele_hess, int* iRow,
@@ -319,7 +321,7 @@ bool IpOpt::eval_h(
 	return true;
 }
 
-void IpOpt::finalize_solution(
+void Problem::finalize_solution(
 		SolverReturn status,
 		int n, const double* x, const double* z_L, const double* z_U,
 		int m, const double* g, const double* lambda,
