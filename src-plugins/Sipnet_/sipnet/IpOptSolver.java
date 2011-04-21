@@ -69,20 +69,20 @@ public class IpOptSolver implements LinearProgramSolver {
 			initSolver.setObjective(variableNums, coefficients);
 	}
 
-	public int solve(int numThreads) {
+	public int solve(int numIterations) {
 
 		double[] initialState = new double[numVariables];
 
 		if (initSolver != null) {
 
-			initSolver.solve(numThreads);
+			initSolver.solve(2);
 			for (int i = 0; i < numVariables; i++)
 				initialState[i] = initSolver.getValue(i);
 		}
 
 		ipopt.setInitialState(initialState);
 
-		ipopt.inferMarginals(numThreads);
+		ipopt.inferMarginals(numIterations);
 		return 0;
 	}
 

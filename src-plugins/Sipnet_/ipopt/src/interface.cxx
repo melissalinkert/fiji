@@ -61,7 +61,7 @@ IpOpt::setInitialState(double* initialState) {
 }
 
 void
-IpOpt::inferMarginals(int numThreads) {
+IpOpt::inferMarginals(int numIterations) {
 
 	{
 		SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
@@ -69,7 +69,7 @@ IpOpt::inferMarginals(int numThreads) {
 		// we want to maximize
 		app->Options()->SetNumericValue("obj_scaling_factor", -1.0);
 		app->Options()->SetStringValue("linear_solver", "ma57");
-		app->Options()->SetIntegerValue("max_iter", 100000);
+		app->Options()->SetIntegerValue("max_iter", numIterations);
 
 		// check correctness of derivatives numerically
 		//app->Options()->SetStringValue("derivative_test", "second-order");

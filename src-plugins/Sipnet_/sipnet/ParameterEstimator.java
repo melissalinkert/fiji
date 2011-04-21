@@ -62,9 +62,9 @@ public class ParameterEstimator {
 			System.out.println("...getting shape continuation gradient...");
 			gradient[2] = gradientShapeContinuation()    + regularizer(w[2]);
 			System.out.println("...getting position bisection gradient...");
-			gradient[3] = 0;//gradientPositionBisection()    + regularizer(w[3]);
+			gradient[3] = gradientPositionBisection()    + regularizer(w[3]);
 			System.out.println("...getting shape bisection gradient...");
-			gradient[4] = 0;//gradientShapeBisection()       + regularizer(w[4]);
+			gradient[4] = gradientShapeBisection()       + regularizer(w[4]);
 			System.out.println("...getting end gradient...");
 			gradient[5] = 0;//gradientEnd()                  + regularizer(w[5]);
 			System.out.println("done computing gradients.");
@@ -199,7 +199,7 @@ public class ParameterEstimator {
 			result = optimizer.optimize(
 					objective,
 					GoalType.MAXIMIZE,
-					new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+					new double[]{0.0, 1.0, 1.0, 10.0, 10.0, 1000.0});
 			IJ.log("done.");
 
 		} catch (Exception e) {

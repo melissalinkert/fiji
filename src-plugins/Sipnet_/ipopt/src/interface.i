@@ -24,7 +24,7 @@ public:
 
     void setInitialState(double initialState[]);
 
-    void inferMarginals(int numThreads);
+    void inferMarginals(int numIterations);
 
     int getState(int node);
 

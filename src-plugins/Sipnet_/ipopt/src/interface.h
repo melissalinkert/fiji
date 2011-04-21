@@ -116,7 +116,7 @@ public:
 
 	void setInitialState(double* values);
 
-	void inferMarginals(int numThreads);
+	void inferMarginals(int numIterations);
 
 	int getState(int node);
 
