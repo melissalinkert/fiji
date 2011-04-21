@@ -173,6 +173,11 @@ public class ParameterEstimator {
 		this.parameterStdDeviation = parameterStdDeviation;
 	}
 
+	final public AssignmentModel getAssignmentModel() {
+
+		return assignmentModel;
+	}
+
 	final public void estimate() {
 
 		DifferentiableMultivariateRealOptimizer optimizer =

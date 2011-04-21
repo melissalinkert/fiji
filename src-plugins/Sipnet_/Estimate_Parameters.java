@@ -128,7 +128,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 			parameterEstimator.estimate();
 
 			// visualisation
-			//visualiser = new Visualiser(assignmentModel);
+		visualiser = new Visualiser(parameterEstimator.getAssignmentModel());
 			visualiser.drawSequence(msersImp, groundtruth.getSequence(), false, true, true, 0.5);
 		}
 	}
