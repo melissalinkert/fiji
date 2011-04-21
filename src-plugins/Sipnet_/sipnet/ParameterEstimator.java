@@ -534,20 +534,16 @@ public class ParameterEstimator {
 		int s = 0;
 		for (Vector<Candidate> sliceCandidates : msers) {
 
-			// all but last slice
-			if (s < msers.size() - 1)
-				for (Candidate target : sliceCandidates)
+			// all but first and last slice
+			if (s < msers.size() - 1 && s > 0)
+				for (Candidate candidate : sliceCandidates) {
 					sumTermsExpected +=
-							assignmentModel.endTerm(target)*
-							sequenceSearch.marginalConnected(SequenceSearch.emergeNode, target);
-
-			// all but first slice
-			if (s > 0)
-				for (Candidate source : sliceCandidates)
+							assignmentModel.endTerm(candidate)*
+							sequenceSearch.marginalConnected(SequenceSearch.emergeNode, candidate);
 					sumTermsExpected +=
-							assignmentModel.endTerm(source)*
-							sequenceSearch.marginalConnected(source, SequenceSearch.deathNode);
-
+							assignmentModel.endTerm(candidate)*
+							sequenceSearch.marginalConnected(candidate, SequenceSearch.deathNode);
+				}
 			s++;
 		}
 
