@@ -47,23 +47,30 @@ public class ParameterEstimator {
 
 			double[] gradient = new double[6];
 
-			IJ.log("setting assignment model parameters");
+			System.out.println("setting assignment model parameters to " + Arrays.toString(w));
 			assignmentModel.setParameters(w);
-			IJ.log("creating new sequence search");
+			System.out.println("creating new sequence search");
 			sequenceSearch = new SequenceSearch(msers, "./sequence_search_training.conf", assignmentModel, true);
-			IJ.log("infering marginal probabilities...");
+			System.out.println("infering marginal probabilities...");
 			sequenceSearch.getBestAssignmentSequence();
-			IJ.log("done.");
+			System.out.println("done.");
 
-			gradient[0] = gradientData()                 + regularizer(w[0]);
+			System.out.println("...getting data gradient...");
+			gradient[0] = 0;//gradientData()                 + regularizer(w[0]);
+			System.out.println("...getting position continuation gradient...");
 			gradient[1] = gradientPositionContinuation() + regularizer(w[1]);
+			System.out.println("...getting shape continuation gradient...");
 			gradient[2] = gradientShapeContinuation()    + regularizer(w[2]);
-			gradient[3] = gradientPositionBisection()    + regularizer(w[3]);
-			gradient[4] = gradientShapeBisection()       + regularizer(w[4]);
-			gradient[5] = gradientEnd()                  + regularizer(w[5]);
+			System.out.println("...getting position bisection gradient...");
+			gradient[3] = 0;//gradientPositionBisection()    + regularizer(w[3]);
+			System.out.println("...getting shape bisection gradient...");
+			gradient[4] = 0;//gradientShapeBisection()       + regularizer(w[4]);
+			System.out.println("...getting end gradient...");
+			gradient[5] = 0;//gradientEnd()                  + regularizer(w[5]);
+			System.out.println("done computing gradients.");
 
 			try {
-				objective.value(w);
+				System.out.println("objective value: " + objective.value(w));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -133,6 +140,10 @@ public class ParameterEstimator {
 
 			for (Assignment assignment : trainingSequence)
 				sumCosts += assignment.getCosts(assignmentModel);
+
+			// NOTE: This computation is not complete - we are missing the
+			// log(Z(C)) part, which depends on the parameters of the assignment
+			// model as well.
 
 			return -sumCosts;
 		}
