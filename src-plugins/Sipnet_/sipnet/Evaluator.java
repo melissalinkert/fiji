@@ -142,14 +142,14 @@ public class Evaluator {
 			// create all possible pairs
 			PriorityQueue<CandidatePair> pairs =
 					new PriorityQueue<CandidatePair>(
-							groundtruthCandidates.size()*resultCandidates.size(),
+							groundtruthCandidates.size()*resultCandidates.size() + 1,
 							new OverlapComparator());
 			for (Candidate groundtruthCandidate : groundtruthCandidates)
 				for (Candidate resultCandidate : resultCandidates)
 					pairs.add(new CandidatePair(groundtruthCandidate, resultCandidate));
 
 			// overlapping regions correspond
-			while (pairs.peek().overlap > 0) {
+			while (pairs.peek() != null && pairs.peek().overlap > 0) {
 
 				CandidatePair pair = pairs.poll();
 
