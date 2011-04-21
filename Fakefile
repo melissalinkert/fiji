@@ -289,6 +289,8 @@ libs[] <- jars/test-fiji.jar jars/zs.jar jars/VIB-lib.jar jars/Jama-1.0.2.jar \
 
 plugins/Record_Screen.jar <- src-plugins/Record_Screen/ src-plugins/Record_Screen/**/*
 
+plugins/Sipnet_.jar <- src-plugins/Sipnet_/**/*.java
+
 mainClass(jars/Fiji.jar)=fiji.Main
 src-plugins/Fiji/icon.png[cp $PRE $TARGET] <- images/icon.png
 
