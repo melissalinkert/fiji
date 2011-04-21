@@ -334,7 +334,6 @@ void Problem::finalize_solution(
 	std::cout << "[IpOpt] reading back marginals..." << std::endl;
 
 	for (int i = 0; i < _numVariables; i++) {
-		std::cout << "x_" << i << ": " << x[i] << std::endl;
 		_marginals[i][0] = 1.0 - x[i];
 		_marginals[i][1] = x[i];
 	}
