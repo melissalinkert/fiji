@@ -7,7 +7,7 @@ import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 import java.util.List;
 
-class CplexSolver implements LinearProgramSolver {
+public class CplexSolver implements LinearProgramSolver {
 
 	private IloCplex    cplex;
 	private IloNumVar[] vars;
