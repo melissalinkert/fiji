@@ -22,6 +22,9 @@ public class IpOptSolver implements LinearProgramSolver {
 	// optional, if not null this solver is used for initialisation
 	final private LinearProgramSolver initSolver;
 
+	// if the initial state was set manually, don't ask the initSolver
+	boolean initialStateSet = false;
+
 	public IpOptSolver(int numVariables, int numConstraints) {
 
 		this(numVariables, numConstraints, null);
@@ -69,18 +72,33 @@ public class IpOptSolver implements LinearProgramSolver {
 			initSolver.setObjective(variableNums, coefficients);
 	}
 
-	public int solve(int numIterations) {
+	public void setInitialState(List<Double> state) {
 
 		double[] initialState = new double[numVariables];
 
-		if (initSolver != null) {
-
-			initSolver.solve(2);
-			for (int i = 0; i < numVariables; i++)
-				initialState[i] = initSolver.getValue(i);
-		}
+		for (int i = 0; i < numVariables; i++)
+			initialState[i] = state.get(i);
 
 		ipopt.setInitialState(initialState);
+
+		initialStateSet = true;
+	}
+
+	public int solve(int numIterations) {
+
+		if (!initialStateSet) {
+
+			double[] initialState = new double[numVariables];
+
+			if (initSolver != null) {
+
+				initSolver.solve(2);
+				for (int i = 0; i < numVariables; i++)
+					initialState[i] = initSolver.getValue(i);
+			}
+
+			ipopt.setInitialState(initialState);
+		}
 
 		ipopt.inferMarginals(numIterations);
 		return 0;
