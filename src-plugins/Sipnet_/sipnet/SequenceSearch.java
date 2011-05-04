@@ -252,9 +252,9 @@ public class SequenceSearch {
 		IJ.log("setting up problem: " + numVariables + " variables, " + numConstraints + " constraints");
 
 		if (computeMarginals)
-			lpSolver = new IpOptSolver(numVariables, numConstraints, new CplexSolver(numVariables, numConstraints));
+			lpSolver = new IpOptSolver(numVariables, numConstraints, new CplexSolver(numVariables, numConstraints, true));
 		else
-			lpSolver = new CplexSolver(numVariables, numConstraints);
+			lpSolver = new CplexSolver(numVariables, numConstraints, true);
 
 		/*
 		 * INCOMING AND OUTGOING EDGES

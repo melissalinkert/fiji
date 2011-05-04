@@ -1,8 +1,8 @@
 package sipnet;
 
 import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
 import ilog.concert.IloLPMatrix;
+import ilog.concert.IloNumVar;
 
 import ilog.cplex.IloCplex;
 import java.util.List;
@@ -10,13 +10,14 @@ import java.util.List;
 class CplexSolver implements LinearProgramSolver {
 
 	private IloCplex    cplex;
-	private IloIntVar[] vars;
+	private IloNumVar[] vars;
 	private IloLPMatrix matrix;
 
 	private int      numVariables;
 	private double[] values;
+	private boolean  integer;
 
-	public CplexSolver(int numVariables, int numConstraints) {
+	public CplexSolver(int numVariables, int numConstraints, boolean integer) {
 
 		try {
 
@@ -26,9 +27,13 @@ class CplexSolver implements LinearProgramSolver {
 
 			// add binary variables
 
-			vars = cplex.boolVarArray(cplex.columnArray(matrix, numVariables));
+			if (integer)
+				vars = cplex.boolVarArray(cplex.columnArray(matrix, numVariables));
+			else
+				vars = cplex.numVarArray(cplex.columnArray(matrix, numVariables), 0.0, 1.0);
 
 			this.numVariables = numVariables;
+			this.integer      = integer;
 
 		} catch (IloException e) {
 
