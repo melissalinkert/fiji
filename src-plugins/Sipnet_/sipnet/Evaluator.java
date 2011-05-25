@@ -1,11 +1,14 @@
 package sipnet;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
+
+import ij.IJ;
 
 public class Evaluator {
 
@@ -33,7 +36,8 @@ public class Evaluator {
 
 		public Candidate candidate1;
 		public Candidate candidate2;
-		public int overlap;
+		public double difference;
+		public int    overlap;
 
 		private SetDifference setDifference = new SetDifference();
 
@@ -43,6 +47,12 @@ public class Evaluator {
 			this.candidate2 = candidate2;
 			this.overlap    =
 					setDifference.numMatches(
+							candidate1.getPixels(),
+							new int[]{0, 0},
+							candidate2.getPixels(),
+							new int[]{0, 0});
+			this.difference =
+					setDifference.setDifferenceRatio(
 							candidate1.getPixels(),
 							new int[]{0, 0},
 							candidate2.getPixels(),
@@ -68,6 +78,27 @@ public class Evaluator {
 				return 0;
 		}
 	}
+
+	private class DifferenceComparator implements Comparator<CandidatePair> {
+
+		/**
+		 * Sort in ascending order.
+		 */
+		public int compare(CandidatePair pair1, CandidatePair pair2) {
+
+			double m1 = pair1.difference;
+			double m2 = pair2.difference;
+
+			if (m1 < m2)
+				return -1;
+			else if (m1 > m2)
+				return 1;
+			else
+				return 0;
+		}
+	}
+
+	public Evaluator() {}
 
 	public Evaluator(GroundTruth groundtruth, Sequence result) {
 
@@ -139,28 +170,7 @@ public class Evaluator {
 			Set<Candidate> resultCandidates =
 					result.getCandidates(s);
 
-			// create all possible pairs
-			PriorityQueue<CandidatePair> pairs =
-					new PriorityQueue<CandidatePair>(
-							groundtruthCandidates.size()*resultCandidates.size() + 1,
-							new OverlapComparator());
-			for (Candidate groundtruthCandidate : groundtruthCandidates)
-				for (Candidate resultCandidate : resultCandidates)
-					pairs.add(new CandidatePair(groundtruthCandidate, resultCandidate));
-
-			// overlapping regions correspond
-			while (pairs.peek() != null && pairs.peek().overlap > 0) {
-
-				CandidatePair pair = pairs.poll();
-
-				if (correspondences.get(pair.candidate1) == null)
-					correspondences.put(pair.candidate1, new Vector<Candidate>());
-				if (correspondences.get(pair.candidate2) == null)
-					correspondences.put(pair.candidate2, new Vector<Candidate>());
-
-				correspondences.get(pair.candidate1).add(pair.candidate2);
-				correspondences.get(pair.candidate2).add(pair.candidate1);
-			}
+			findCorrespondences(groundtruthCandidates, resultCandidates, correspondences, false, true);
 
 			// remaining regions are additional or missed
 			Set<Candidate> additional = new HashSet<Candidate>();
@@ -219,6 +229,77 @@ public class Evaluator {
 
 			unexplainedResult.get(s).removeAll(unknown);
 			unknownResult.add(unknown);
+		}
+	}
+
+	/**
+	 * Finds corresponding candidates between the two given sets. If
+	 * 'oneToOne' is set, candidates appear in at most one
+	 * correspondence list.
+	 */
+	final public void findCorrespondences(
+			Collection<Candidate> set1,
+			Collection<Candidate> set2,
+			HashMap<Candidate, Vector<Candidate>> correspondences,
+			boolean oneToOne,
+			boolean overlap) {
+
+		// create all possible pairs
+		PriorityQueue<CandidatePair> pairs;
+		
+		if (overlap)
+			pairs =
+				new PriorityQueue<CandidatePair>(
+						set1.size()*set2.size() + 1,
+						new OverlapComparator());
+		else
+			pairs =
+				new PriorityQueue<CandidatePair>(
+						set1.size()*set2.size() + 1,
+						new DifferenceComparator());
+
+		for (Candidate candidate1 : set1)
+			for (Candidate candidate2 : set2)
+				pairs.add(new CandidatePair(candidate1, candidate2));
+
+		// overlapping regions correspond
+A:		while (pairs.peek() != null) {
+
+			CandidatePair pair = pairs.poll();
+
+			// don't accept pairs that don't overlap
+			if (pair.overlap == 0)
+				continue;
+
+			if (oneToOne) {
+				// don't accept correspondences to already found candidates
+				if (correspondences.get(pair.candidate1) != null ||
+				    correspondences.get(pair.candidate2) != null)
+					continue;
+
+				// don't accept correspondences to conflicting candidates of
+				// already found ones, either
+				for (Candidate anchestor : pair.candidate1.getAnchestors())
+					if (correspondences.get(anchestor) != null)
+						continue A;
+				for (Candidate descendant : pair.candidate1.getDescendants())
+					if (correspondences.get(descendant) != null)
+						continue A;
+				for (Candidate anchestor : pair.candidate2.getAnchestors())
+					if (correspondences.get(anchestor) != null)
+						continue A;
+				for (Candidate descendant : pair.candidate2.getDescendants())
+					if (correspondences.get(descendant) != null)
+						continue A;
+			}
+
+			if (correspondences.get(pair.candidate1) == null)
+				correspondences.put(pair.candidate1, new Vector<Candidate>());
+			if (correspondences.get(pair.candidate2) == null)
+				correspondences.put(pair.candidate2, new Vector<Candidate>());
+
+			correspondences.get(pair.candidate1).add(pair.candidate2);
+			correspondences.get(pair.candidate2).add(pair.candidate1);
 		}
 	}
 
