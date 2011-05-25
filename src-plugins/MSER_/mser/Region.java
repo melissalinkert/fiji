@@ -77,6 +77,31 @@ public class Region<R extends Region<R>> implements Externalizable {
 		return this.parent;
 	}
 
+	public Vector<R> getDescendants() {
+
+		Vector<R> descendants = new Vector<R>();
+
+		descendants.addAll(children);
+
+		for (R child : children)
+			descendants.addAll(child.getDescendants());
+
+		return descendants;
+	}
+
+	public Vector<R> getAnchestors() {
+
+		Vector<R> anchestors = new Vector<R>();
+
+		R parent = getParent();
+		while (parent != null) {
+			anchestors.add(parent);
+			parent = parent.getParent();
+		}
+
+		return anchestors;
+	}
+
 	public boolean isAncestorOf(R other) {
 
 		while (other.getParent() != null)
