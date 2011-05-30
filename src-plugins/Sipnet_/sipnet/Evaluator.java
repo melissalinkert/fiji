@@ -416,11 +416,15 @@ A:		while (pairs.peek() != null) {
 			remainingResultPairs.add(new HashSet<Candidate[]>(resultPairs.get(s)));
 
 			// remove all result pairs, for which no groundtruth is available
-			for (Candidate[] resultPair : resultPairs.get(s))
-				if (unknownResult.get(s).contains(resultPair[0]) ||
-					unknownResult.get(s).contains(resultPair[1]))
-					remainingResultPairs.remove(resultPair);
+			for (Candidate[] resultPair : resultPairs.get(s)) {
 
+				if (unknownResult.get(s).contains(resultPair[0]) ||
+					unknownResult.get(s+1).contains(resultPair[1]))
+					if (!remainingResultPairs.get(s).remove(resultPair))
+						IJ.log(
+								"couldn't remove pair " + resultPair[0].getId() +
+								" -> " + resultPair[1].getId() + " - it didn't exist");
+			}
 
 			// for each ground-truth pair, remove all result pairs that are
 			// explained by that
