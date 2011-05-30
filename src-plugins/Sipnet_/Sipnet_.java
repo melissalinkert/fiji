@@ -308,6 +308,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						evaluator.getNumSplitErrors() + " " +
 						evaluator.getNumMergeErrors() + " " +
 						time/1000.0 + "\n");
+				resultWriter.flush();
 
 				for (int i = 0; i < startParameters.length; i++) {
 
