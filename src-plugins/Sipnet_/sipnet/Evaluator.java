@@ -211,8 +211,10 @@ public class Evaluator {
 			for (Candidate groundtruthCandidate : groundtruthCandidates) {
 
 				if (correspondences.get(groundtruthCandidate) == null)
+					// we missed a region - this is a split error
 					missed.add(groundtruthCandidate);
 				else
+					// every additional region is a split error
 					numSplitErrors += (correspondences.get(groundtruthCandidate).size() - 1);
 			}
 
@@ -220,8 +222,10 @@ public class Evaluator {
 			for (Candidate resultCandidate : resultCandidates) {
 
 				if (correspondences.get(resultCandidate) == null)
+					// we fantasized a region - this is a merge error
 					additional.add(resultCandidate);
 				else
+					// each additional region is a merge error
 					numMergeErrors += (correspondences.get(resultCandidate).size() - 1);
 			}
 
@@ -250,7 +254,7 @@ public class Evaluator {
 
 					upperLeft  = upperLeft  || (offsetX <= 0 && offsetY >  0);
 					lowerLeft  = lowerLeft  || (offsetX <= 0 && offsetY <= 0);
-					lowerRight = lowerRight || (offsetX >  0 && offsetY <  0);
+					lowerRight = lowerRight || (offsetX >  0 && offsetY >  0);
 					upperRight = upperRight || (offsetX >  0 && offsetY <= 0);
 				}
 
@@ -260,6 +264,11 @@ public class Evaluator {
 
 			unexplainedResult.get(s).removeAll(unknown);
 			unknownResult.add(unknown);
+
+			IJ.log("missed " + missed.size() + " regions in slice " + (s+1));
+			IJ.log("fantasized " + additional.size() + " regions in slice " + (s+1));
+			IJ.log("splits of ground-truth regions: " + numSplitErrors + " (all slices so far)");
+			IJ.log("merges of ground-truth regions: " + numMergeErrors + " (all slices so far)");
 		}
 	}
 
