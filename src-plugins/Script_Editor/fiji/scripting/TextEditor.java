@@ -463,9 +463,12 @@ public class TextEditor extends JFrame implements ActionListener,
 		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+			if (SwingUtilities.isEventDispatchThread())
 				pack();
-			}});
+			else
+				SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+					pack();
+				}});
 		} catch (Exception ie) {}
 		getToolkit().setDynamicLayout(true);            //added to accomodate the autocomplete part
 		findDialog = new FindAndReplaceDialog(this);
@@ -2027,6 +2030,11 @@ public class TextEditor extends JFrame implements ActionListener,
 		}
 		if (compileStartOffset != errorScreen.getDocument().getLength())
 			getTab().showErrors();
+		if (getTab().showingErrors) try {
+			errorHandler.scrollToVisible(compileStartOffset);
+		} catch (BadLocationException e) {
+			// ignore
+		}
 	}
 
 	public void installMacro() {
