@@ -12,6 +12,7 @@ import java.util.Vector;
 
 import ij.IJ;
 import ij.ImagePlus;
+import ij.ImageStack;
 
 import ij.plugin.Duplicator;
 
@@ -212,7 +213,7 @@ public class Visualiser {
 
 				ImageProcessor candidateIp = new ColorProcessor(width, height);
 
-				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null, 1.0);
+				drawCandidate(candidate, candidateIp, new Color(255, 255, 255), null, 0.0);
 
 				ImagePlus candidateImp = new ImagePlus("candidate", candidateIp);
 				IJ.save(candidateImp, outputDirectory + "/s" + s + "c" + candidate.getId() + ".tif");
@@ -251,7 +252,7 @@ public class Visualiser {
 					int red   = (int)(255.0*(similarity - minSimilarity)/(maxSimilarity - minSimilarity));
 					int green = (int)(255.0*(maxSimilarity - similarity)/(maxSimilarity - minSimilarity));
 
-					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity, 1.0);
+					drawCandidate(similar, similarIp, new Color(red, green, 0), "" + similarity, 0.0);
 				}
 
 				i++;
@@ -265,6 +266,75 @@ public class Visualiser {
 		}
 	}
 
+	public void drawCorrespondences(
+			ImagePlus blockImage,
+			List<Vector<Candidate>> leftSliceCandidates,
+			List<Vector<Candidate>> rightSliceCandidates,
+			HashMap<Candidate,Vector<Candidate>> correspondences) {
+
+		int width  = blockImage.getWidth();
+		int height = blockImage.getHeight();
+
+		ImageStack stack = new ImageStack(width, height);
+
+		for (int s = 0; s < leftSliceCandidates.size(); s++) {
+
+			Vector<Candidate> leftCandidates  = leftSliceCandidates.get(s);
+			Vector<Candidate> rightCandidates = rightSliceCandidates.get(s);
+
+			ImageProcessor leftIp  = new ColorProcessor(width, height);
+			ImageProcessor rightIp = new ColorProcessor(width, height);
+
+			stack.addSlice("", leftIp);
+			stack.addSlice("", rightIp);
+
+			for (Candidate leftCandidate : leftCandidates) {
+
+				// don't draw subregions->superregions
+				if (correspondences.get(leftCandidate) != null &&
+				    correspondences.get(leftCandidate).size() == 1 &&
+					correspondences.get(
+							correspondences.get(leftCandidate).get(0)).size() > 1)
+					continue;
+
+				int r = (int)(Math.random()*255.0);
+				int g = (int)(Math.random()*255.0);
+				int b = (int)(Math.random()*255.0);
+				Color color = new Color(r, g, b);
+
+				drawCandidate(leftCandidate, leftIp, color, null, 0.0);
+
+				if (correspondences.get(leftCandidate) != null)
+					for (Candidate partner : correspondences.get(leftCandidate))
+						drawCandidate(partner, rightIp, color, null, 0.0);
+			}
+
+			for (Candidate rightCandidate : rightCandidates) {
+
+				// don't draw subregions->superregions
+				if (correspondences.get(rightCandidate) != null &&
+				    correspondences.get(rightCandidate).size() == 1 &&
+					correspondences.get(
+							correspondences.get(rightCandidate).get(0)).size() > 1)
+					continue;
+
+				int r = (int)(Math.random()*255.0);
+				int g = (int)(Math.random()*255.0);
+				int b = (int)(Math.random()*255.0);
+				Color color = new Color(r, g, b);
+
+				drawCandidate(rightCandidate, rightIp, color, null, 0.0);
+
+				if (correspondences.get(rightCandidate) != null)
+					for (Candidate partner : correspondences.get(rightCandidate))
+						drawCandidate(partner, leftIp, color, null, 0.0);
+			}
+		}
+
+		ImagePlus imp = new ImagePlus("correspondences", stack);
+		imp.updateAndDraw();
+		imp.show();
+	}
 	public void drawUnexplainedErrors(ImagePlus blockImage, Sequence sequence, GroundTruth groundtruth, Evaluator evaluator, double opacity) {
 
 		// visualize result

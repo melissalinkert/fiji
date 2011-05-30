@@ -252,6 +252,11 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				IJ.log("num merges: " + evaluator.getNumMergeErrors());
 
 				visualiser.drawUnexplainedErrors(visualisationImp, bestSequence, groundtruth, evaluator, 0.5);
+				visualiser.drawCorrespondences(
+						visualisationImp,
+						evaluator.getGroundtruthCandidates(),
+						evaluator.getResultCandidates(),
+						evaluator.getCorrespondences());
 			}
 
 		} else {

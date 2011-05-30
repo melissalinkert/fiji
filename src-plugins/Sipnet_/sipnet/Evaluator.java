@@ -1,5 +1,10 @@
 package sipnet;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import ij.IJ;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -12,6 +17,9 @@ public class Evaluator {
 
 	private GroundTruth groundtruth;
 	private Sequence    result;
+
+	private List<Vector<Candidate>>     groundtruthSliceCandidates;
+	private List<Vector<Candidate>>     resultSliceCandidates;
 
 	// mapping of ground-truth regions to found regions
 	private HashMap<Candidate, Vector<Candidate>> correspondences;
@@ -149,6 +157,21 @@ public class Evaluator {
 		return numSplitErrors;
 	}
 
+	final public List<Vector<Candidate>> getGroundtruthCandidates() {
+
+		return groundtruthSliceCandidates;
+	}
+
+	final public List<Vector<Candidate>> getResultCandidates() {
+
+		return resultSliceCandidates;
+	}
+
+	final public HashMap<Candidate, Vector<Candidate>> getCorrespondences() {
+
+		return correspondences;
+	}
+
 	/**
 	 * Find a corresponding result region for each ground-truth region. The
 	 * corresponding region is the one with the smallest set difference. Each
@@ -160,13 +183,23 @@ public class Evaluator {
 		assert(groundtruth.getSequence().consistent());
 		assert(result.consistent());
 
+		groundtruthSliceCandidates = new ArrayList<Vector<Candidate>>();
+		resultSliceCandidates      = new ArrayList<Vector<Candidate>>();
+
 		// for each slice
 		for (int s = 0; s <= result.size(); s++) {
 
-			Set<Candidate> groundtruthCandidates =
-					groundtruth.getSequence().getCandidates(s);
-			Set<Candidate> resultCandidates =
-					result.getCandidates(s);
+			Vector<Candidate> groundtruthCandidates =
+					new Vector<Candidate>();
+			groundtruthCandidates.addAll(
+					groundtruth.getSequence().getCandidates(s));
+			Vector<Candidate> resultCandidates =
+					new Vector<Candidate>();
+			resultCandidates.addAll(
+					result.getCandidates(s));
+
+			groundtruthSliceCandidates.add(groundtruthCandidates);
+			resultSliceCandidates.add(resultCandidates);
 
 			findCorrespondences(groundtruthCandidates, resultCandidates, correspondences, false, true);
 
