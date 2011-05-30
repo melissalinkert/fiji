@@ -8,8 +8,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
 
-import ij.IJ;
-
 public class Evaluator {
 
 	private GroundTruth groundtruth;
@@ -235,7 +233,15 @@ public class Evaluator {
 	/**
 	 * Finds corresponding candidates between the two given sets. If
 	 * 'oneToOne' is set, candidates appear in at most one
-	 * correspondence list.
+	 * correspondence list. Otherwise, all candidates are diveded into to types:
+	 * superregions and subregions. Superregions can only be associated to
+	 * subregions and vice versa. The determination of the type is done
+	 * greedily: Whenever two candidates correspond to one other the two
+	 * candidates are subregions and the other is a superregion. Subsequent
+	 * pairs involving the subregions are disregarded.
+	 * If 'overlap' is set, the only criterion for pairing regions is the
+	 * number of overlapping pixels. If not set, the symmetric set difference -
+	 * normalized by the size of the regions - is used.
 	 */
 	final public void findCorrespondences(
 			Collection<Candidate> set1,
@@ -291,6 +297,12 @@ A:		while (pairs.peek() != null) {
 				for (Candidate descendant : pair.candidate2.getDescendants())
 					if (correspondences.get(descendant) != null)
 						continue A;
+			} else {
+
+				// don't accecpt correspondences involving subregions
+				if (isSubRegion(pair.candidate1, correspondences) ||
+				    isSubRegion(pair.candidate2, correspondences))
+					continue;
 			}
 
 			if (correspondences.get(pair.candidate1) == null)
@@ -301,6 +313,41 @@ A:		while (pairs.peek() != null) {
 			correspondences.get(pair.candidate1).add(pair.candidate2);
 			correspondences.get(pair.candidate2).add(pair.candidate1);
 		}
+	}
+
+	/**
+	 * Check whether a candidate is a superregion. A candidate is a superregion
+	 * if it was assigned to more than one other candidates. Returns false if
+	 * the type is not determined yet.
+	 */
+	final private boolean isSuperRegion(
+			Candidate candidate,
+			HashMap<Candidate, Vector<Candidate>> correspondences) {
+
+		if (correspondences.get(candidate) != null &&
+		    correspondences.get(candidate).size() > 1)
+			return true;
+
+		return false;
+	}
+
+	/**
+	 * Check whether a candidate is a subregion. A candidate is a subregion, if
+	 * it is assigned to exactly one candidate, which is also a superregion.
+	 * Returns false if the type is not determined yet.
+	 */
+	final private boolean isSubRegion(
+			Candidate candidate,
+			HashMap<Candidate, Vector<Candidate>> correspondences) {
+	
+		if (correspondences.get(candidate) != null &&
+		    correspondences.get(candidate).size() == 1 &&
+		    isSuperRegion(
+					correspondences.get(candidate).get(0),
+					correspondences))
+			return true;
+
+		return false;
 	}
 
 	/**
