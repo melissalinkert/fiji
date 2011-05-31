@@ -313,7 +313,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				for (int i = 0; i < startParameters.length; i++) {
 
 					parameters[i] += stepParameters[i];
-					if (parameters[i] <= endParameters[i])
+					if (parameters[i] < endParameters[i])
 						break;
 
 					if (i == startParameters.length - 1)
@@ -331,6 +331,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 			try {
 				if (resultWriter != null)
 					resultWriter.close();
+				System.exit(0);
 			} catch (IOException e) {
 				// oh screw you, IOException!
 			}
@@ -360,14 +361,14 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		// ask for parameters
 		GenericDialog gd = new GenericDialog("Settings");
 		gd.addNumericField("delta:", delta, 0);
-		gd.addNumericField("min area:", minArea, 0);
-		gd.addNumericField("max area:", maxArea, 0);
-		gd.addNumericField("max variation:", maxVariation, 2);
-		gd.addNumericField("min diversity:", minDiversity, 2);
-		gd.addNumericField("first slice:", 1, 0);
-		gd.addNumericField("last slice:", WindowManager.getCurrentImage().getNSlices(), 0);
-		gd.addCheckbox("maximum marginals for inference", marginalize);
-		gd.addCheckbox("no inference - only visualisation", visualisationOnly);
+		gd.addNumericField("min_area:", minArea, 0);
+		gd.addNumericField("max_area:", maxArea, 0);
+		gd.addNumericField("max_variation:", maxVariation, 2);
+		gd.addNumericField("min_diversity:", minDiversity, 2);
+		gd.addNumericField("first_slice:", 1, 0);
+		gd.addNumericField("last_slice:", WindowManager.getCurrentImage().getNSlices(), 0);
+		gd.addCheckbox("maximum_marginals for inference", marginalize);
+		gd.addCheckbox("no_inference - only visualisation", visualisationOnly);
 		gd.addCheckbox("compare to ground-truth", (windowIds.length > 1));
 		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
 		gd.addChoice("use for visualisation",  windowNames, windowNames[0]);
