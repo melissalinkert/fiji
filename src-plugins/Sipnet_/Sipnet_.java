@@ -5,10 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
-
-import mpicbg.imglib.cursor.Cursor;
 
 import mser.MSER;
 
@@ -63,6 +62,8 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	private Sipnet       sipnet;
 
+	private Vector<Vector<Candidate>> sliceCandidates;
+
 	// parameters
 	private int    delta        = 1;
 	private int    minArea      = 10;
@@ -116,12 +117,14 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 			// read candidate msers
 			msersImp = resultCacher.readMserImages(membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
-			Vector<Vector<Candidate>> sliceCandidates =
+			sliceCandidates =
 				resultCacher.readMsers(
 						membraneImp.getOriginalFileInfo().fileName,
 						mser.getParameters(),
 						firstSlice - 1,
 						lastSlice  - 1);
+
+			List<Vector<Candidate>> selectedSliceCandidates;
 
 			if (msersImp == null || sliceCandidates == null) {
 
@@ -198,10 +201,14 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 				resultCacher.writeMserImages(msersImp, membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
 				resultCacher.writeMsers(sliceTopMsers, membraneImp.getOriginalFileInfo().fileName, mser.getParameters());
-			}
 
-			List<Vector<Candidate>> selectedSliceCandidates =
-					sliceCandidates.subList(firstSlice - 1, lastSlice);
+				selectedSliceCandidates = sliceCandidates.subList(firstSlice - 1, lastSlice);
+
+			} else {
+
+				selectedSliceCandidates = new ArrayList<Vector<Candidate>>();
+				selectedSliceCandidates.addAll(sliceCandidates);
+			}
 
 			if (performGridSearch)
 				gridSearch(selectedSliceCandidates);
@@ -236,10 +243,21 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 
-			visualiser.drawSequence(visualisationImp, bestSequence, false, false, false, 0.5);
-			visualiser.drawSequence(visualisationImp, bestSequence, false, true, true, 0.5);
+			visualiser.drawSequence(
+					visualisationImp,
+					"solution",
+					bestSequence,
+					false, false, false, 0.5);
+			visualiser.drawSequence(
+					visualisationImp,
+					"solution",
+					bestSequence,
+					false, true, true, 0.5);
 			//visualiser3d.showAssignments(bestSequence);
 			//visualiser3d.showSlices(msersImp);
+
+			msersImp.show();
+			msersImp.updateAndDraw();
 
 			// print statistics
 			if (compareToGroundtruth) {
@@ -248,15 +266,43 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 				Evaluator evaluator = new Evaluator(groundtruth, bestSequence);
 
-				IJ.log("num splits: " + evaluator.getNumSplitErrors());
-				IJ.log("num merges: " + evaluator.getNumMergeErrors());
+				IJ.log("num split errors: " + evaluator.getNumSplitErrors());
+				IJ.log("num merge errors: " + evaluator.getNumMergeErrors());
 
-				visualiser.drawUnexplainedErrors(visualisationImp, bestSequence, groundtruth, evaluator, 0.5);
+				visualiser.drawErrors(
+						visualisationImp,
+						"errors",
+						bestSequence,
+						groundtruth,
+						evaluator, 0.5);
 				visualiser.drawCorrespondences(
 						visualisationImp,
+						"correspondences (result)",
 						evaluator.getGroundtruthCandidates(),
 						evaluator.getResultCandidates(),
-						evaluator.getCorrespondences());
+						evaluator.getCorrespondences(),
+						false); // no one-to-one mapping
+
+				Sequence goldStandard = evaluator.findGoldStandard(sliceCandidates);
+
+				visualiser.drawSequence(
+						visualisationImp,
+						"gold standard",
+						goldStandard,
+						false, true, true, 0.5);
+				visualiser.drawCorrespondences(
+						visualisationImp,
+						"correspondences (gold standard)",
+						evaluator.getGroundtruthCandidates(),
+						sliceCandidates,
+						evaluator.getGoldStandardCorrespondences(),
+						true); // one-to-one mapping
+
+				// get the error of the gold standard
+				evaluator = new Evaluator(groundtruth, goldStandard);
+
+				IJ.log("best possible num split errors: " + evaluator.getNumSplitErrors());
+				IJ.log("best possible num merge errors: " + evaluator.getNumMergeErrors());
 			}
 
 		} else {
@@ -411,42 +457,21 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 
 	private GroundTruth readGroundTruth(ImagePlus groundtruthImp) {
 
-		// prepare mser image
-		msersImp = groundtruthImp.createImagePlus();
-
 		ImageStack regStack = new ImageStack(groundtruthImp.getWidth(), groundtruthImp.getHeight());
 		for (int s = 1; s <= numSlices; s++) {
 			ImageProcessor duplProcessor = groundtruthImp.getStack().getProcessor(s).duplicate();
 			regStack.addSlice("", duplProcessor);
 		}
-		msersImp.setStack(regStack);
-		msersImp.setDimensions(1, numSlices, 1);
-		if (numSlices > 1)
-			msersImp.setOpenAsHyperStack(true);
-		IJ.run(msersImp, "Fire", "");
-
-		msersImp.setTitle("msers of " + groundtruthImp.getTitle());
 
 		// create slice images
 		Vector<Image<T>> sliceImages = new Vector<Image<T>>();
-		Vector<Image<T>> sliceMsers  = new Vector<Image<T>>();
 
 		for (int s = firstSlice-1; s <= lastSlice-1; s++) {
 
 			ImagePlus sliceGroundtruthImp = new ImagePlus("slice " + s+1, groundtruthImp.getStack().getProcessor(s+1));
 			Image<T>  sliceGroundtruth    = ImagePlusAdapter.wrap(sliceGroundtruthImp);
-			ImagePlus sliceMserImp        = new ImagePlus("slice " + s+1, msersImp.getStack().getProcessor(s+1));
-			Image<T>  sliceMser           = ImagePlusAdapter.wrap(sliceMserImp);
-
-			// black out msers image
-			Cursor<T> msersCursor = sliceMser.createCursor();
-			while (msersCursor.hasNext()) {
-				msersCursor.fwd();
-				msersCursor.getType().setReal(0.0);
-			}
 
 			sliceImages.add(sliceGroundtruth);
-			sliceMsers.add(sliceMser);
 		}
 
 		// process ground truth image

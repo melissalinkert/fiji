@@ -23,6 +23,8 @@ public class Evaluator {
 
 	// mapping of ground-truth regions to found regions
 	private HashMap<Candidate, Vector<Candidate>> correspondences;
+	// mapping of ground-truth regions to all regions
+	private HashMap<Candidate, Vector<Candidate>> goldStandardCorrespondences;
 
 	// lists of unexplained ground-truth and result regions for each slice
 	private Vector<Set<Candidate>>      unexplainedGroundtruth;
@@ -170,6 +172,107 @@ public class Evaluator {
 	final public HashMap<Candidate, Vector<Candidate>> getCorrespondences() {
 
 		return correspondences;
+	}
+
+	/**
+	 * Given all possible candidates, find the sequence that best fits to the
+	 * ground truth. This is a theoretical limit on the performance of the
+	 * sequence search.
+	 */
+	final public Sequence findGoldStandard(Vector<Vector<Candidate>> msers) {
+
+		IJ.log("searching for gold standard");
+
+		HashMap<Candidate, Vector<Candidate>> correspondences =
+				new HashMap<Candidate, Vector<Candidate>>();
+
+		for (int s = 0; s <= groundtruth.getSequence().size(); s++) {
+
+			IJ.log("searching for correspondences in slice " + s);
+			findCorrespondences(
+					groundtruth.getSequence().getCandidates(s),
+					msers.get(s),
+					correspondences,
+					true, // one-to-one mapping
+					false); // use the symmetric set difference
+		}
+
+		// add special "correspondences"
+		correspondences.put(SequenceSearch.deathNode, new Vector<Candidate>());
+		correspondences.get(SequenceSearch.deathNode).add(SequenceSearch.deathNode);
+		correspondences.put(SequenceSearch.emergeNode, new Vector<Candidate>());
+		correspondences.get(SequenceSearch.emergeNode).add(SequenceSearch.emergeNode);
+
+		// create the training sequence from the correspondences
+		IJ.log("creating gold standard sequence");
+
+		Sequence goldSequence = new Sequence();
+		for (Assignment assignment : groundtruth.getSequence()) {
+
+			Assignment goldAssignment = new Assignment();
+
+			for (SingleAssignment singleAssignment : assignment) {
+
+				SingleAssignment goldSingleAssignment = null;
+
+				Vector<Candidate> sources =
+						singleAssignment.getSources();
+				Vector<Candidate> targets =
+						singleAssignment.getTargets();
+
+				// continuation & end
+				if (sources.size() == 1 &&
+				    targets.size() == 1) {
+					if (correspondences.get(sources.get(0)) != null &&
+					    correspondences.get(targets.get(0)) != null)
+						goldSingleAssignment =
+								new OneToOneAssignment(
+										correspondences.get(sources.get(0)).get(0),
+										correspondences.get(targets.get(0)).get(0));
+
+				// bisection
+				} else if (sources.size() == 1 &&
+				           targets.size() == 2) {
+					if (correspondences.get(sources.get(0)) != null &&
+					    correspondences.get(targets.get(0)) != null &&
+					    correspondences.get(targets.get(1)) != null)
+						goldSingleAssignment =
+								new SplitAssignment(
+										correspondences.get(sources.get(0)).get(0),
+										correspondences.get(targets.get(0)).get(0),
+										correspondences.get(targets.get(1)).get(0));
+				} else if (sources.size() == 2 &&
+				           targets.size() == 1) {
+					if (correspondences.get(sources.get(0)) != null &&
+					    correspondences.get(sources.get(1)) != null &&
+					    correspondences.get(targets.get(0)) != null) {
+						goldSingleAssignment =
+								new MergeAssignment(
+										correspondences.get(sources.get(0)).get(0),
+										correspondences.get(sources.get(1)).get(0),
+										correspondences.get(targets.get(0)).get(0));
+
+						if (correspondences.get(targets.get(0)).get(0).getId() == 4176)
+							System.out.println("merge to region 4176 detected!");
+					}
+
+				} else
+					throw new RuntimeException("Could not determine type of SingleAssignment");
+			
+				if (goldSingleAssignment != null)
+					goldAssignment.add(goldSingleAssignment);
+			}
+
+			goldSequence.add(goldAssignment);
+		}
+
+		goldStandardCorrespondences = correspondences;
+
+		return goldSequence;
+	}
+
+	public HashMap<Candidate, Vector<Candidate>> getGoldStandardCorrespondences() {
+		return goldStandardCorrespondences;
 	}
 
 	/**

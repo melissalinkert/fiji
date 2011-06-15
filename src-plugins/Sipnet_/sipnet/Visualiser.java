@@ -30,6 +30,7 @@ public class Visualiser {
 
 	public void drawSequence(
 			ImagePlus blockImage,
+			String name,
 			Sequence sequence,
 			boolean drawConfidence,
 			boolean drawCandidateId,
@@ -38,6 +39,7 @@ public class Visualiser {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
+		blockCopy.setTitle(name);
 
 		blockCopy.show();
 		IJ.run("RGB Color", "");
@@ -268,9 +270,11 @@ public class Visualiser {
 
 	public void drawCorrespondences(
 			ImagePlus blockImage,
+			String name,
 			List<Vector<Candidate>> leftSliceCandidates,
 			List<Vector<Candidate>> rightSliceCandidates,
-			HashMap<Candidate,Vector<Candidate>> correspondences) {
+			HashMap<Candidate,Vector<Candidate>> correspondences,
+			boolean oneToOne) {
 
 		int width  = blockImage.getWidth();
 		int height = blockImage.getHeight();
@@ -309,38 +313,50 @@ public class Visualiser {
 						drawCandidate(partner, rightIp, color, null, 0.0);
 			}
 
-			for (Candidate rightCandidate : rightCandidates) {
+			// for one-to-one mappings, there is no need to draw right
+			// candidates (they should have been drawn already in the previous
+			// loop)
+			if (!oneToOne) {
+				for (Candidate rightCandidate : rightCandidates) {
 
-				// don't draw subregions->superregions
-				if (correspondences.get(rightCandidate) != null &&
-				    correspondences.get(rightCandidate).size() == 1 &&
-					correspondences.get(
-							correspondences.get(rightCandidate).get(0)).size() > 1)
-					continue;
+					// don't draw subregions->superregions
+					if (correspondences.get(rightCandidate) != null &&
+						correspondences.get(rightCandidate).size() == 1 &&
+						correspondences.get(
+								correspondences.get(rightCandidate).get(0)).size() > 1)
+						continue;
 
-				int r = (int)(Math.random()*255.0);
-				int g = (int)(Math.random()*255.0);
-				int b = (int)(Math.random()*255.0);
-				Color color = new Color(r, g, b);
+					int r = (int)(Math.random()*255.0);
+					int g = (int)(Math.random()*255.0);
+					int b = (int)(Math.random()*255.0);
+					Color color = new Color(r, g, b);
 
-				drawCandidate(rightCandidate, rightIp, color, null, 0.0);
+					drawCandidate(rightCandidate, rightIp, color, null, 0.0);
 
-				if (correspondences.get(rightCandidate) != null)
-					for (Candidate partner : correspondences.get(rightCandidate))
-						drawCandidate(partner, leftIp, color, null, 0.0);
+					if (correspondences.get(rightCandidate) != null)
+						for (Candidate partner : correspondences.get(rightCandidate))
+							drawCandidate(partner, leftIp, color, null, 0.0);
+				}
 			}
 		}
 
 		ImagePlus imp = new ImagePlus("correspondences", stack);
+		imp.setTitle(name);
 		imp.updateAndDraw();
 		imp.show();
 	}
-	public void drawUnexplainedErrors(ImagePlus blockImage, Sequence sequence, GroundTruth groundtruth, Evaluator evaluator, double opacity) {
+	public void drawErrors(
+			ImagePlus blockImage,
+			String name,
+			Sequence sequence,
+			GroundTruth groundtruth,
+			Evaluator evaluator,
+			double opacity) {
 
 		// visualize result
 		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
+		blockCopy.setTitle(name);
 
-		blockCopy.setTitle("unexplained regions");
 		blockCopy.show();
 		IJ.run("RGB Color", "");
 
