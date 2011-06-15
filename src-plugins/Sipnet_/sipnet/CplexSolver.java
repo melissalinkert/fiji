@@ -1,5 +1,7 @@
 package sipnet;
 
+import ij.IJ;
+
 import ilog.concert.IloException;
 import ilog.concert.IloLPMatrix;
 import ilog.concert.IloNumVar;
@@ -14,8 +16,13 @@ public class CplexSolver implements LinearProgramSolver {
 	private IloLPMatrix matrix;
 
 	private int      numVariables;
+	private int      numConstraints;
 	private double[] values;
 	private boolean  integer;
+
+	private int      maxVariablesPerConstraint;
+	private int      minVariablesPerConstraint;
+	private double   meanVariablesPerConstraint;
 
 	public CplexSolver(int numVariables, int numConstraints, boolean integer) {
 
@@ -32,8 +39,13 @@ public class CplexSolver implements LinearProgramSolver {
 			else
 				vars = cplex.numVarArray(cplex.columnArray(matrix, numVariables), 0.0, 1.0);
 
-			this.numVariables = numVariables;
-			this.integer      = integer;
+			this.numVariables   = numVariables;
+			this.numConstraints = numConstraints;
+			this.integer        = integer;
+
+			this.minVariablesPerConstraint  = numVariables;
+			this.maxVariablesPerConstraint  = -1;
+			this.meanVariablesPerConstraint = -1;
 
 		} catch (IloException e) {
 
@@ -63,6 +75,14 @@ public class CplexSolver implements LinearProgramSolver {
 			else
 				matrix.addRow(b, b, varNums, coeffs);
 
+			minVariablesPerConstraint = Math.min(
+					minVariablesPerConstraint,
+					variableNums.size());
+			maxVariablesPerConstraint = Math.max(
+					maxVariablesPerConstraint,
+					variableNums.size());
+			meanVariablesPerConstraint += variableNums.size();
+
 		} catch (IloException e) {
 
 			e.printStackTrace();
@@ -88,6 +108,14 @@ public class CplexSolver implements LinearProgramSolver {
 	}
 
 	public int solve(int numThreads) {
+
+		meanVariablesPerConstraint /= (double)numConstraints;
+
+		IJ.log("solving problem:");
+		IJ.log("  mean number of variables per constraint: " +
+		       meanVariablesPerConstraint + " (min: " +
+		       minVariablesPerConstraint  + ", max: " +
+		       maxVariablesPerConstraint  + ")");
 
 		try {
 
