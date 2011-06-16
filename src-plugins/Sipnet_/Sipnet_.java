@@ -257,14 +257,21 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 						visualisationImp,
 						"solution",
 						bestSequence,
-						false, false, false, 0.5);
+						false, false, false, false, 0.5);
 
 			if (showExtendedResult)
 				visualiser.drawSequence(
 						visualisationImp,
 						"solution",
 						bestSequence,
-						false, true, true, 0.5);
+						false, true, true, false, 0.5);
+
+			if (showResultIdMap)
+				visualiser.drawSequence(
+						visualisationImp,
+						"solution",
+						bestSequence,
+						false, false, false, true, 0.5);
 			//visualiser3d.showAssignments(bestSequence);
 			//visualiser3d.showSlices(msersImp);
 
@@ -309,7 +316,7 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 								visualisationImp,
 								"gold standard",
 								goldStandard,
-								false, true, true, 0.5);
+								false, true, true, false, 0.5);
 
 					if (showGoldStandardCorrespondences)
 						visualiser.drawCorrespondences(

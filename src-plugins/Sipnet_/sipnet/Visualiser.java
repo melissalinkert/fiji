@@ -18,6 +18,7 @@ import ij.plugin.Duplicator;
 
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 
 public class Visualiser {
 
@@ -35,17 +36,39 @@ public class Visualiser {
 			boolean drawConfidence,
 			boolean drawCandidateId,
 			boolean drawLines,
+			boolean idMap,
 			double opacity) {
 
 		// visualize result
-		ImagePlus blockCopy = (new Duplicator()).run(blockImage);
-		blockCopy.setTitle(name);
+		ImagePlus blockCopy;
+		
+		if (!idMap) {
+		
+			blockCopy = (new Duplicator()).run(blockImage);
 
-		blockCopy.show();
-		IJ.run("RGB Color", "");
+			blockCopy.show();
+			blockCopy.setTitle(name);
+			IJ.run("RGB Color", "");
+		} else {
 
-		HashMap<Candidate, Color> colors    = new HashMap<Candidate, Color>();
-		Vector<Set<Candidate>>    treelines = new Vector<Set<Candidate>>();
+			int width  = blockImage.getWidth();
+			int height = blockImage.getHeight();
+
+			ImageStack stack = new ImageStack(width, height);
+
+			for (int s = 0; s <= sequence.size(); s++) {
+
+				ImageProcessor ip = new ShortProcessor(width, height);
+				stack.addSlice("", ip);
+			}
+
+			blockCopy = new ImagePlus(name, stack);
+			blockCopy.show();
+		}
+
+		Vector<Set<Candidate>>      treelines   = new Vector<Set<Candidate>>();
+		HashMap<Candidate, Color>   colors      = new HashMap<Candidate, Color>();
+		HashMap<Candidate, Integer> treelineIds = new HashMap<Candidate, Integer>();
 
 		/*
 		 * ASSIGN COLORS
@@ -96,7 +119,8 @@ public class Visualiser {
 			}
 		}
 
-		// assign random colors to the treelines
+		// assign random colors and ids to the treelines
+		int id = 1;
 		for (Set<Candidate> treeline : treelines) {
 
 			int r = (int)(Math.random()*255.0);
@@ -104,8 +128,12 @@ public class Visualiser {
 			int b = (int)(Math.random()*255.0);
 			Color color = new Color(r, g, b);
 
-			for (Candidate candidate : treeline)
+			for (Candidate candidate : treeline) {
 				colors.put(candidate, color);
+				treelineIds.put(candidate, id);
+			}
+
+			id++;
 		}
 
 		/*
@@ -130,7 +158,10 @@ public class Visualiser {
 						if (target != SequenceSearch.deathNode) {
 
 							Color color = colors.get(target);
-							drawCandidate(target, nip, color, (drawCandidateId ? "" + target.getId() : null), opacity);
+							if (idMap)
+								drawCandidate(target, nip, treelineIds.get(target));
+							else
+								drawCandidate(target, nip, color, (drawCandidateId ? "" + target.getId() : null), opacity);
 						}
 					}
 				}
@@ -140,7 +171,10 @@ public class Visualiser {
 					if (source != SequenceSearch.emergeNode) {
 
 						Color color = colors.get(source);
-						drawCandidate(source, pip, color, (drawCandidateId ? "" + source.getId() : null), opacity);
+						if (idMap)
+							drawCandidate(source, pip, treelineIds.get(source));
+						else
+							drawCandidate(source, pip, color, (drawCandidateId ? "" + source.getId() : null), opacity);
 					}
 				}
 			}
@@ -467,6 +501,16 @@ public class Visualiser {
 					annotation,
 					(int)candidate.getCenter(0),
 					(int)candidate.getCenter(1));
+		}
+	}
+
+	private void drawCandidate(Candidate candidate, ImageProcessor ip, int value) {
+
+		// draw pixels
+		for (int[] pixel : candidate.getPixels()) {
+
+			ip.setColor(value);
+			ip.drawPixel(pixel[0], pixel[1]);
 		}
 	}
 }

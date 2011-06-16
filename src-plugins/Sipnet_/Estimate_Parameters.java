@@ -133,7 +133,7 @@ public class Estimate_Parameters<T extends RealType<T>> implements PlugIn {
 					msersImp,
 					"ground truth sequence",
 					groundtruth.getSequence(),
-					false, true, true, 0.5);
+					false, true, true, false, 0.5);
 		}
 	}
 
