@@ -83,6 +83,15 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 	private boolean visualisationOnly    = false;
 	private boolean compareToGroundtruth = true;
 
+	private boolean showResult = true;
+	private boolean showExtendedResult = false;
+	private boolean showResultIdMap = false;
+	private boolean showMsers = false;
+	private boolean showErrors = true;
+	private boolean showGoldStandard = true;
+	private boolean showGroundtruthCorrespondences = false;
+	private boolean showGoldStandardCorrespondences = false;
+
 	private GroundTruth groundtruth = null;
 
 	private class ProcessingThread extends Thread {
@@ -243,21 +252,26 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				return;
 			}
 
-			visualiser.drawSequence(
-					visualisationImp,
-					"solution",
-					bestSequence,
-					false, false, false, 0.5);
-			visualiser.drawSequence(
-					visualisationImp,
-					"solution",
-					bestSequence,
-					false, true, true, 0.5);
+			if (showResult)
+				visualiser.drawSequence(
+						visualisationImp,
+						"solution",
+						bestSequence,
+						false, false, false, 0.5);
+
+			if (showExtendedResult)
+				visualiser.drawSequence(
+						visualisationImp,
+						"solution",
+						bestSequence,
+						false, true, true, 0.5);
 			//visualiser3d.showAssignments(bestSequence);
 			//visualiser3d.showSlices(msersImp);
 
-			msersImp.show();
-			msersImp.updateAndDraw();
+			if (showMsers) {
+				msersImp.show();
+				msersImp.updateAndDraw();
+			}
 
 			// print statistics
 			if (compareToGroundtruth) {
@@ -269,40 +283,49 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 				IJ.log("num split errors: " + evaluator.getNumSplitErrors());
 				IJ.log("num merge errors: " + evaluator.getNumMergeErrors());
 
-				visualiser.drawErrors(
-						visualisationImp,
-						"errors",
-						bestSequence,
-						groundtruth,
-						evaluator, 0.5);
-				visualiser.drawCorrespondences(
-						visualisationImp,
-						"correspondences (result)",
-						evaluator.getGroundtruthCandidates(),
-						evaluator.getResultCandidates(),
-						evaluator.getCorrespondences(),
-						false); // no one-to-one mapping
+				if (showErrors)
+					visualiser.drawErrors(
+							visualisationImp,
+							"errors",
+							bestSequence,
+							groundtruth,
+							evaluator, 0.5);
 
-				Sequence goldStandard = evaluator.findGoldStandard(sliceCandidates);
+				if (showGroundtruthCorrespondences)
+					visualiser.drawCorrespondences(
+							visualisationImp,
+							"correspondences (result)",
+							evaluator.getGroundtruthCandidates(),
+							evaluator.getResultCandidates(),
+							evaluator.getCorrespondences(),
+							false); // no one-to-one mapping
 
-				visualiser.drawSequence(
-						visualisationImp,
-						"gold standard",
-						goldStandard,
-						false, true, true, 0.5);
-				visualiser.drawCorrespondences(
-						visualisationImp,
-						"correspondences (gold standard)",
-						evaluator.getGroundtruthCandidates(),
-						sliceCandidates,
-						evaluator.getGoldStandardCorrespondences(),
-						true); // one-to-one mapping
+				if (showGoldStandard || showGoldStandardCorrespondences) {
 
-				// get the error of the gold standard
-				evaluator = new Evaluator(groundtruth, goldStandard);
+					Sequence goldStandard = evaluator.findGoldStandard(sliceCandidates);
 
-				IJ.log("best possible num split errors: " + evaluator.getNumSplitErrors());
-				IJ.log("best possible num merge errors: " + evaluator.getNumMergeErrors());
+					if (showGoldStandard)
+						visualiser.drawSequence(
+								visualisationImp,
+								"gold standard",
+								goldStandard,
+								false, true, true, 0.5);
+
+					if (showGoldStandardCorrespondences)
+						visualiser.drawCorrespondences(
+								visualisationImp,
+								"correspondences (gold standard)",
+								evaluator.getGroundtruthCandidates(),
+								sliceCandidates,
+								evaluator.getGoldStandardCorrespondences(),
+								true); // one-to-one mapping
+
+					// get the error of the gold standard
+					evaluator = new Evaluator(groundtruth, goldStandard);
+
+					IJ.log("best possible num split errors: " + evaluator.getNumSplitErrors());
+					IJ.log("best possible num merge errors: " + evaluator.getNumMergeErrors());
+				}
 			}
 
 		} else {
@@ -438,8 +461,39 @@ public class Sipnet_<T extends RealType<T>> implements PlugIn {
 		String groundtruthName = gd.getNextChoice();
 		String visualisationName = gd.getNextChoice();
 
-		if (compareToGroundtruth)
+		GenericDialog egd = new GenericDialog("Evaluation Settings");
+		egd.addCheckbox("show result", showResult);
+		egd.addCheckbox("show result (with ids)", showExtendedResult);
+		egd.addCheckbox("show result (as id-map)", showResultIdMap);
+		egd.addCheckbox("show msers", showMsers);
+
+		if (compareToGroundtruth) {
+
 			groundtruthImp = WindowManager.getImage(groundtruthName);
+
+			egd.addCheckbox("show errors", showErrors);
+			egd.addCheckbox("show gold standard", showGoldStandard);
+			egd.addCheckbox("show correspondences ground-truth <-> result", showGroundtruthCorrespondences);
+			egd.addCheckbox("show correspondences ground-truth <-> gold standard", showGoldStandardCorrespondences);
+		}
+
+		egd.showDialog();
+			if (egd.wasCanceled())
+				return;
+
+		showResult = egd.getNextBoolean();
+		showExtendedResult = egd.getNextBoolean();
+		showResultIdMap = egd.getNextBoolean();
+		showMsers = egd.getNextBoolean();
+
+		if (compareToGroundtruth) {
+
+			showErrors = egd.getNextBoolean();
+			showGoldStandard = egd.getNextBoolean();
+			showGroundtruthCorrespondences = egd.getNextBoolean();
+			showGoldStandardCorrespondences = egd.getNextBoolean();
+		}
+
 		visualisationImp = WindowManager.getImage(visualisationName);
 
 		if (firstSlice < 1 ||
