@@ -217,6 +217,7 @@ PLUGIN_TARGETS=plugins/Jython_Interpreter.jar \
 	plugins/Kuwahara_Filter.jar \
 	plugins/Action_Bar.jar \
 	plugins/Multi_Kymograph.jar \
+	plugins/KNN_Segmentation.jar \
 	plugins/Reconstruct_Reader.jar
 
 all <- fiji $SUBMODULE_TARGETS $PLUGIN_TARGETS
