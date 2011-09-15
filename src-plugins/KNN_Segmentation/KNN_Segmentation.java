@@ -15,15 +15,11 @@ import mpicbg.imglib.container.array.ArrayContainerFactory;
 
 import mpicbg.imglib.cursor.LocalizableByDimCursor;
 
-import mpicbg.imglib.cursor.special.RegionOfInterestCursor;
-
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.image.ImageFactory;
 import mpicbg.imglib.image.ImagePlusAdapter;
 
 import mpicbg.imglib.type.numeric.RealType;
-
-import script.imglib.ImgLib;
 
 public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 
@@ -33,8 +29,10 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 
 	private ImagePlus inputImp;
 	private ImagePlus groundtruthImp;
+	private ImagePlus testImp;
 	private Image<T>  inputImg;
 	private Image<T>  groundtruthImg;
+	private Image<T>  testImg;
 
 	Dictionary<T> dictionary;
 
@@ -46,7 +44,7 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 		int[] windowIds = WindowManager.getIDList();
 
 		if (windowIds == null || windowIds.length < 2) {
-			IJ.error("At least two images need to be open");
+			IJ.error("At least two images need to be open (input, ground-truth)");
 			return;
 		}
 
@@ -60,8 +58,9 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 		gd.addNumericField("patch size:", patchSize, 0);
 		gd.addNumericField("number of samples:", numSamples, 0);
 		gd.addNumericField("number of neighbors:", numNeighbors, 0);
-		gd.addChoice("input image",  windowNames, windowNames[1]);
+		gd.addChoice("input image",  windowNames, windowNames[(windowIds.length > 2 ? 2 : 1)]);
 		gd.addChoice("ground-truth image",  windowNames, windowNames[0]);
+		gd.addChoice("test image",  windowNames, windowNames[1]);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -71,16 +70,29 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 		numNeighbors = (int)gd.getNextNumber();
 		String inputName = gd.getNextChoice();
 		String groundtruthName = gd.getNextChoice();
+		String testName = gd.getNextChoice();
 
 		inputImp = WindowManager.getImage(inputName);
 		groundtruthImp = WindowManager.getImage(groundtruthName);
+		testImp = WindowManager.getImage(testName);
 
 		inputImg       = ImagePlusAdapter.wrap(inputImp);
 		groundtruthImg = ImagePlusAdapter.wrap(groundtruthImp);
+		testImg        = ImagePlusAdapter.wrap(testImp);
 
+		ImagePlus outputImp = testImp.duplicate();
+		Image<T> outputImg  = ImagePlusAdapter.wrap(outputImp);
+
+		IJ.log("Creating dictionary from " + numSamples + " random samples...");
 		dictionary = createDictionary(inputImg, groundtruthImg, patchSize, numSamples);
+		IJ.log("Dictionary created.");
 
-		classify(inputImg, dictionary, numNeighbors, inputImg);
+		IJ.log("Classifying test image...");
+		classify(testImg, dictionary, numNeighbors, outputImg);
+		IJ.log("Done.");
+
+		outputImp.show();
+		outputImp.updateAndDraw();
 	}
 
 	// LIBRARY STYLE METHODS
@@ -91,7 +103,7 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 			int patchSize,
 			int numSamples) {
 
-		Dictionary dictionary = new Dictionary(patchSize);
+		Dictionary<T> dictionary = new Dictionary<T>(patchSize, 2);
 
 		List<Patch<T>> patches = new ArrayList<Patch<T>>();
 
@@ -118,16 +130,36 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 		LocalizableByDimCursor<T> inputCursor = inputImg.createLocalizableByDimCursor();
 		LocalizableByDimCursor<T> outputCursor = outputImg.createLocalizableByDimCursor();
 
-		while (inputCursor.hasNext() && outputCursor.hasNext()) {
+		int[] dimensions = inputImg.getDimensions();
+		int[] position = dimensions.clone();
+		int   numDims = dimensions.length;
+
+		double numPixels = 1;
+		for (int d = 0; d < numDims; d++)
+			numPixels *= dimensions[d];
+		double current = 0;
+
+		A: while (inputCursor.hasNext() && outputCursor.hasNext()) {
 
 			inputCursor.fwd();
 			outputCursor.fwd();
+
+			inputCursor.getPosition(position);
+
+			current++;
+			if (current % 10 == 0)
+				IJ.showProgress(current/numPixels);
+
+			for (int d = 0; d < numDims; d++)
+				if (position[d] < patchSize/2 ||
+				    position[d] >= dimensions[d] - patchSize/2)
+					continue A;
 
 			Patch<T> patch = extractPatch(inputCursor, patchSize);
 
 			int label = dictionary.getLabel(patch, numNeighbors);
 
-			outputCursor.getType().setReal(label);
+			outputCursor.getType().setReal(label*255.0);
 		}
 	}
 
@@ -159,10 +191,20 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 
 		LocalizableByDimCursor<T> cursor =
 				inputImg.createLocalizableByDimCursor();
+		LocalizableByDimCursor<T> gtCursor =
+				groundtruthImg.createLocalizableByDimCursor();
 
 		cursor.setPosition(position);
+		gtCursor.setPosition(position);
 
-		return extractPatch(cursor, patchSize);
+		Patch<T> patch = extractPatch(cursor, patchSize);
+
+		if (gtCursor.getType().getRealFloat() != 0)
+			patch.setLabel(1);
+		else
+			patch.setLabel(0);
+
+		return patch;
 	}
 
 	private final Patch<T> extractPatch(
@@ -198,7 +240,7 @@ public class KNN_Segmentation<T extends RealType<T>> implements PlugIn {
 					cursor.getType().getRealFloat());
 		}
 
-		ImgLib.save(patchImg, "patch-" + offset[0] + "-" + offset[1] + ".jpg");
+		cursor.setPosition(offset);
 
 		return new Patch<T>(patchImg);
 	}
