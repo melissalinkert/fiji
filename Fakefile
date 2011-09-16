@@ -339,6 +339,7 @@ MAINCLASS(jars/javac.jar)=com.sun.tools.javac.Main
 
 CLASSPATH(jars/fiji-scripting.jar)=jars/ij.jar:jars/jython.jar:jars/Fiji.jar:jars/bsh-2.0b4.jar:jars/js.jar
 CLASSPATH(plugins/Refresh_Javas.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/fake.jar:jars/Fiji.jar
+CLASSPATH(plugins/KNN_Segmentation.jar)=jars/ij.jar:jars/imglib-algorithms.jar:jars/imglib-ij.jar:jars/imglib-io.jar:jars/imglib.jar:jars/imglib-scripting.jar:jars/commons-math.jar:jars/Fiji.jar:jars/fiji-lib.jar
 CLASSPATH(plugins/Jython_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/jython.jar
 CLASSPATH(plugins/Clojure_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/clojure.jar
 CLASSPATH(plugins/JRuby_Interpreter.jar)=jars/ij.jar:jars/fiji-scripting.jar:jars/jruby.jar
