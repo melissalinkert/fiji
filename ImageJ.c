@@ -2638,6 +2638,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	else if (handle_one_option(i, argv, "--jar-path", &arg) ||
 			handle_one_option(i, argv, "--jarpath", &arg) ||
 			handle_one_option(i, argv, "-jarpath", &arg)) {
+		// TODO: use ClassLauncher's -ijjarpath. Probably a good idea to replace all "add_option..., 1" by ", 2" and introduce ClassLauncher options as ", 1"
 		struct string *jars = string_init(32);
 		build_classpath_for_string(jars, &arg, 0);
 		if (jars->length)
