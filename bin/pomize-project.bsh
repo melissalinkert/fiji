@@ -84,6 +84,8 @@ String getGroupId(String artifact) {
 		return "junit";
 	if ("jzlib".equals(artifact))
 		return "com.jcraft";
+	if ("javassist".equals(artifact))
+		return "org.javassist";
 	return "fiji";
 }
 
