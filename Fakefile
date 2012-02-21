@@ -471,6 +471,7 @@ CLASSPATH(plugins/Fiji_Package_Maker.jar)=jars/ij.jar:plugins/Fiji_Updater.jar:j
 jars/VIB-lib.jar <- src-plugins/VIB-lib/pom.xml
 jars/fiji-lib.jar <- src-plugins/fiji-lib/pom.xml
 jars/ij-launcher.jar <- src-plugins/ij-launcher/pom.xml
+jars/fiji-compat.jar <- src-plugins/fiji-compat/pom.xml
 
 # pre-Java5 generics ;-)
 

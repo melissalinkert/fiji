@@ -17,6 +17,7 @@
 		<module>VIB-lib</module>
 		<module>fiji-lib</module>
 		<module>ij-launcher</module>
+		<module>fiji-compat</module>
 	</modules>
 
 	<properties>
